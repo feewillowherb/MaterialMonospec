@@ -1,16 +1,22 @@
 version: 1.0
 repo_dir: repos
-commit_when_archive: false
+commit_when_archive: true
 repositories:
-  - path: C:\Users\77162\Documents\Github\feewillowherb\MaterialClient
+  - path: repos/MaterialClient
     url: https://github.com/feewillowherb/MaterialClient.git
     displayName: MaterialClient
     type: Desktop
+    icon: ⚙️
     optional: false
-    tags: []
-  - path: C:\Users\77162\Documents\Github\feewillowherb\UrbanManagement
+    tags:
+      - avalonia
+      - industrial
+  - path: repos/UrbanManagement
     url: https://github.com/feewillowherb/UrbanManagement.git
     displayName: UrbanManagement
     type: WebServer
+    icon: ⚙️
     optional: false
-    tags: []
+    tags:
+      - abp
+      - web
