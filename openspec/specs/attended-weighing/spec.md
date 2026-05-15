@@ -458,3 +458,366 @@
 #### Scenario: Entity search in attended weighing returns all non-WeighingMode-filtered candidates
 - **WHEN** 用户在人工称重流程中打开或搜索 Provider/Material/MaterialUnit 选项
 - **THEN** 系统 MUST 基于既有业务条件返回结果，且 MUST NOT 添加 `WeighingMode` 过滤
+
+---
+
+### Requirement: State transitions follow defined rules
+
+WeighingStateManager SHALL manage an AttendedWeighingStatus state machine with exactly 4 states: OffScale, WaitingForStability, WeightStabilized, WaitingForDeparture. All transitions SHALL follow these rules:
+- OffScale + weight > threshold → WaitingForStability
+- WaitingForStability + weight < threshold → OffScale (abnormal departure)
+- WaitingForStability + stability.IsStable + no existing record → WeightStabilized
+- WeightStabilized + existing record → WaitingForDeparture
+- WeightStabilized + weight < threshold → OffScale (abnormal)
+- WaitingForDeparture + weight < threshold → OffScale (normal completion)
+
+#### Scenario: Truck drives onto scale
+- **WHEN** current state is OffScale and weight exceeds MinWeightThreshold
+- **THEN** state SHALL transition to WaitingForStability
+
+#### Scenario: Truck leaves before weight stabilizes
+- **WHEN** current state is WaitingForStability and weight drops below MinWeightThreshold
+- **THEN** state SHALL transition to OffScale
+
+#### Scenario: Weight stabilizes without existing record
+- **WHEN** current state is WaitingForStability, stability.IsStable is true, and no weighing record has been created (lastCreatedWeighingRecordId is null)
+- **THEN** state SHALL transition to WeightStabilized
+
+#### Scenario: Record created after stabilization
+- **WHEN** current state is WeightStabilized and a weighing record has been created (lastCreatedWeighingRecordId > 0)
+- **THEN** state SHALL transition to WaitingForDeparture
+
+#### Scenario: Truck departs normally
+- **WHEN** current state is WaitingForDeparture and weight drops below MinWeightThreshold
+- **THEN** state SHALL transition to OffScale
+
+#### Scenario: Abnormal departure from WeightStabilized
+- **WHEN** current state is WeightStabilized and weight drops below MinWeightThreshold without creating a record
+- **THEN** state SHALL transition directly to OffScale
+
+---
+
+### Requirement: Force WaitingForDeparture when record exists and weight is above threshold
+
+WeighingStateManager SHALL prevent regression from WaitingForDeparture to WeightStabilized or WaitingForStability when a weighing record already exists and weight remains above threshold.
+
+#### Scenario: State forced to WaitingForDeparture
+- **WHEN** a weighing record exists (recordId > 0), weight > MinWeightThreshold, and computed state is WeightStabilized or WaitingForStability
+- **THEN** state SHALL be forced to WaitingForDeparture
+
+---
+
+### Requirement: Current status query
+
+WeighingStateManager SHALL expose GetCurrentStatus() returning the current AttendedWeighingStatus value synchronously.
+
+#### Scenario: Query current status
+- **WHEN** GetCurrentStatus is called
+- **THEN** SHALL return the most recent status value
+
+---
+
+### Requirement: Status change notification
+
+WeighingStateManager SHALL accept status updates via UpdateStatus(AttendedWeighingStatus) and track previous status for transition detection.
+
+#### Scenario: Status updated with previous tracking
+- **WHEN** UpdateStatus(WaitingForStability) is called from OffScale
+- **THEN** previous status SHALL be OffScale and current status SHALL be WaitingForStability
+
+---
+
+### Requirement: Delivery type management
+
+WeighingStateManager SHALL manage a DeliveryType value (Receiving/Sending) with change notification via ILocalEventBus.
+
+#### Scenario: Delivery type changed
+- **WHEN** SetDeliveryType(Sending) is called and current type is Receiving
+- **THEN** DeliveryTypeChangedEventData SHALL be published via ILocalEventBus
+
+#### Scenario: Delivery type unchanged
+- **WHEN** SetDeliveryType(Receiving) is called and current type is already Receiving
+- **THEN** no event SHALL be published
+
+---
+
+### Requirement: Construct weight stream from raw scale data
+
+WeighingStreamPipeline SHALL create a buffered weight stream (IObservable<decimal>) from ITruckScaleWeightService.WeightUpdates, using Buffer(StabilityCheckIntervalMs) and taking the last value from each buffer.
+
+#### Scenario: Weight stream buffers correctly
+- **WHEN** raw weight updates arrive at intervals shorter than StabilityCheckIntervalMs
+- **THEN** SHALL emit one value per interval window (the last value in the buffer)
+
+---
+
+### Requirement: Construct stability stream with valid-data filtering
+
+WeighingStreamPipeline SHALL create a stability stream (IObservable<WeightStabilityInfo>) that:
+1. Buffers weight data over StabilityWindowMs with StabilityCheckIntervalMs sliding interval
+2. Filters data points above MinWeightThreshold for stability calculation
+3. Requires minimum data points (max(8, windowMs/intervalMs * 0.5))
+4. Determines stability when range (max-min of valid points) <= WeightStabilityThreshold * 2 AND has enough valid data points
+5. Emits DistinctUntilChanged on IsStable property
+
+#### Scenario: Sufficient valid stable data
+- **WHEN** 20 data points arrive within StabilityWindowMs, all above MinWeightThreshold, with range <= threshold*2
+- **THEN** IsStable SHALL be true, StableWeight SHALL be (min+max)/2
+
+#### Scenario: Insufficient valid data points
+- **WHEN** only 3 valid data points arrive within StabilityWindowMs
+- **THEN** IsStable SHALL be false regardless of range
+
+#### Scenario: No valid data points above threshold
+- **WHEN** all data points in the window are below MinWeightThreshold
+- **THEN** IsStable SHALL be false, StableWeight SHALL be null
+
+---
+
+### Requirement: Construct combined status stream
+
+WeighingStreamPipeline SHALL create a status stream by combining weightStream, stabilityStream, recordIdStream, and current status using CombineLatest, applying state transition rules, and emitting DistinctUntilChanged on status.
+
+#### Scenario: Status transition triggered by weight threshold
+- **WHEN** status is OffScale and weight transitions above MinWeightThreshold
+- **THEN** combined stream SHALL emit WaitingForStability
+
+#### Scenario: Status transition triggered by stability
+- **WHEN** status is WaitingForStability and stability.IsStable becomes true and no record exists
+- **THEN** combined stream SHALL emit WeightStabilized
+
+---
+
+### Requirement: Share source stream to avoid multiple subscriptions
+
+WeighingStreamPipeline SHALL use Publish().RefCount() on the raw weight source to ensure only one subscription to ITruckScaleWeightService.WeightUpdates regardless of how many derived streams exist.
+
+#### Scenario: Multiple derived streams from single source
+- **WHEN** weightStream and stabilityStream are both active
+- **THEN** ITruckScaleWeightService.WeightUpdates SHALL have exactly one subscriber
+
+---
+
+### Requirement: StartWith initial values
+
+WeighingStreamPipeline SHALL ensure weight stream starts with 0m and stability stream starts with IsStable=false, to provide immediate initial state to subscribers.
+
+#### Scenario: Immediate initial emission
+- **WHEN** pipeline is constructed and subscribed
+- **THEN** weight stream SHALL emit 0m and stability stream SHALL emit IsStable=false without waiting for data
+
+---
+
+### Requirement: Replay latest stability value
+
+WeighingStreamPipeline SHALL apply Replay(1).RefCount() to the stability stream so new subscribers immediately receive the latest stability state.
+
+#### Scenario: Late subscriber gets latest stability
+- **WHEN** a new subscriber attaches to the stability stream after it has already emitted values
+- **THEN** SHALL immediately receive the most recent WeightStabilityInfo
+
+---
+
+### Requirement: Create weighing record on weight stabilization
+
+WeighingRecordService SHALL create a WeighingRecord entity with the stabilized weight, current plate number from PlateNumberService, current DeliveryType, and WeighingMode from settings. The record SHALL be persisted via IRepository<WeighingRecord, long> within a UnitOfWork.
+
+#### Scenario: Record created with all fields
+- **WHEN** weight stabilizes at 1.5t, plate is "京A12345", DeliveryType is Receiving, WeighingMode is Standard
+- **THEN** SHALL insert WeighingRecord with Weight=1.5t, PlateNumber="京A12345", DeliveryType=Receiving, WeighingMode=Standard
+
+#### Scenario: Record created with no plate number
+- **WHEN** weight stabilizes but no plate has been recognized (plate is null)
+- **THEN** SHALL create record with PlateNumber=null
+
+---
+
+### Requirement: Publish WeighingRecordCreatedEventData after creation
+
+WeighingRecordService SHALL publish WeighingRecordCreatedEventData(weighingRecordId) via ILocalEventBus after successful record creation and UoW completion.
+
+#### Scenario: Event published after record creation
+- **WHEN** a weighing record is created with ID 42
+- **THEN** SHALL publish WeighingRecordCreatedEventData with WeighingRecordId=42
+
+---
+
+### Requirement: Save captured photos as attachments
+
+WeighingRecordService SHALL save captured photo paths as AttachmentFile entities (AttachType.UnmatchedEntryPhoto) linked to the WeighingRecord via WeighingRecordAttachment, using relative paths for database portability.
+
+#### Scenario: Photos saved as attachments
+- **WHEN** 2 photo paths are provided for weighing record ID 42
+- **THEN** SHALL create 2 AttachmentFile entries and 2 WeighingRecordAttachment link entries, converting to relative paths
+
+#### Scenario: Photo file does not exist
+- **WHEN** a photo path in the list does not exist on disk
+- **THEN** SHALL skip that photo and log warning, continue with remaining photos
+
+---
+
+### Requirement: Rewrite plate number on departure
+
+WeighingRecordService SHALL support rewriting the plate number and DeliveryType of the most recently created weighing record when the weighing cycle completes. If EnablePlateRewrite is true and the most frequent plate differs from the record's plate, update the record and publish UpdatePlateNumberEventData.
+
+#### Scenario: Plate number rewritten
+- **WHEN** EnablePlateRewrite=true, record has plate "京A00000", and most frequent plate is "京A12345"
+- **THEN** SHALL update record plate to "京A12345" and publish UpdatePlateNumberEventData
+
+#### Scenario: Plate rewrite disabled
+- **WHEN** EnablePlateRewrite=false
+- **THEN** SHALL skip plate number update and log debug
+
+#### Scenario: Delivery type changed during weighing
+- **WHEN** record has DeliveryType=Receiving but current DeliveryType is Sending
+- **THEN** SHALL update record DeliveryType to Sending
+
+---
+
+### Requirement: Publish TryMatchEvent after rewrite cycle
+
+WeighingRecordService SHALL publish TryMatchEvent(weighingRecordId) via ILocalEventBus after the rewrite cycle completes (whether or not changes were made), to trigger automatic matching.
+
+#### Scenario: TryMatch published with no changes
+- **WHEN** plate and delivery type are unchanged
+- **THEN** SHALL still publish TryMatchEvent with the record ID
+
+---
+
+### Requirement: Prevent duplicate record creation
+
+WeighingRecordService SHALL use a record ID tracker (BehaviorSubject<long?>) to ensure only one weighing record is created per weighing cycle. A null value means no record exists; a non-null value means a record was already created.
+
+#### Scenario: Duplicate creation prevented
+- **WHEN** CreateWeighingRecordAsync is called but recordId is already non-null
+- **THEN** SHALL not create a second record
+
+---
+
+### Requirement: Reset record tracker for new cycle
+
+WeighingRecordService SHALL provide ResetCycle() that clears the record ID tracker to null, enabling a new weighing cycle.
+
+#### Scenario: Cycle reset
+- **WHEN** ResetCycle() is called
+- **THEN** record ID tracker SHALL be set to null
+
+---
+
+### Requirement: Implement IAttendedWeighingService interface
+
+AttendedWeighingOrchestrator SHALL implement IAttendedWeighingService, providing StartAsync(), StopAsync(), GetCurrentStatus(), GetMostFrequentPlateNumber(), SetDeliveryType(), CurrentDeliveryType, and DisposeAsync() by delegating to extracted services.
+
+#### Scenario: Interface methods delegate correctly
+- **WHEN** StartAsync() is called
+- **THEN** SHALL initialize WeighingStreamPipeline, subscribe to ILocalEventBus events, and start the async operation queue
+
+#### Scenario: GetMostFrequentPlateNumber delegates
+- **WHEN** GetMostFrequentPlateNumber() is called
+- **THEN** SHALL return PlateNumberService.GetMostFrequentPlateNumber()
+
+#### Scenario: GetCurrentStatus delegates
+- **WHEN** GetCurrentStatus() is called
+- **THEN** SHALL return WeighingStateManager.GetCurrentStatus()
+
+---
+
+### Requirement: Subscribe to ILocalEventBus external events on StartAsync
+
+AttendedWeighingOrchestrator SHALL subscribe to:
+- LicensePlateRecognizedEventData → delegate to PlateNumberService
+- GhostGateSessionResetEventData → remove abandoned plate and publish updated plate
+- SettingsSavedEventData → refresh runtime configuration (EnableLatestPlateNumber, EnablePlateRewrite)
+
+#### Scenario: License plate event triggers plate cache update
+- **WHEN** LicensePlateRecognizedEventData with plate "京A12345" is received
+- **THEN** SHALL call PlateNumberService recognition method and publish PlateNumberChangedEventData
+
+#### Scenario: Ghost gate session reset
+- **WHEN** GhostGateSessionResetEventData with AbandonedPlateNumber="京A12345" is received
+- **THEN** SHALL remove the plate from cache and publish PlateNumberChangedEventData with updated most frequent plate
+
+#### Scenario: Settings saved refreshes runtime config
+- **WHEN** SettingsSavedEventData is received
+- **THEN** SHALL reload EnableLatestPlateNumber and EnablePlateRewrite from settings
+
+---
+
+### Requirement: Manage async operation queue
+
+AttendedWeighingOrchestrator SHALL provide an async operation queue using Subject<Func<Task>> with Merge(maxConcurrent:5) for executing async side-effects (capture, record creation, cache reset) with retry(3) and error handling.
+
+#### Scenario: Async operation enqueued
+- **WHEN** EnqueueAsyncOperation(operation) is called
+- **THEN** operation SHALL execute within the Merge(5) concurrency limit
+
+#### Scenario: Fallback when stream not initialized
+- **WHEN** EnqueueAsyncOperation is called but async stream is null
+- **THEN** SHALL fall back to Task.Run with try/catch error logging
+
+---
+
+### Requirement: Handle status change side-effects
+
+AttendedWeighingOrchestrator SHALL process status transition side-effects:
+- OffScale → WaitingForStability: trigger Vzvision capture, log entry
+- WaitingForStability → WeightStabilized: create weighing record with stable weight
+- WaitingForStability → OffScale: capture all cameras, reset cycle
+- WeightStabilized → OffScale: trigger capture, reset cycle
+- WaitingForDeparture → OffScale: trigger capture, reset cycle, log completion
+
+#### Scenario: Weight stabilized triggers record creation
+- **WHEN** status transitions from WaitingForStability to WeightStabilized
+- **THEN** SHALL enqueue WeighingRecordService.CreateWeighingRecordAsync with stable weight
+
+#### Scenario: Normal departure resets cycle
+- **WHEN** status transitions from WaitingForDeparture to OffScale
+- **THEN** SHALL enqueue WeighingCaptureService.CaptureOnOffScale, then WeighingRecordService.RewriteAndResetCycle
+
+---
+
+### Requirement: Play audio announcements on status transitions
+
+AttendedWeighingOrchestrator SHALL play audio announcements via ISoundDeviceService for specific transitions:
+- OffScale → WaitingForStability: "车辆已上磅，正在称重"
+- WaitingForDeparture → OffScale: "车辆已下磅，称重已完成"
+- WaitingForStability → OffScale: "车辆已下磅"
+- * → WeightStabilized: "称重已结束"
+
+#### Scenario: Audio played on truck entry
+- **WHEN** status transitions from OffScale to WaitingForStability
+- **THEN** SHALL enqueue ISoundDeviceService.PlayTextV2Async("车辆已上磅，正在称重")
+
+---
+
+### Requirement: Graceful shutdown with pending operation completion
+
+AttendedWeighingOrchestrator SHALL on StopAsync: dispose all Rx subscriptions, complete the async operation stream, and wait up to 5 minutes for pending operations to complete.
+
+#### Scenario: Pending operations complete before shutdown
+- **WHEN** StopAsync is called with 3 pending operations
+- **THEN** SHALL wait for all to complete (up to 5 minutes timeout)
+
+#### Scenario: Timeout on pending operations
+- **WHEN** pending operations do not complete within 5 minutes
+- **THEN** SHALL log warning and proceed with shutdown
+
+---
+
+### Requirement: Idempotent start
+
+AttendedWeighingOrchestrator SHALL ignore duplicate StartAsync() calls if already started.
+
+#### Scenario: Multiple start calls
+- **WHEN** StartAsync() is called twice
+- **THEN** SHALL only initialize streams and subscriptions once
+
+---
+
+### Requirement: Complete resource disposal
+
+AttendedWeighingOrchestrator SHALL on DisposeAsync: call StopAsync, dispose all ILocalEventBus subscriptions, and dispose all internal BehaviorSubjects.
+
+#### Scenario: Full disposal
+- **WHEN** DisposeAsync is called
+- **THEN** all subscriptions SHALL be disposed, all subjects SHALL be completed and disposed
