@@ -23,8 +23,7 @@ MaterialClient 主程序为多页面 + 登录。Urban 为单窗口桌面端，UI
 4. **授权**：`StaticAuthChecker` 在模块 `OnApplicationInitialization` 调用；不向 UI 暴露状态（可选仅 Debug 状态栏文案）。
 5. **顶栏菜单**：Demo 中「系统设置/项目信息/数据同步/退出登录」— Urban 首期隐藏或仅保留设置入口，**禁止**「退出登录」。
 6. **样式**：复用 Demo 中已定义 `Style`（`tab-btn`、`search-btn`、DataGrid 等）或抽到 Urban `App.axaml` Resources。
-
-## UI 布局（摘要）
+7. **设备 ID**：在 `UrbanAppModule` 注册 **`IDeviceIdentityProvider` → `FixedConfigurationDeviceIdentityProvider`**，绑定 `IOptions<UrbanOptions>` 中的 **`FixedDeviceGuid`**；无效 Guid 启动时 **FailFast** 或 Error 日志（OpenSpec 二选一）。
 
 详见 `../../ui-layout-reference.md`。
 

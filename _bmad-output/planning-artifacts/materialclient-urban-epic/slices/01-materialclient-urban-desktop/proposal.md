@@ -9,6 +9,7 @@
 - **`IStaticLicenseChecker`**：启动时读 `LicenseFilePath`，仅日志，**无授权 UI**。
 - **`App.axaml`**：启动后直接打开 **唯一主窗口**（`WeighingSystemWindow` 或 Urban 正式命名），**无** LoginWindow / LicenseWindow / 页面导航壳。
 - 从 **`MaterialClient.Demo/Views/WeighingSystemWindow.axaml`** 迁移布局到 Urban 项目（View + 占位 ViewModel）；精简顶栏：移除「退出登录」等与登录相关项（见 `ui-layout-reference.md`）。
+- 注册 **`IDeviceIdentityProvider`**，首期实现 **`FixedConfigurationDeviceIdentityProvider`**：返回 **`Urban:FixedDeviceGuid`** 配置的 **固定 `Guid`**（OQ-3）；上传与遥测共用。
 - **不**使用 Generic Host 作为交付形态；**不**注册主 MaterialClient 的登录/Session 模块。
 
 ## Capabilities
