@@ -197,9 +197,30 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-config.ps1
 powershell -ExecutionPolicy Bypass -File scripts/validate-migration.ps1
 ```
 
+## OpenSpec 生成位置约束
+
+> **关键规则：所有 OpenSpec 工件必须且只能在 MaterialMonospec 主仓库中生成和管理。**
+
+### 约束说明
+
+- **唯一的 OpenSpec 根目录**：`MaterialMonospec/openspec/` 是本项目唯一的 OpenSpec 工作目录
+- **禁止在子仓库中生成 OpenSpec**：不得在 `repos/` 下的任何子项目（如 `repos/MaterialClient/`、`repos/UrbanManagement/`）中创建或修改 openspec 工件（proposal、design、specs、tasks 等）
+- **子仓库中已有的 openspec 目录**：`repos/` 下子仓库中可能存在历史遗留的 openspec 目录，这些不应再被使用。所有新的变更提案、设计、规范和任务都必须在主仓库的 `openspec/` 目录中创建
+- **变更范围覆盖所有子仓库**：无论变更涉及 MaterialClient、UrbanManagement 还是两者，对应的 OpenSpec 工件都统一在主仓库中管理
+
+### 正确与错误示例
+
+| 场景 | ✅ 正确位置 | ❌ 错误位置 |
+|------|-----------|-----------|
+| 创建变更提案 | `MaterialMonospec/openspec/changes/add-xxx/proposal.md` | `repos/MaterialClient/openspec/changes/add-xxx/proposal.md` |
+| 编写设计文档 | `MaterialMonospec/openspec/changes/add-xxx/design.md` | `repos/UrbanManagement/openspec/changes/add-xxx/design.md` |
+| 管理规范定义 | `MaterialMonospec/openspec/specs/` | `repos/*/openspec/specs/` |
+| 编写实施任务 | `MaterialMonospec/openspec/changes/add-xxx/tasks.md` | `repos/*/openspec/changes/add-xxx/tasks.md` |
+
 ## 最佳实践
 
 - 所有非平凡的变更都应通过 OpenSpec 提案流程
+- **所有 OpenSpec 工件只能在主仓库 `openspec/` 中创建，禁止在 `repos/` 子项目中生成**（参见「OpenSpec 生成位置约束」）
 - 跨仓库的变更应在提案中明确说明影响的子仓库
 - 代码实现完成后，更新 tasks.md 中的完成状态
 - 保持 specs 与代码实现同步
