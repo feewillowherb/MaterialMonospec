@@ -30,8 +30,11 @@ MaterialMonospec/
 │   └── validate-migration.ps1            # 迁移验证
 ├── monospecs.yaml                        # Monospec 配置
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
+├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
+├── _bmad-output/                         # BMAD 规划/实现产出
+├── .agents/skills/                       # Cursor BMAD skills
 ├── AGENTS.md                             # 本文件
-└── .gitignore                            # 排除 repos/
+└── .gitignore                            # 排除 repos/、BMAD 个人配置
 ```
 
 ## Monospec 工作流程
