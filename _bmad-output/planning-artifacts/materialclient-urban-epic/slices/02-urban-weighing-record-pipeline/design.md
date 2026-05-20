@@ -1,31 +1,29 @@
 ## Context
 
-主客户端称重流程可能在重量稳定后触发 waybill 匹对。Urban 必须截断该分支。
+主界面已存在（slice 01）。称重逻辑须驱动 UI 而非 headless 后台。
 
 ## Goals / Non-Goals
 
 **Goals**
 
-- 重量稳定 → 单条 `WeighingRecord` 落库
-- 模式与产品码正确
-- 可自动化测试（无 UI）
+- 重量稳定 → DB 一条 WeighingRecord → 列表刷新
+- 重量区实时显示（绑定 `CurrentWeight`）
+- Mode=201 / ProductCode=5030
 
 **Non-Goals**
 
-- Waybill CRUD、手动匹对窗
-- 上传服务端
+- Waybill、上传 HTTP
 
 ## Decisions
 
-1. **策略模式**：`IWeighingPipelineStrategy.OnWeightStableAsync()` Urban 实现只 `Insert WeighingRecord`。
-2. **守卫**：`if (mode == UrbanMode) return;` 在共享匹对入口，防止误调用。
-3. **Headless 触发**：`UrbanWeighingBackgroundService` 订阅 `IWeightSource` / 现有设备事件总线（ILocalEventBus）。
-4. **实体字段**：复用 `WeighingRecord`；新增或使用现有 `SyncState` 枚举：`Pending` / `Synced` / `Failed`。
-5. **测试**：BDD/集成测试 — Mock 重量 → 断言 DB 一条记录、Mode=201。
+1. **策略**：`UrbanWeighingPipelineStrategy.OnWeightStableAsync` 仅 Insert + 发布 `WeighingRecordCreated` 事件。
+2. **ViewModel**：订阅事件 / ReactiveUI `WhenAnyValue` 刷新 `ObservableCollection` 与选中行。
+3. **列表**：复用 Demo 列（车牌、称重时间、重量、状态）；「审批」按钮 Urban 首期改为「详情」或隐藏，与产品确认。
+4. **筛选**：称重时间、车牌 — 查询本地仓储。
+5. **测试**：ViewModel 单元测试 + 设备 Mock 集成测试。
 
 ## Risks / Trade-offs
 
 | 风险 | 缓解 |
 |------|------|
-| 共享流程隐式依赖 waybill | 代码审查 + Urban 集成测试 |
-| 无 UI 无法现场操作 | 文档说明首期靠设备自动称重或测试钩子 |
+| UI 线程与设备回调 | `ObserveOn(RxApp.MainThreadScheduler)` |

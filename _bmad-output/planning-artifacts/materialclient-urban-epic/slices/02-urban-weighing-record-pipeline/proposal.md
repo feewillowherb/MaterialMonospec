@@ -1,29 +1,29 @@
 ## Why
 
-Urban 采集端只需产生并保存 **WeighingRecord**，不参与运单匹对。需在无 UI 前提下接入称重硬件/重量源，并以 **UrbanMode (201)** 写入记录。
+Urban 桌面端在主界面内展示称重记录并写入 **WeighingRecord**，不参与运单匹对。需将设备重量事件与 **WeighingSystemViewModel**（列表、重量区、状态文案）联动。
 
 ## What Changes
 
-- 实现 **`IUrbanWeighingService`**（或等价应用服务）：创建 `WeighingRecord`，设置 `WeighingMode = UrbanMode`、`ProductCode = 5030`。
-- 注册 **`IWeighingPipelineStrategy`** 的 Urban 实现：**跳过** waybill 匹对、`WeighingMatchingService`、运单同步。
-- 复用现有称重设备/重量读数基础设施（与 MaterialClient 共享 Infrastructure）。
-- 提供 **headless 触发** 机制：集成测试入口、或 `BackgroundService` 订阅重量稳定事件（无 Avalonia ViewModel）。
-- 本地 SQLite 持久化 WeighingRecord；标记同步状态字段（`SyncStatus` / 扩展列，与 slice 03 对齐）。
+- **`IUrbanWeighingService`**：创建 `WeighingRecord`（`WeighingMode = UrbanMode`、`ProductCode = 5030`）。
+- **`IWeighingPipelineStrategy` Urban 实现**：跳过 waybill 匹对。
+- 复用称重设备 / `IWeightSource`；重量稳定后更新主界面大号重量显示与「称重已结束」等状态。
+- **`WeighingSystemViewModel`**：绑定记录列表（Tab：全部/正常/异常）、筛选、分页；数据来自本地 SQLite。
+- 同步状态字段（Pending/Synced/Failed）供 slice 03 上传。
 
 ## Capabilities
 
 ### New Capabilities
 
-- `urban-weighing-record-pipeline`: UrbanMode 下仅 WeighingRecord 的称重管线，无 waybill。
+- `urban-weighing-record-pipeline`: 主界面称重管线 + ViewModel 绑定，无 waybill。
 
 ### Modified Capabilities
 
-- 若存在 `attended-weighing` / 称重匹配相关 spec：明确 **UrbanMode 不调用** 匹对流程（文档 + 代码守卫）。
+- `attended-weighing` 等：UrbanMode **不进入** 匹对流程。
 
 ## Impact
 
 | 范围 | 说明 |
 |------|------|
 | **子仓库** | MaterialClient |
-| **依赖** | slice 01 已完成 Urban 宿主可启动 |
-| **不包含** | HTTP 上传、UrbanManagement API |
+| **依赖** | slice 01 主窗口与 ViewModel 骨架 |
+| **UI** | `WeighingSystemWindow` 列表与重量区 |

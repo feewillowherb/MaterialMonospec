@@ -1,40 +1,28 @@
 # Project Context：materialclient-urban-epic
 
-供 OpenSpec `/opsx:apply` 时加载的实现约束（从 BMAD 规划提取）。
-
 ## 技术栈
 
 | 区域 | 栈 |
 |------|-----|
-| MaterialClient.Urban | C# 13 / .NET 10 / 与 MaterialClient 相同的 ABP + EF Core SQLite + 分层 |
-| UrbanManagement | ABP 10 / .NET 10 / EF Core SQLite / MVC + LayUI |
-| 规范仓库 | MaterialMonospec `openspec/` only |
+| MaterialClient.Urban | C# 13 / .NET 10 / **Avalonia UI 11** / **ReactiveUI** / ABP + EF Core SQLite |
+| UI 草稿 | `MaterialClient.Demo/Views/WeighingSystemWindow.axaml` |
+| UrbanManagement | ABP 10 / .NET 10 / EF Core / MVC + LayUI |
 
 ## 必须遵守
 
-1. **OpenSpec 工件**只写在主仓库 `openspec/changes/<change-id>/`。
-2. **代码**写在 `repos/MaterialClient` 或 `repos/UrbanManagement`，提交在各自子仓库。
-3. **tasks.md** 仅由 OpenSpec 生成，不从 BMAD 拷贝任务列表。
-4. Urban 宿主 **无 Avalonia UI**（首期）；**无登录**；**无 waybill 匹对**。
-5. 常量：**ProductCode = 5030**，**WeighingMode = 201（UrbanMode）**。
-6. 静态授权：**启动时读文件 + 日志**；完整校验留接口占位。
-7. 上传范围：仅 **WeighingRecord** 相关 DTO。
-8. 遵循现有命名：英文标识符、ABP 模块、`Entity<T>`、应用服务 + DTO。
+1. **MaterialClient.Urban 是桌面端**，不是 Generic Host / headless Worker。
+2. **仅一个主界面**（称重系统窗）；**无登录页、无授权页**。
+3. 静态授权：**启动时后台读文件 + 日志**；无授权 UI。
+4. **WeighingMode = 201**、**ProductCode = 5030**；**无 waybill 匹对**。
+5. 上传仅 **WeighingRecord**；OpenSpec 工件仅在主仓库 `openspec/`。
+6. UI 布局遵循 `ui-layout-reference.md`。
 
 ## 禁止
 
-- 在 `repos/` 下创建 `openspec/` 变更目录
-- 使用 BMAD `bmad-dev-story` / `bmad-sprint-planning` 生成实施任务
-- 在 MaterialClient 主宿主默认启用 UrbanMode（除非显式配置）
-- 首期实现完整授权密码学或登录页
-
-## 测试建议
-
-- MaterialClient.Urban：集成测试 — 内存 SQLite + Mock Urban API
-- UrbanManagement：WebApplicationFactory 测试 API 写入与查询
+- 将 Urban 实现为无 UI 的 Host/控制台程序（除非临时 spike，不交付）
+- 添加 LoginWindow、LicenseWindow、多页面 Shell 导航
+- BMAD Phase 4 任务清单；子仓库内建 openspec change
 
 ## 参考
 
-- PRD: `_bmad-output/planning-artifacts/materialclient-urban-epic/prd.md`
-- 架构: `architecture.md`
-- 操作手册: `docs/operation-manual.md`
+- `prd.md`、`architecture.md`、`ui-layout-reference.md`

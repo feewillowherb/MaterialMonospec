@@ -1,107 +1,110 @@
-# PRD：MaterialClient.Urban 城市管理称重上传
+# PRD：MaterialClient.Urban 城市管理称重桌面端
 
 **Epic ID**: `materialclient-urban-epic`  
-**版本**: 0.1（需求初稿）  
+**版本**: 0.2  
 **状态**: 规划完成，待 OpenSpec 衔接  
-**影响子仓库**: MaterialClient（新宿主 `MaterialClient.Urban`）、UrbanManagement
+**影响子仓库**: MaterialClient（新桌面端 `MaterialClient.Urban`）、UrbanManagement
 
 ---
 
 ## 1. 背景与问题
 
-MaterialClient 面向工业材料称重，具备运单匹对、实时授权、完整 UI 等能力。城市管理场景（UrbanManagement）需要**轻量桌面采集端**：仅采集称重记录并上报服务端，**不**做运单匹对、**不**要求登录与实时授权校验，授权通过**静态授权文件**在启动时校验（首期仅日志占位）。
+MaterialClient 面向工业材料称重，具备运单匹对、实时授权、多页面 UI 等能力。城市管理场景（UrbanManagement）需要 **UrbanMode = 201 专用桌面端**：在**单一称重界面**内完成采集与列表查看，将 **WeighingRecord** 上报服务端，**不**做运单匹对、**不**提供登录页与授权页；静态授权文件在**启动时后台校验**（首期仅日志占位）。
 
-UrbanManagement 需掌握各采集端的**设备状态、软件运行状态与错误日志**，用于运维与监管。
+UrbanManagement 需掌握各采集端的**设备状态、软件运行状态与错误日志**。
+
+**UI 布局草稿**：`repos/MaterialClient/MaterialClient.Demo/Views/WeighingSystemWindow.axaml`（详见 `ui-layout-reference.md`）。
 
 ## 2. 目标用户与场景
 
 | 角色 | 场景 |
 |------|------|
-| 现场称重操作员 | 在无完整 MaterialClient UI 的前提下完成称重，数据自动上传 |
+| 现场称重操作员 | 打开应用即进入唯一主界面，查看实时重量与历史称重记录 |
 | 平台运维 | 在 UrbanManagement 查看设备在线/异常、客户端版本与错误日志 |
-| 开发/集成 | 通过 ProductCode、WeighingMode 区分 Urban 产品线，与现有 MaterialClient 配置模式对齐 |
+| 开发/集成 | ProductCode 5030、WeighingMode 201 标识 Urban 产品线 |
 
 ## 3. 产品目标
 
-1. 新增 **MaterialClient.Urban** 可执行宿主，配置体系与 MaterialClient 类似（共享核心库、ABP、SQLite 等模式）。
-2. 仅处理 **WeighingRecord** 称重记录，**不**配对 waybill。
-3. 将称重记录上传至 **UrbanManagement** API 并持久化。
-4. 使用 **ProductCode = 5030**、**WeighingMode = 201（UrbanMode）** 标识 Urban 产品线。
-5. **首期无 UI 页面**；**无登录**；启动时读取并校验静态授权文件（**实现阶段仅打印日志，不阻断或不做真实密码学校验**）。
-6. UrbanManagement 提供设备/软件状态与错误日志的**接收与展示能力**（首期 API + 存储 + 管理端可查；具体 LayUI 页面可后续迭代）。
+1. 新增 **MaterialClient.Urban** — **UrbanMode = 201 专用 Avalonia 桌面应用**（非 Generic Host / 非 headless），配置体系与 MaterialClient 类似。
+2. **仅一个主界面**（称重系统窗），**无登录页、无授权页**；启动后直接显示主窗口。
+3. 仅处理 **WeighingRecord**，**不**配对 waybill。
+4. 上传称重记录至 **UrbanManagement**。
+5. **ProductCode = 5030**、**WeighingMode = 201（UrbanMode）**。
+6. 静态授权：启动时读文件 + 日志占位，**无授权相关 UI**。
+7. UrbanManagement 接收设备/软件状态与错误日志。
 
 ## 4. 非目标（Out of Scope — 首期）
 
-- MaterialClient.Urban 的 Avalonia 业务 UI（菜单、称重界面、设置页等）
+- 多窗口导航、登录 Window、授权配置 Window
 - 用户登录、Session、Token 刷新、实时授权 API 轮询
-- 静态授权文件的完整加解密/签名校验实现（仅校验文件存在性与日志输出）
+- 静态授权文件完整加解密 UI 或签名校验实现（仅后台日志）
 - Waybill 同步、匹对、推荐、SolidWaste 等 MaterialClient 专有流程
-- 上传除 WeighingRecord 以外的实体（Provider、Material、Waybill 等）
+- 上传除 WeighingRecord 以外的实体
 
 ## 5. 功能需求
 
-### FR-1 宿主与配置
+### FR-1 桌面端与配置
 
-- **FR-1.1** 解决方案中新增 `MaterialClient.Urban` 项目，引用与 MaterialClient 相同的核心层（Domain、Application、Infrastructure 等按架构切片落地），独立 `appsettings`、启动入口。
-- **FR-1.2** 默认 **ProductCode = 5030**；称重业务模式为 **WeighingMode = 201（UrbanMode）**。
-- **FR-1.3** 配置项包含 UrbanManagement 基址、设备标识、授权文件路径、上传重试策略等（与 MaterialClient 配置风格一致）。
+- **FR-1.1** 新增 `MaterialClient.Urban` Avalonia 可执行项目，引用共享 Domain/Application/Infrastructure。
+- **FR-1.2** 默认 **ProductCode = 5030**、**WeighingMode = 201（UrbanMode）**。
+- **FR-1.3** 主界面布局以 `WeighingSystemWindow.axaml` 为草稿落地（标题栏、重量区、记录列表、照片侧栏、设备状态栏）。
+- **FR-1.4** 配置：UrbanManagement 基址、设备 ID、授权文件路径、上传重试等。
 
-### FR-2 授权（静态文件）
+### FR-2 授权（静态文件，无 UI）
 
-- **FR-2.1** 应用启动时读取配置的静态授权文件路径。
-- **FR-2.2** 若文件缺失或格式不可读，记录 **Error** 级日志；首期**不**实现完整校验逻辑，**不**要求弹出 UI。
-- **FR-2.3** 若文件存在，记录 **Information** 级日志（含路径、读取成功），**不**在每次上传时重复实时授权。
+- **FR-2.1** 应用启动时（`App` / 模块初始化）读取 `Urban:LicenseFilePath`。
+- **FR-2.2** 缺失或不可读 → Error 日志；存在 → Information 日志。
+- **FR-2.3** **不**提供授权页面；**不**在每次上传时做实时授权。
 
 ### FR-3 称重与数据范围
 
-- **FR-3.1** 仅创建/维护本地 **WeighingRecord**（及称重流程必需的最小依赖，如设备通道、重量读数），**不**调用 waybill 匹对服务。
-- **FR-3.2** WeighingRecord 在 UrbanMode 下写入时携带 ProductCode 5030、WeighingMode 201。
-- **FR-3.3** 称重完成后（或按后台定时）将记录**上传**至 UrbanManagement；失败可重试并写本地同步状态（具体字段在架构/切片 design 中定）。
+- **FR-3.1** 仅 **WeighingRecord**；**不**调用 waybill 匹对。
+- **FR-3.2** 记录携带 ProductCode 5030、WeighingMode 201。
+- **FR-3.3** 主界面列表绑定本地记录；称重完成后上传 UrbanManagement。
 
-### FR-4 上传协议（客户端）
+### FR-4 上传（客户端）
 
-- **FR-4.1** 客户端调用 UrbanManagement 提供的 REST API（ABP 应用服务或 Controller），payload 以 **WeighingRecord** 契约为主。
-- **FR-4.2** 请求携带设备 ID、客户端版本、时间戳等元数据，便于服务端关联设备状态。
+- **FR-4.1** REST 上传 WeighingRecord DTO。
+- **FR-4.2** 请求含 DeviceId、ClientVersion 等元数据。
 
-### FR-5 UrbanManagement 接收与运维可见性
+### FR-5 UrbanManagement
 
-- **FR-5.1** 提供 **接收 WeighingRecord** 的 API，校验必填字段并持久化（新表或扩展现有 Gov 相关模型，在架构中决策）。
-- **FR-5.2** 提供 **设备心跳/状态** 上报 API：设备在线、软件版本、最后活动时间。
-- **FR-5.3** 提供 **错误日志** 上报 API：级别、消息、堆栈（可选）、关联设备。
-- **FR-5.4** 管理端可查询各设备最近状态与错误日志列表（首期可为 API + 简单列表页或复用现有 LayUI 表格模式）。
+- **FR-5.1** 接收并持久化 WeighingRecord。
+- **FR-5.2** 设备心跳/状态 API。
+- **FR-5.3** 错误日志 API。
+- **FR-5.4** 管理端可查询设备与日志。
 
 ## 6. 非功能需求
 
 | 类别 | 要求 |
 |------|------|
-| 可靠性 | 上传失败本地队列/重试，避免静默丢数 |
-| 可观测性 | 客户端与 UrbanManagement 双侧结构化日志 |
-| 安全 | 首期无登录；后续静态授权可升级为签名校验，API 可增加设备密钥 |
-| 兼容 | 不破坏现有 MaterialClient ProductCode/WeighingMode 枚举语义 |
-| 部署 | MaterialClient.Urban 可独立安装；UrbanManagement 独立部署 API |
+| UI | 单主窗口；Avalonia + ReactiveUI；与 MaterialClient 视觉风格一致（Demo 草稿） |
+| 可靠性 | 上传失败重试 |
+| 安全 | 无登录 UI；静态授权后台占位 |
+| 部署 | 独立安装包，与 MaterialClient 主程序分离 |
 
 ## 7. 成功标准
 
-- [ ] `MaterialClient.Urban` 可启动，日志显示授权文件检查结果（占位实现）。
-- [ ] 产生一条 UrbanMode 称重记录并成功上传至 UrbanManagement。
-- [ ] UrbanManagement 可查询该记录及对应设备状态、至少一条错误日志样本。
-- [ ] 现有 MaterialClient 主程序行为无回归（独立宿主）。
+- [ ] 启动后**直接进入**唯一主界面（无登录/授权页）。
+- [ ] 界面布局与 `WeighingSystemWindow` 草稿一致（允许精简顶栏菜单）。
+- [ ] 产生 UrbanMode 称重记录并上传成功。
+- [ ] 底栏设备状态可见；UrbanManagement 可查设备与错误日志。
+- [ ] MaterialClient 主程序无回归。
 
 ## 8. 假设与依赖
 
-- MaterialClient 代码库中已存在 `WeighingRecord` 实体及称重基础设施，Urban 宿主通过**组合/复用**而非复制业务逻辑。
-- UrbanManagement 已具备 ABP + EF Core + SQLite 基础（见 `urbanmanagement-initialization` 归档变更）。
-- 网络为客户端可访问 UrbanManagement 的内网/专线环境。
+- Demo 中 `WeighingSystemWindow` 可迁移为 Urban 正式 View + ViewModel。
+- 共享 `WeighingRecord` 实体与称重设备基础设施。
 
-## 9. 开放问题（建议在 OpenSpec design 阶段闭合）
+## 9. 开放问题
 
-| ID | 问题 | 建议决策方向 |
-|----|------|----------------|
-| OQ-1 | WeighingRecord 上传是实时还是批量？ | 首期：创建后异步单次上传 + 失败重试 |
-| OQ-2 | 无 UI 下如何触发称重？ | 首期：控制台/后台服务模拟或复用最小 headless 称重管线；或保留内部 API 供集成测试 |
-| OQ-3 | 设备 ID 来源？ | 配置文件 + 机器名哈希，与 UrbanManagement 设备注册表对齐 |
-| OQ-4 | GovSyncData 与 WeighingRecord 关系？ | 新建 `UrbanWeighingRecord` 表映射上传字段，避免污染 Gov 历史语义 |
+| ID | 问题 | 状态 |
+|----|------|------|
+| OQ-1 | 上传实时 vs 批量？ | 建议：异步单次 + 重试 |
+| OQ-2 | 称重触发方式？ | **已闭合**：主界面实时重量区 + 设备事件（非 headless） |
+| OQ-3 | 设备 ID 来源？ | 配置 + 机器标识 |
+| OQ-4 | 服务端表结构？ | 新建 `UrbanWeighingRecord`（slice 03） |
 
-## 10. Epic 与 OpenSpec 切片映射（预览）
+## 10. Epic 映射
 
-见同目录 `epic-traceability.md`。
+见 `epic-traceability.md`。

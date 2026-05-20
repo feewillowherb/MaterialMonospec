@@ -21,7 +21,8 @@
 2. **UrbanClientErrorLog**：`DeviceId`、`Level`、`Message`、`Exception`（截断 4KB）、`OccurredAt`。
 3. **心跳 DTO**：DeviceId、Version、Status、OptionalMetrics（CPU 等后续）。
 4. **客户端**：`UrbanTelemetryBackgroundService` 注册到 Host；与 `ILogger` 桥接 — Error+ 自动 enqueue 上报。
-5. **UI**：`Views/Device/Index.cshtml` LayUI 表格，或仅 API + Swagger 首期。
+5. **客户端 UI**：`WeighingSystemWindow` 底栏 `DeviceStatusList` 绑定 `DeviceStatus` 集合（圆点颜色 + 设备名 + 状态文案）。
+6. **服务端 UI**：`Views/Device/Index.cshtml` LayUI 表格，或仅 API 首期。
 
 ## Risks / Trade-offs
 
