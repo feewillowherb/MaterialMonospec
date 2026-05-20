@@ -220,6 +220,30 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-migration.ps1
 | 管理规范定义 | `MaterialMonospec/openspec/specs/` | `repos/*/openspec/specs/` |
 | 编写实施任务 | `MaterialMonospec/openspec/changes/add-xxx/tasks.md` | `repos/*/openspec/changes/add-xxx/tasks.md` |
 
+## OpenSpec 与技术债务
+
+> **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
+
+### 默认不做（无明确要求时）
+
+在 **propose、specs、design、tasks、apply、archive** 全过程中：
+
+- 不将技术债务清理、大范围重构、「顺手」优化写入 `proposal.md` / `design.md` / `tasks.md`
+- 不借机修改与当前 change **Why / What Changes** 无关的代码、目录结构或命名
+- 不在 apply 阶段以「提高质量」「统一风格」「顺便整理」为由扩大实现范围
+
+### 仅在以下情况可包含技术债务
+
+- 用户在对话或需求中**明确要求**处理某项技术债务；或
+- **proposal.md** 的 What Changes / Capabilities / Impact 中**明确列出**该技术债务项
+
+若技术债务工作量大或与业务变更可分离，应**单独创建 change**（如 `refactor-*`），不要塞进当前功能 change。
+
+### 发现技术债务时
+
+- 可在对话中**简短备注**（可选），但不要自动加入当前 change 的 tasks
+- 建议用户另开 change 或记入 backlog，待显式授权后再走 OpenSpec
+
 ## 最佳实践
 
 - 所有非平凡的变更都应通过 OpenSpec 提案流程
@@ -230,3 +254,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-migration.ps1
 - 变更名称使用动词引导（add-、update-、remove-、refactor-）
 - 归档前确认所有任务已完成
 - 定期运行验证脚本确保配置正确
+- **无明确要求时，OpenSpec 不处理技术债务**（参见「OpenSpec 与技术债务」）
