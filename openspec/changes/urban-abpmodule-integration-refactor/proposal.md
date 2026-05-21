@@ -8,7 +8,7 @@ MaterialClient.Urban 是一个独立的桌面客户端，当前使用手动 `Ser
 - **将 IUrbanWeighingService 合并到 ISettingsService**：当前 `IUrbanWeighingService` 仅暴露两个静态属性（`WeighingMode.UrbanMode`、`ProductCode.Urban`）。将 ProductCode 的查询/设置合并到 `ISettingsService`，然后完全移除 `IUrbanWeighingService`。
 - **移除重复的实体模型**：Urban 的 `Models/WeighingRecord.cs` 和 `Models/DeviceStatus.cs` 以更简化的形式重复了 Common 实体。替换为 Common 实体（`MaterialClient.Common.Entities.WeighingRecord`），在需要时使用适当的映射。
 - **重命名 WeighingSystemWindow → UrbanAttendedWeighingWindow**：重命名窗口、ViewModel、code-behind 及所有引用。与 MaterialClient 的 `AttendedWeighingWindow` 命名模式对齐。
-- **对齐窗口布局与 MaterialClient 的 AttendedWeighingWindow**：重构四行布局（标题栏 / 重量区 / 内容+照片 / 状态栏），使其与 MaterialClient 的结构一致。用 MaterialClient 的共享样式类（`primary-button`、`titlebar-close-button`、`card-border` 等）替换内联的暗色主题样式。
+- **对齐窗口与 MaterialClient 一致**：重构四行布局（标题栏 / 重量区 / 内容区 / 状态栏），使标题栏、重量区、状态栏、共享样式与 MaterialClient 完全一致。仅记录列表（主内容区）和照片区保留 Urban 原有设计，其余全部对齐 MaterialClient。用 MaterialClient 的共享样式类（`primary-button`、`titlebar-close-button`、`card-border` 等）替换内联的暗色主题样式。
 - **修复 ViewModel 以使用 ReactiveUI Source Generators**：当前 `WeighingSystemViewModel` 已使用 `[AutoConstructor]` 和手动的 `RaiseAndSetIfChanged`，但 Models 仍使用 `INotifyPropertyChanged`。消除本地 Models，改用 Common 实体。
 
 ## Capabilities
@@ -46,26 +46,26 @@ MaterialClient.Urban 是一个独立的桌面客户端，当前使用手动 `Ser
 │                                              状态: 等待上磅     │  ← Row 1: 重量显示区 (#4A85F9 渐变)
 │              12,345 吨                                         │
 │                                                                │
-├──────────────┬──────────────────────────────┬───────────────────┤
-│ 记录列表      │  [重量区 / 主内容区]          │  照片区           │  ← Row 2: 内容区
-│ (280px)      │  (*)                          │  (360px)         │
-│              │                               │                  │
-│ ┌──────────┐│                               │ ┌──────────────┐ │
-│ │ Tab: 全部 ││                               │ │ 车牌识别抓拍  │ │
-│ │ Tab: 正常 ││                               │ │              │ │
-│ │ Tab: 异常 ││                               │ └──────────────┘ │
-│ └──────────┘│                               │ ┌──────────────┐ │
-│ [搜索栏]    │                               │ │ 摄像头抓拍    │ │
-│ ┌──────────┐│                               │ │              │ │
-│ │ 记录 1   ││                               │ └──────────────┘ │
-│ │ 记录 2   ││                               │                  │
-│ │ 记录 3   ││                               │                  │
-│ └──────────┘│                               │                  │
-│ 分页控件    │                               │                  │
-├──────────────┴──────────────────────────────┴───────────────────┤
+├────────────────────────────────────────┬─────────────────────────┤
+│ 记录列表（主内容区）                     │  照片区                │  ← Row 2: 内容区
+│ (*)                                    │  (360px)               │
+│                                        │                        │
+│ ┌──────────────────────────────────┐  │ ┌────────────────────┐ │
+│ │ Tab: 全部  │  Tab: 正常  │ 异常  │  │ │ 车牌识别抓拍        │ │
+│ └──────────────────────────────────┘  │ │                    │ │
+│ [搜索栏]                              │ └────────────────────┘ │
+│ ┌──────────────────────────────────┐  │ ┌────────────────────┐ │
+│ │ 记录 1                           │  │ │ 摄像头抓拍          │ │
+│ │ 记录 2                           │  │ │                    │ │
+│ │ 记录 3                           │  │ └────────────────────┘ │
+│ └──────────────────────────────────┘  │                        │
+│ 分页控件                              │                        │
+├────────────────────────────────────────┴─────────────────────────┤
 │ ● 地磅: 在线  ● 摄像头: 在线  ● 车牌识别: 离线                 │  ← Row 3: 状态栏 (#F5F5F5)
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+> **对齐原则**：Urban 与 MaterialClient 的差异仅限于记录列表（主内容区）和照片区，保留 Urban 原有交互。其余所有区域（标题栏、重量显示区、状态栏、共享样式、ABP 模块架构、服务模式）必须与 MaterialClient 保持一致。
 
 ## 用户交互流程
 

@@ -34,11 +34,13 @@
 
 ## 5. 样式对齐与布局重构
 
+> **对齐原则**：除记录列表（主内容区）和照片区保留 Urban 原有设计外，其余所有区域（标题栏、重量显示区、状态栏、边框样式、按钮样式）必须与 MaterialClient 保持一致。
+
 - [ ] 5.1 更新 `App.axaml`，引入 MaterialClient 共享样式资源（颜色画刷、按钮样式、card-border、section-border、DataGrid 样式）
 - [ ] 5.2 移除 `UrbanAttendedWeighingWindow.axaml` 中所有内联 `Window.Styles`（约 130 行自定义的 header-menu-btn、titlebar-btn、tab-btn 等）
 - [ ] 5.3 应用 MaterialClient 共享样式类：标题栏按钮使用 `titlebar-close-button`、`titlebar-minimize-button`、`popup-menu-item-button`
 - [ ] 5.4 操作按钮（搜索、审批）应用 `primary-button` 样式，Tab 导航使用 `tab-button` / `tab-button.active`
-- [ ] 5.5 将布局从两列（内容 + 照片）重构为三列（记录列表 280px + 主内容区 * + 照片区 360px），匹配 AttendedWeighingWindow
+- [ ] 5.5 保留 Urban 原有两列布局（记录列表 * + 照片区 360px），记录列表即为主内容区，不引入 AttendedWeighingWindow 的三列结构（无独立详情面板）
 - [ ] 5.6 标题栏背景从 `#0F172A`（暗色）改为 `#4169E1`（MaterialClient 蓝色），重量区从 `#1E293B` 改为 `#4A85F9` 渐变
 - [ ] 5.7 状态栏背景从 `#1E293B` 改为 `#F5F5F5`（与 MaterialClient 一致）
 - [ ] 5.8 内容区域边框应用 `card-border` 和 `section-border` 样式

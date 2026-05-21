@@ -46,7 +46,7 @@ MaterialClient.Urban/
 **Goals:**
 - 将 ABP 模块化架构集成到 Urban 中，实现服务复用
 - 通过直接使用 Common 实体消除重复的实体模型
-- 对齐窗口布局和样式与 MaterialClient 的 `AttendedWeighingWindow` 模式
+- 对齐窗口与 MaterialClient 一致：标题栏、重量显示区、状态栏、共享样式全部与 MaterialClient 保持一致；仅记录列表（主内容区）和照片区保留 Urban 原有设计
 - 将窗口重命名为 `UrbanAttendedWeighingWindow` 以保持命名一致性
 - 将 `IUrbanWeighingService` 的职责合并到 `ISettingsService`
 
@@ -147,11 +147,13 @@ WeighingMode.UrbanMode → ProductCode.Urban (5030)
 
 ### Decision 5：窗口重命名和布局对齐
 
-**选择**：重命名为 `UrbanAttendedWeighingWindow` + `UrbanAttendedWeighingViewModel`。重构布局以匹配 `AttendedWeighingWindow` 的三列四行模式。
+**选择**：重命名为 `UrbanAttendedWeighingWindow` + `UrbanAttendedWeighingViewModel`。保留 Urban 原有的两列布局（记录列表 + 照片区），不引入 AttendedWeighingWindow 的三列结构（记录列表 + 主内容区 + 照片区）。标题栏、重量显示区、状态栏的视觉样式与 MaterialClient 完全一致。
 
-**理由**："WeighingSystem" 含义模糊。"UrbanAttendedWeighing" 与 MaterialClient 的 "AttendedWeighing" 命名镜像一致，明确表达用途。布局应使用相同的 Grid 结构以保持视觉一致性。
+**对齐原则**：除记录列表（主内容区）和照片区保留 Urban 原有设计外，其余所有区域（标题栏、重量显示区、状态栏、边框样式、按钮样式）必须与 MaterialClient 保持一致，最大化视觉和行为的一致性。
 
-**布局结构**（匹配 AttendedWeighingWindow）：
+**理由**："WeighingSystem" 含义模糊。"UrbanAttendedWeighing" 与 MaterialClient 的 "AttendedWeighing" 命名镜像一致，明确表达用途。Urban 没有独立的主内容区（详情面板），记录列表即为主内容，保留原有样式。
+
+**布局结构**（Urban 两列模式，与 AttendedWeighingWindow 三列模式不同）：
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ Row 0: 标题栏 (#4169E1)              [最小化] [关闭]          │
@@ -159,22 +161,26 @@ WeighingMode.UrbanMode → ProductCode.Urban (5030)
 ├──────────────────────────────────────────────────────────────┤
 │ Row 1: 重量显示区 (#4A85F9 渐变)                                │
 │  重量（大字体）| 状态文字                                       │
-├────────────┬────────────────────────┬────────────────────────┤
-│ Col 0      │ Col 1                  │ Col 2                  │
-│ 280px      │ * (弹性)                │ 360px                  │
-│            │                        │                        │
-│ 记录列表    │ [主内容区]              │ PhotoGridView          │
-│ + 筛选器   │ (称重记录               │ (车牌识别抓拍 +         │
-│ + 分页     │  详情视图)              │  摄像头抓拍)            │
-├────────────┴────────────────────────┴────────────────────────┤
+├──────────────────────────────────────┬───────────────────────┤
+│ Col 0                                │ Col 1                  │
+│ * (弹性)                              │ 360px                  │
+│                                      │                        │
+│ 记录列表（主内容区）                   │ PhotoGridView          │
+│ + Tab 筛选（全部/正常/异常）          │ (车牌识别抓拍 +         │
+│ + 搜索栏                              │  摄像头抓拍)            │
+│ + 分页控件                            │                        │
+├──────────────────────────────────────┴───────────────────────┤
 │ Row 3: 状态栏 (#F5F5F5)                                        │
 │  ● 设备状态                                                   │
 └──────────────────────────────────────────────────────────────┘
+
+注意：Urban 不设独立的主内容区（详情面板）。记录列表即为主内容，
+保留 Urban 原有的 Tab 筛选 + 搜索 + 分页交互模式。
 ```
 
 ### Decision 6：样式迁移
 
-**选择**：用 MaterialClient 的 `App.axaml` 共享样式类替换 Urban 的内联 `Window.Styles`。使用 `primary-button`、`titlebar-close-button`、`titlebar-minimize-button`、`card-border`、`section-border` 等。
+**选择**：用 MaterialClient 的 `App.axaml` 共享样式类替换 Urban 的内联 `Window.Styles`。使用 `primary-button`、`titlebar-close-button`、`titlebar-minimize-button`、`card-border`、`section-border` 等。确保除记录列表和照片区外的所有视觉元素与 MaterialClient 一致。
 
 **理由**：Urban 当前定义了约 130 行内联样式。MaterialClient 在 `App.axaml` 中有全面的全局样式。通过引用相同的样式类，Urban 获得一致的视觉效果，未来的样式更新会自动传播。
 
@@ -206,7 +212,7 @@ WeighingMode.UrbanMode → ProductCode.Urban (5030)
 2. **阶段 2 — 服务合并**：扩展 `ISettingsService` 添加 `GetProductCodeAsync()`，删除 `IUrbanWeighingService` + `UrbanWeighingService`，更新 ViewModel 使用 `ISettingsService`。
 3. **阶段 3 — 移除重复模型**：删除 `Models/`，将 XAML 绑定更新为 Common 实体属性。
 4. **阶段 4 — 窗口重命名**：将所有文件和引用从 `WeighingSystem*` 重命名为 `UrbanAttendedWeighing*`。
-5. **阶段 5 — 样式对齐**：用共享的 MaterialClient 样式类替换内联样式，重构布局以匹配 AttendedWeighingWindow。
+5. **阶段 5 — 样式对齐**：用共享的 MaterialClient 样式类替换内联样式，保留 Urban 原有的两列布局（记录列表 + 照片区），不引入三列结构。
 
 **回滚策略**：每个阶段可通过 git 独立回滚。阶段 1 是基础 — 如果 ABP 初始化失败，回滚到手动 ServiceCollection。
 
