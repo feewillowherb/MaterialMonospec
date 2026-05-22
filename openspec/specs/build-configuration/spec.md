@@ -61,3 +61,17 @@
 - **则** PackageReference 不得包含 Version 属性
 - **且** 版本应从 `Directory.Packages.props` 解析
 - **除非** 该包未在 `Directory.Packages.props` 中定义（项目专用包）
+
+### 需求：MaterialClient src/tests 目录布局下的构建脚本路径
+
+采用 `src/` 与 `tests/` 解决方案布局的仓库（如 MaterialClient 重构后），根目录构建与打包脚本 MUST 保持有效，且项目与发布输出路径 MUST 与 `src` 布局一致。
+
+#### 场景：Directory.Build.props 在 src 与 tests 下生效
+- **当** 项目位于 `src/**` 或 `tests/**`
+- **则** 根目录 `Directory.Build.props` MUST 仍被这些项目自动导入
+- **且** 除非明确需要，否则不得在 `src/` 内重复放置 `Directory.Build.props`
+
+#### 场景：Inno Setup 与 publish 路径对齐 src 布局
+- **当** 维护 `MaterialClient.iss` 或 `MaterialClient.Urban.iss`
+- **则** 脚本中的 `SourceDir` 与资源路径 MUST 使用 `src\<ProjectName>\...`
+- **且** 脚本中的 `dotnet publish` MUST 使用 `src/<ProjectName>/<ProjectName>.csproj` 项目路径
