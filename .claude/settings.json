@@ -1,0 +1,13 @@
+{
+    "permissions": {
+      "allow": [
+        {"tool": "Bash", "prompt": "run git *"},
+        {"tool": "Bash", "prompt": "run openspec *"},
+        {"tool": "Bash", "prompt": "run mkdir *"},
+        {"tool": "Bash", "prompt": "run ls *"},
+        {"tool": "Edit", "prompt": "edit *"},
+        {"tool": "Write", "prompt": "write *"}
+      ]
+    }
+  }
+  
