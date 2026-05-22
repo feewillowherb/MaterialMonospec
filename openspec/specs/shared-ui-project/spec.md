@@ -33,7 +33,7 @@ MaterialClient.UI MUST be a buildable Avalonia class library project targeting `
 - **AND** it SHALL enable `EnableAvaloniaXamlCompilation`
 
 ### Requirement: Shared theme resource dictionary
-MaterialClient.UI MUST contain a centralized theme resource dictionary (`SharedTheme.axaml`) that defines all shared color resources, brush resources, and style classes used across MaterialClient and MaterialClient.Urban.
+MaterialClient.UI MUST contain a centralized theme resource dictionary (`SharedTheme.axaml`) that defines all shared color resources, brush resources, and style classes used across MaterialClient and MaterialClient.Urban. MaterialClient.UI MUST also provide `SharedConverters.axaml` for shared Avalonia value converter registration, loadable via the same StyleInclude mechanism as SharedTheme.
 
 #### Scenario: Named color resources
 - **WHEN** SharedTheme.axaml is loaded
@@ -61,6 +61,11 @@ MaterialClient.UI MUST contain a centralized theme resource dictionary (`SharedT
 - **THEN** it SHALL import SharedTheme.axaml as a merged resource dictionary
 - **AND** the app MAY override specific resources after the import
 
+#### Scenario: Shared converters import
+- **WHEN** an app's App.axaml loads
+- **THEN** it SHALL import SharedConverters.axaml (in addition to SharedTheme.axaml)
+- **AND** `{StaticResource CarNullOrEmptyImageConverter}` SHALL be available application-wide without per-app converter registration blocks
+
 ### Requirement: MaterialClient.UI directory structure
 MaterialClient.UI MUST follow a consistent directory structure for organizing controls, view models, styles, and abstractions.
 
@@ -71,3 +76,4 @@ MaterialClient.UI MUST follow a consistent directory structure for organizing co
 - **AND** SHALL contain `Styles/` directory for shared theme resources
 - **AND** SHALL contain `Abstractions/` directory for interfaces
 - **AND** SHALL contain `Models/` directory for data types
+- **AND** SHALL contain `Converters/` directory for shared value converters
