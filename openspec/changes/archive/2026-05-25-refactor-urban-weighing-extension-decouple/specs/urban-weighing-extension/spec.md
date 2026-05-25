@@ -1,8 +1,4 @@
-## Purpose
-
-Defines the Urban Weighing Extension entity pattern that extends base `WeighingRecord` with Urban-specific properties (sync status, retry tracking). Association to the parent record is by scalar `WeighingRecordId` only—no EF navigation properties and no database foreign-key constraints—enabling clean separation of mode-specific concerns and explicit lifecycle control via `IUrbanWeighingExtensionService`.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Urban weighing extension entity
 The system SHALL provide an `UrbanWeighingExtension` entity that stores Urban-specific properties for weighing records. Association to `WeighingRecord` SHALL be expressed only as a scalar `WeighingRecordId` (`long`) without Entity Framework navigation properties on either entity and without database foreign-key constraints.
@@ -79,6 +75,8 @@ The system SHALL provide Urban list, filter, and background-worker queries throu
 - **THEN** the query MUST filter `UrbanWeighingExtension` where `SyncStatus == Pending`
 - **AND** the query MUST utilize the composite index on `(SyncStatus, WeighingRecordId)` for performance
 
+## ADDED Requirements
+
 ### Requirement: Urban extension domain service
 The system SHALL provide `IUrbanWeighingExtensionService` as a Domain Service in `MaterialClient.Common` to own all create, read, and update operations on `UrbanWeighingExtension` and to orchestrate association with `WeighingRecord` by `WeighingRecordId`.
 
@@ -96,49 +94,3 @@ The system SHALL provide `IUrbanWeighingExtensionService` as a Domain Service in
 - **WHEN** `WeighingRecordService` creates an Urban mode weighing record
 - **THEN** it MUST persist the `WeighingRecord` and obtain its `Id` before calling `IUrbanWeighingExtensionService`
 - **AND** it MUST NOT insert `UrbanWeighingExtension` via `IRepository<UrbanWeighingExtension>` directly
-
-### Requirement: Data migration preservation
-The system SHALL preserve existing `SyncStatus` values when migrating from the old `WeighingRecord.SyncStatus` column to the new extension table pattern.
-
-#### Scenario: Migration data transfer
-- **WHEN** the database migration executes
-- **THEN** all existing `WeighingRecord` rows with `WeighingMode == UrbanMode` MUST have their `SyncStatus` value copied to a new `UrbanWeighingExtension` row
-- **AND** the new extension row MUST reference the correct `WeighingRecord.Id` as `WeighingRecordId`
-
-#### Scenario: Backward compatibility preservation
-- **WHEN** the migration completes
-- **THEN** the old `SyncStatus` column MUST remain in the `WeighingRecords` table (SQLite does not support DROP COLUMN)
-- **AND** the application code MUST ignore the old column and use the extension table exclusively
-
-#### Scenario: Migration rollback capability
-- **WHEN** a migration rollback is executed
-- **THEN** the `UrbanWeighingExtensions` table MUST be dropped
-- **AND** the old `SyncStatus` column data MUST remain intact for continued operation
-
-### Requirement: Type safety and compile-time checking
-The system SHALL provide compile-time type safety for Urban-specific weighing record properties through strong typing rather than dictionary-based storage.
-
-#### Scenario: Strong-typed property access
-- **WHEN** application code accesses Urban-specific properties
-- **THEN** properties MUST be accessed as strongly-typed members (e.g., `extension.SyncStatus`)
-- **AND** properties MUST NOT be accessed through string-based dictionary lookups (e.g., `ExtraProperties["SyncStatus"]`)
-
-#### Scenario: Compiler validation
-- **WHEN** code is compiled
-- **THEN** references to Urban-specific properties MUST be validated at compile-time
-- **AND** typos or missing properties MUST cause compilation errors rather than runtime failures
-
-### Requirement: Extension entity isolation and organization
-The system SHALL organize Urban-specific domain entities within a dedicated folder structure in `MaterialClient.Common` to provide clear ownership boundaries.
-
-#### Scenario: Folder organization
-- **WHEN** Urban-specific entities are organized
-- **THEN** `UrbanWeighingExtension` MUST reside in `MaterialClient.Common/Entities/Urban/` directory
-- **AND** the namespace MUST be `MaterialClient.Common.Entities.Urban`
-- **AND** the `SyncStatus` enum MUST remain in `MaterialClient.Common/Entities/Enums/` (shared location)
-
-#### Scenario: DbContext unity
-- **WHEN** the `MaterialClientDbContext` is configured
-- **THEN** it MUST include a `DbSet<UrbanWeighingExtension>` property
-- **AND** Fluent API configuration MUST reside in the same `OnModelCreating` method
-- **AND** no separate DbContext or module replacement MUST be required
