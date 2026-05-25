@@ -190,6 +190,130 @@ repositories:                # 子仓库列表
 - **技术栈**：ABP Framework / .NET
 - **用途**：城市管理 Web 应用
 
+## 代码架构约束
+
+> **关键规则：ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据。**
+
+### Repository 访问约束
+
+**禁止在 ViewModels 中直接使用 Repository**
+
+- **原因**：ViewModels 无法创建和管理 UnitOfWork，直接使用 Repository 会导致事务管理问题
+- **正确做法**：所有 Repository 访问必须通过 Service 层进行
+- **架构层级**：View → ViewModel → Service → Repository → DbContext
+
+### Service 层要求
+
+**Service 方法必须使用 UnitOfWork 修饰**
+
+- **数据变更方法**：任何涉及数据写入的 Service 方法必须使用 `[UnitOfWork]` 特性修饰
+- **事务边界**：UnitOfWork 自动管理事务开始、提交和回滚
+- **异常处理**：方法中的异常会自动触发事务回滚
+
+**Service 创建规则**
+
+- 如果需要访问 Repository 但没有对应的 Service，必须创建新的 Service 类
+- Service 通过构造函数注入所需的 Repository
+- Service 实现应该使用 `ITransientDependency` 或 `ISingletonDependency` 标记
+
+### 正确与错误示例
+
+| 场景 | ❌ 错误做法 | ✅ 正确做法 |
+|------|-----------|-----------|
+| ViewModel 查询数据 | `var records = await _repository.GetListAsync()` | `var records = await _myService.GetRecordsAsync()` |
+| ViewModel 保存数据 | `await _repository.InsertAsync(entity)` | `await _myService.CreateRecordAsync(dto)` |
+| Service 定义 | 直接在 ViewModel 中实现业务逻辑 | 创建 `IMyService` 接口和 `MyService` 实现 |
+| 事务管理 | 不使用 UnitOfWork 特性 | `[UnitOfWork] public async Task CreateAsync()` |
+| 数据访问模式 | ViewModel → Repository | ViewModel → Service → Repository |
+
+### 实现示例
+
+**正确的 Service 层实现**：
+
+```csharp
+// Service 接口
+public interface IWeighingRecordService : ITransientDependency
+{
+    Task<List<WeighingRecord>> GetRecordsByStatusAsync(SyncStatus status);
+    Task<WeighingRecord> CreateAsync(CreateWeighingRecordDto dto);
+}
+
+// Service 实现
+public class WeighingRecordService : IWeighingRecordService
+{
+    private readonly IRepository<WeighingRecord, long> _repository;
+    private readonly IUnitOfWorkManager _unitOfWorkManager;
+
+    public WeighingRecordService(
+        IRepository<WeighingRecord, long> repository,
+        IUnitOfWorkManager unitOfWorkManager)
+    {
+        _repository = repository;
+        _unitOfWorkManager = unitOfWorkManager;
+    }
+
+    [UnitOfWork]
+    public async Task<List<WeighingRecord>> GetRecordsByStatusAsync(SyncStatus status)
+    {
+        return await _repository
+            .Where(r => r.SyncStatus == status)
+            .ToListAsync();
+    }
+
+    [UnitOfWork]
+    public async Task<WeighingRecord> CreateAsync(CreateWeighingRecordDto dto)
+    {
+        var record = new WeighingRecord
+        {
+            PlateNumber = dto.PlateNumber,
+            TotalWeight = dto.TotalWeight,
+            SyncStatus = SyncStatus.Pending
+        };
+
+        await _repository.InsertAsync(record);
+        return record;
+    }
+}
+```
+
+**正确的 ViewModel 使用**：
+
+```csharp
+public class UrbanAttendedWeighingViewModel : ViewModelBase
+{
+    private readonly IWeighingRecordService _weighingRecordService;
+
+    public UrbanAttendedWeighingViewModel(IWeighingRecordService weighingRecordService)
+    {
+        _weighingRecordService = weighingRecordService;
+    }
+
+    public async Task LoadRecordsAsync()
+    {
+        // ✅ 正确：通过 Service 访问数据
+        var records = await _weighingRecordService.GetRecordsByStatusAsync(SyncStatus.Pending);
+        Records.AddRange(records);
+    }
+}
+```
+
+### 违反约束的后果
+
+- **事务管理混乱**：直接使用 Repository 可能导致数据不一致
+- **业务逻辑分散**：业务逻辑散落在 ViewModels 中，难以测试和复用
+- **违反 DDD 原则**：破坏了领域驱动设计的分层架构
+- **测试困难**：ViewModel 直接依赖 Repository 使得单元测试复杂化
+
+### 检查清单
+
+在代码审查时，确认以下内容：
+
+- [ ] ViewModel 中没有直接注入 `IRepository<TEntity, TKey>`
+- [ ] ViewModel 中没有调用 `GetListAsync()`, `InsertAsync()`, `UpdateAsync()` 等 Repository 方法
+- [ ] 所有数据访问都通过相应的 Service 接口进行
+- [ ] Service 中涉及数据写入的方法都使用了 `[UnitOfWork]` 特性
+- [ ] Service 的构造函数只注入 Repository 和其他服务，不注入 ViewModel
+
 ## 工具和验证
 
 ```bash
@@ -255,3 +379,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-migration.ps1
 - 归档前确认所有任务已完成
 - 定期运行验证脚本确保配置正确
 - **无明确要求时，OpenSpec 不处理技术债务**（参见「OpenSpec 与技术债务」）
+- **ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据**（参见「代码架构约束」）
