@@ -4,6 +4,13 @@
 
 MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（工业材料称重桌面应用）和 UrbanManagement（城市管理 Web 应用）两个子仓库的 OpenSpec 文档。所有变更的 proposal、design、specs、tasks 在主仓库中创建和管理，代码实现仍在各自的子仓库中进行。
 
+## 子仓库 AGENTS
+
+在 `repos/` 下编写或修改代码前，须读取对应子仓库的 `AGENTS.md`：
+
+- `repos/MaterialClient/AGENTS.md`
+- `repos/UrbanManagement/AGENTS.md`
+
 ## 目录结构
 
 ```
