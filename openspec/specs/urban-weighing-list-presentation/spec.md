@@ -19,12 +19,20 @@ The Urban attended weighing UI SHALL bind list rows to `UrbanWeighingListItemDto
 - **AND** the ViewModel MUST NOT expose a property named `WeighingRecords` bound to entities for this list
 
 ### Requirement: Urban list UI binding
-The Urban attended weighing window SHALL bind `ItemsControl` (or equivalent list) to `ListItems` and use compile-time `DataTemplate` typing against the list item DTO.
+The Urban attended weighing window SHALL bind a `ListBox` (replacing the previous `ItemsControl`) to `ListItems` and use compile-time `DataTemplate` typing against the list item DTO. The `ListBox.SelectedItem` SHALL be two-way bound to `SelectedListItem` on the ViewModel.
 
 #### Scenario: ItemsSource binding
 - **WHEN** the vehicle records list is rendered
 - **THEN** `ItemsSource` MUST bind to `{Binding ListItems}`
+- **AND** `SelectedItem` MUST bind to `{Binding SelectedListItem, Mode=TwoWay}`
 - **AND** row templates MUST bind to DTO scalar properties without referencing `UrbanExtension` navigation paths
+
+#### Scenario: ListBox custom styling
+- **WHEN** the `ListBox` renders in the weighing window
+- **THEN** the `ListBox` MUST have transparent background and zero border thickness
+- **AND** `ListBoxItem` containers MUST have no default selection chrome, focus ring, or border
+- **AND** `ListBoxItem` horizontal content alignment MUST be `Stretch` to fill the row width
+- **AND** row separators MUST be rendered via `BorderThickness="0,0,0,1"` and `BorderBrush="#F1F5F9"` on the `ListBoxItem`
 
 #### Scenario: Primary status badge from IsAnomaly
 - **WHEN** a list row is displayed
@@ -43,8 +51,14 @@ The Urban attended weighing window SHALL bind `ItemsControl` (or equivalent list
 
 #### Scenario: Row selection for sidebar
 - **WHEN** the user selects a list row
-- **THEN** the ViewModel MUST store the selected `UrbanWeighingListItemDto` (or its `WeighingRecordId`)
+- **THEN** the ViewModel MUST store the selected `UrbanWeighingListItemDto` (via `ListBox.SelectedItem` two-way binding)
 - **AND** photo path loading MUST use `WeighingRecordId` from the DTO, not a `WeighingRecord` entity instance from the list
+
+#### Scenario: Action column contains interactive Button
+- **WHEN** a list row renders the action column
+- **THEN** the column MUST contain a `Button` element with text "审批"
+- **AND** the Button MUST be bound to `ApproveRecordCommand` on the parent ViewModel
+- **AND** the Button click MUST NOT propagate as a row selection event
 
 ### Requirement: Packaged list query input from ViewModel
 The ViewModel SHALL construct a single input DTO when calling the Urban extension service for paged list data.
