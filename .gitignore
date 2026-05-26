@@ -1,4 +1,5 @@
 repos/
+_temp/
 
 # BMAD — 个人作用域配置（安装器按用户再生，不入库）
 _bmad/**/config.user.toml
