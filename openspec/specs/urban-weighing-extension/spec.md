@@ -14,11 +14,13 @@ The system SHALL provide an `UrbanWeighingExtension` entity that stores Urban-sp
 - **AND** it MUST contain a `SyncStatus` property of type `SyncStatus` enum
 - **AND** it MUST contain a `RetryCount` property of type `int` for tracking upload retry attempts
 - **AND** it MUST contain a `LastErrorTime` property of type `DateTime?` for recording last failure timestamp
+- **AND** it MUST contain an `IsAnomaly` property of type `bool` for marking anomalous weighing records
+- **AND** `IsAnomaly` 默认值 MUST 为 `false`
 
 #### Scenario: Optional extension per record
 - **WHEN** a `WeighingRecord` exists without an extension row
 - **THEN** the system MUST allow the record to exist without requiring an `UrbanWeighingExtension` row
-- **AND** `WeighingRecord` MUST NOT expose a mapped `UrbanExtension` navigation property
+- **AND** the navigation property `UrbanExtension` on `WeighingRecord` MUST be nullable
 
 ### Requirement: Database relationship configuration
 The system SHALL persist `UrbanWeighingExtension` in its own table with indexes for lookup and worker queries. The database MUST NOT declare a foreign-key constraint from `UrbanWeighingExtensions.WeighingRecordId` to `WeighingRecords.Id`. Entity Framework Core MUST NOT configure `HasOne`, `WithOne`, or `HasForeignKey` between these entities.
@@ -37,6 +39,7 @@ The system SHALL persist `UrbanWeighingExtension` in its own table with indexes 
 - **WHEN** database indexes are created for the `UrbanWeighingExtension` table
 - **THEN** a unique index MUST exist on `WeighingRecordId`
 - **AND** a composite index MUST exist on `(SyncStatus, WeighingRecordId)` for efficient background worker queries
+- **AND** an index MUST exist on `IsAnomaly` for efficient tab filtering queries
 
 ### Requirement: Urban extension creation lifecycle
 The system SHALL create an `UrbanWeighingExtension` row when an Urban mode weighing record is created. Creation and association MUST be performed by `IUrbanWeighingExtensionService` (Domain Service), not by EF navigation or database cascades. The parent `WeighingRecord` MUST be persisted and assigned a non-zero `Id` before the extension row is inserted.
