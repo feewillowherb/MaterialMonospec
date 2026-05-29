@@ -84,7 +84,7 @@ Implement tasks from an OpenSpec change.
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: suggest archive
+   - If all done: suggest `/opsx-verify-agents` then archive
    - If paused: explain why and wait for guidance
 
 **Output During Implementation**
@@ -115,7 +115,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete! Ready to archive this change.
+All tasks complete! Run `/opsx-verify-agents` to check AGENTS.md compliance, then archive.
 ```
 
 **Output On Pause (Issue Encountered)**

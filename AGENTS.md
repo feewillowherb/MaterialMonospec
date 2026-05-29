@@ -349,6 +349,13 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-config.ps1
 
 # 验证迁移完整性
 powershell -ExecutionPolicy Bypass -File scripts/validate-migration.ps1
+
+# 验证 OpenSpec 实现是否符合 AGENTS.md（归档前建议执行）
+# Cursor: /opsx-verify-agents <change-name>
+powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.ps1 `
+  -ChangeName "<change-name>" `
+  -FileListPath ".cursor/.opsx-verify-<change-name>-files.txt" `
+  -Repos "MaterialClient,UrbanManagement"
 ```
 
 ## OpenSpec 生成位置约束
