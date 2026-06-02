@@ -49,3 +49,71 @@ The database SHALL have indexes on `GovProject.BuildLicenseNo` and `GovProject.F
 #### Scenario: Index creation
 - **WHEN** the EF Core model is configured
 - **THEN** indexes SHALL be created on both `BuildLicenseNo` and `FdBuildLicenseNo` columns of the `Gov_Project` table
+
+### Requirement: DTO mapping for government projects
+The system SHALL provide `GovProjectDto` with entity mapping methods for data transfer operations.
+
+#### Scenario: FromEntity mapping
+- **WHEN** calling `GovProjectDto.FromEntity(entity)`
+- **THEN** system creates DTO with all entity properties mapped correctly
+- **AND** handles nullable properties appropriately
+
+#### Scenario: ToEntity mapping for creation
+- **WHEN** calling `GovProjectCreateDto.ToEntity()`
+- **THEN** system creates new GovProject entity with provided properties
+- **AND** generates new Guid for Id
+
+### Requirement: ApplicationService inheritance for project operations
+The system SHALL implement `GovProjectAppService` inheriting from `ApplicationService` to handle project CRUD operations.
+
+#### Scenario: Service registration
+- **WHEN** `GovProjectAppService` is defined as class inheriting `ApplicationService`
+- **THEN** ABP automatically registers HTTP endpoints for all public methods
+- **AND** generates Swagger documentation
+- **AND** applies ABP conventions for routing
+
+#### Scenario: Method naming convention
+- **WHEN** service methods are named with `Async` suffix (e.g., `GetListAsync`, `CreateAsync`)
+- **THEN** ABP generates HTTP endpoints following RESTful conventions
+- **AND** maps HTTP verbs appropriately (GET for queries, POST for creation)
+
+### Requirement: DTO mapping for sync data and logs
+The system SHALL provide DTO classes with entity mapping methods for sync data and logs.
+
+#### Scenario: FromEntity mapping for sync data
+- **WHEN** calling `GovSyncDataDto.FromEntity(entity)`
+- **THEN** system creates DTO with all entity properties mapped correctly
+- **AND** handles JSON serialization of SourceData field
+
+#### Scenario: FromEntity mapping for sync logs
+- **WHEN** calling `GovLogDto.FromEntity(entity)`
+- **THEN** system creates DTO with all entity properties mapped correctly
+- **AND** includes error information if present
+
+### Requirement: ApplicationService inheritance for sync data operations
+The system SHALL implement `GovSyncDataAppService` inheriting from `ApplicationService` to handle sync data query operations.
+
+#### Scenario: Service registration
+- **WHEN** `GovSyncDataAppService` is defined as class inheriting `ApplicationService`
+- **THEN** ABP automatically registers HTTP endpoints for all public methods
+- **AND** generates Swagger documentation
+- **AND** applies ABP conventions for routing
+
+#### Scenario: Method naming convention
+- **WHEN** service methods are named with `Async` suffix (e.g., `GetListAsync`)
+- **THEN** ABP generates HTTP endpoints following RESTful conventions
+- **AND** maps HTTP verbs appropriately (GET for queries)
+
+### Requirement: Legacy API compatibility
+The system SHALL maintain compatibility with legacy government client API through a controller wrapper.
+
+#### Scenario: Legacy request processing
+- **WHEN** legacy client submits request to legacy endpoint
+- **THEN** `LegacyApiController` receives the request
+- **AND** delegates processing to `LegacyGovSyncAppService`
+- **AND** returns response in legacy format
+
+#### Scenario: Legacy sync result format
+- **WHEN** `LegacyGovSyncAppService` processes request
+- **THEN** returns `LegacyGovSyncResult` with success flag, message, and status code
+- **AND** maintains compatibility with existing client expectations

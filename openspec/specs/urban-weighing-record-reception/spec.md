@@ -84,3 +84,30 @@ UrbanManagement SHALL 提供 `IUrbanWeighingRecordAppService` 处理称重记录
 - **THEN** SHALL 创建新 UrbanWeighingRecord
 - **AND** SHALL 设置 AddTime = DateTime.Now
 - **AND** SHALL 返回新记录 Id
+
+### Requirement: DTO mapping for urban weighing records
+The system SHALL provide DTO classes with entity mapping methods for weighing records.
+
+#### Scenario: FromEntity mapping for output
+- **WHEN** calling `UrbanWeighingRecordOutputDto.FromEntity(entity)`
+- **THEN** system creates DTO with all entity properties mapped correctly
+- **AND** includes attachment information if present
+
+#### Scenario: ToEntity mapping for input
+- **WHEN** calling `UrbanWeighingRecordDto.ToEntity()`
+- **THEN** system creates new UrbanWeighingRecord entity with provided properties
+- **AND** preserves ClientRecordId for deduplication
+
+### Requirement: ApplicationService inheritance for weighing record operations
+The system SHALL implement `UrbanWeighingRecordAppService` inheriting from `ApplicationService` to handle weighing record operations.
+
+#### Scenario: Service registration
+- **WHEN** `UrbanWeighingRecordAppService` is defined as class inheriting `ApplicationService`
+- **THEN** ABP automatically registers HTTP endpoints for all public methods
+- **AND** generates Swagger documentation
+- **AND** applies ABP conventions for routing
+
+#### Scenario: Method naming convention
+- **WHEN** service methods are named with `Async` suffix (e.g., `GetListAsync`)
+- **THEN** ABP generates HTTP endpoints following RESTful conventions
+- **AND** maps HTTP verbs appropriately (GET for queries, POST for creation)
