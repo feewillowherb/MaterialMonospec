@@ -27,11 +27,11 @@ UrbanManagement SHALL 提供 `POST /api/urban/weighing-records` 端点，接收 
 
 ### Requirement: 称重记录 DTO 格式
 
-UrbanManagement SHALL 定义称重记录接收 DTO，包含 MaterialClient 传输的必要字段。
+UrbanManagement SHALL 定义称重记录接收 DTO，包含 MaterialClient 传输的必要字段。`TotalWeight` 字段 MUST 以**千克（kg）**表示；MaterialClient 在构建 DTO 前 MUST 将本地吨值换算为千克。
 
 #### Scenario: DTO 包含必要字段
 - **WHEN** MaterialClient 构建称重记录 DTO
-- **THEN** DTO SHALL 包含以下字段：ClientRecordId (long)、PlateNumber (string?)、TotalWeight (decimal)、WeighingTime (DateTime)、SyncType (int?)
+- **THEN** DTO SHALL 包含以下字段：ClientRecordId (long)、PlateNumber (string?)、TotalWeight (decimal, **kg**)、WeighingTime (DateTime)、SyncType (int?)
 
 ### Requirement: 查询称重记录 API 端点
 
@@ -60,7 +60,7 @@ UrbanManagement SHALL 定义 `UrbanWeighingRecord` 实体，映射到 `Urban_Wei
   - Id (long, 自增主键)
   - ClientRecordId (long, 客户端记录 ID，唯一索引)
   - PlateNumber (string?)
-  - TotalWeight (decimal)
+  - TotalWeight (decimal, 千克)
   - WeighingTime (DateTime)
   - AddTime (DateTime, 服务端入库时间)
   - SyncType (int?)
