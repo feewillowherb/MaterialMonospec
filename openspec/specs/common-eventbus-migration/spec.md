@@ -2,7 +2,7 @@
 
 ## Purpose
 
-规范 `MaterialClient.Common` 层服务从 MessageBus 迁移到 ABP ILocalEventBus 的架构要求，确保 Common 层不直接依赖 UI 层的 MessageBus，同时通过 ViewModel 层桥接保持现有业务功能完整。
+规范 `MaterialClient.Common` 层服务从 MessageBus 迁移到 ABP ILocalEventBus 的架构要求，确保 Common 层与 ViewModel 层均通过 `ILocalEventBus` 直接通信，禁止桥接回流 MessageBus。
 
 ## Requirements
 
@@ -66,21 +66,21 @@
 - **THEN** 每个 EventData 类 MUST 继承自 ABP `EventData`
 - **AND** 每个 EventData 类 MUST 包含对应 Message 类的所有业务属性
 
-### Requirement: ViewModel 层桥接 EventHandler 将 EventData 中转到 MessageBus
+### Requirement: ViewModel 层禁止桥接 EventHandler 将 EventData 中转到 MessageBus
 
-ViewModel 层 MUST 创建 ABP `ILocalEventHandler<T>` 实现，将 Common 层的 `ILocalEventBus` 事件中转到 `MessageBus.Current.SendMessage()`，使现有 ViewModel 的 `MessageBus` 订阅行为保持不变。
+ViewModel 层 MUST 直接消费 ABP `ILocalEventBus` 事件，不得创建“`ILocalEventHandler<T>` 转 `MessageBus.Current.SendMessage()`”的桥接器。现有 UI 事件订阅行为 MUST 通过 `ILocalEventBus` 直接实现并保持业务结果一致。
 
-#### Scenario: 桥接 EventHandler 正确转发车牌识别事件
+#### Scenario: 车牌识别事件不再通过桥接转发
 
 - **WHEN** Common 层通过 `ILocalEventBus` 发布 `LicensePlateRecognizedEventData`
-- **THEN** ViewModel 层的桥接 EventHandler MUST 将其转换为 `LicensePlateRecognizedMessage` 并通过 `MessageBus.Current.SendMessage()` 发布
-- **AND** 现有 ViewModel 的 `MessageBus.Current.Listen<LicensePlateRecognizedMessage>()` 订阅 MUST 继续正常工作
+- **THEN** ViewModel 层 MUST 直接通过 `ILocalEventBus` 订阅并处理该事件
+- **AND** MUST NOT 通过桥接器转换为 `LicensePlateRecognizedMessage` 再转发
 
-#### Scenario: 桥接 EventHandler 正确转发匹对成功事件
+#### Scenario: 匹对成功事件不再通过桥接转发
 
 - **WHEN** Common 层通过 `ILocalEventBus` 发布 `MatchSucceededEventData`
-- **THEN** ViewModel 层的桥接 EventHandler MUST 将其转换为 `MatchSucceededMessage` 并通过 `MessageBus.Current.SendMessage()` 发布
-- **AND** ViewModel 层的匹对成功 UI 更新 MUST 继续正常工作
+- **THEN** ViewModel 层 MUST 直接通过 `ILocalEventBus` 订阅并更新 UI
+- **AND** MUST NOT 存在 `MatchSucceededEventData -> MatchSucceededMessage` 的桥接转换链路
 
 ### Requirement: 手动匹对业务功能保持完整
 
@@ -89,7 +89,7 @@ ViewModel 层 MUST 创建 ABP `ILocalEventHandler<T>` 实现，将 Common 层的
 #### Scenario: 手动匹对执行成功后 UI 收到通知
 
 - **WHEN** 用户在 UI 上执行手动匹对操作（调用 `WeighingMatchingService.ManualMatchAsync`）
-- **THEN** 匹对成功后 ViewModel 层 MUST 通过 MessageBus 收到 `MatchSucceededMessage`
+- **THEN** 匹对成功后 ViewModel 层 MUST 通过 `ILocalEventBus` 收到 `MatchSucceededEventData`
 - **AND** UI MUST 正确显示匹对结果（运单关联更新、状态变更等）
 
 ### Requirement: SDK 回调线程安全
