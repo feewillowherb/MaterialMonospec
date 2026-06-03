@@ -16,26 +16,26 @@ When implementing this change, apply the guess-governance principles to:
 
 ## 1. Backend Infrastructure - DTOs and Models
 
-- [ ] 1.1 Create `DeviceStatusListRequestDto.cs` in `UrbanManagement.Core/Models`
+- [x] 1.1 Create `DeviceStatusListRequestDto.cs` in `UrbanManagement.Core/Models`
   - Add properties: ClientId (string?), DeviceType (string?), Status (string?), SkipCount (int), MaxResultCount (int)
   - Follow ABP DTO naming conventions
 
-- [ ] 1.2 Create `DeviceStatusQueryDto.cs` in `UrbanManagement.Core/Models`
+- [x] 1.2 Create `DeviceStatusQueryDto.cs` in `UrbanManagement.Core/Models`
   - Add properties: ClientId, DeviceType, Status, LastUpdateTime, AdditionalData
   - Implement static method `FromMessage(DeviceStatusMessage message)` for mapping
   - Follow ABP DTO naming conventions
 
-- [ ] 1.3 Create `PagedResultDto<DeviceStatusQueryDto>` (if not already exists)
+- [x] 1.3 Create `PagedResultDto<DeviceStatusQueryDto>` (if not already exists)
   - Add properties: Items (List), TotalCount (long)
   - Follow ABP PagedResultDto pattern
 
 ## 2. Backend Services - Device Status Query
 
-- [ ] 2.1 Create `IDeviceStatusQueryService.cs` interface in `UrbanManagement.Core/Services`
+- [x] 2.1 Create `IDeviceStatusQueryService.cs` interface in `UrbanManagement.Core/Services`
   - Inherit from `IApplicationService`
   - Add method signature: `Task<PagedResultDto<DeviceStatusQueryDto>> GetDeviceStatusListAsync(DeviceStatusListRequestDto input)`
 
-- [ ] 2.2 Create `DeviceStatusQueryService.cs` implementation in `UrbanManagement.Core/Services`
+- [x] 2.2 Create `DeviceStatusQueryService.cs` implementation in `UrbanManagement.Core/Services`
   - Inherit from `ApplicationService` and implement `IDeviceStatusQueryService`
   - Apply `[AutoConstructor]` attribute and `partial class` modifier
   - Inject `IDistributedCache` and `ILogger<DeviceStatusQueryService>` as private readonly fields
@@ -46,39 +46,39 @@ When implementing this change, apply the guess-governance principles to:
     - Apply pagination (SkipCount, MaxResultCount)
     - Return paged result
 
-- [ ] 2.3 Implement cache reading logic in `DeviceStatusQueryService`
+- [x] 2.3 Implement cache reading logic in `DeviceStatusQueryService`
   - Implement `GetAllDeviceStatusFromCacheAsync` private method
   - Iterate through all cache keys matching pattern `device_status_cache:*`
   - Deserialize cached JSON to `List<DeviceStatusMessage>`
   - Handle deserialization failures gracefully (log warning and skip)
 
-- [ ] 2.4 Add device type validation constants
+- [x] 2.4 Add device type validation constants
   - Add static readonly HashSet with valid device types: "Scale", "Camera", "LPR", "Sound", "Printer"
   - Use in filter validation and error messages
 
-- [ ] 2.5 Register service in ABP module
+- [x] 2.5 Register service in ABP module
   - Ensure `DeviceStatusQueryService` is registered as transient dependency via `[AutoConstructor]`
   - Verify no manual registration required in Module (ABP implicit registration)
 
 ## 3. Backend Controllers
 
-- [ ] 3.1 Create `DeviceManagementController.cs` in `UrbanManagement.App/Controllers`
+- [x] 3.1 Create `DeviceManagementController.cs` in `UrbanManagement.App/Controllers`
   - Inherit from `AbpController` (not `Controller`)
   - Add route attribute: `[Route("DeviceManagement")]`
   - Add `Index()` action returning ViewResult for main page
   - Add constructor (if needed for dependency injection)
 
-- [ ] 3.2 Add navigation menu item
+- [x] 3.2 Add navigation menu item
   - Edit `Views/Shared/_Layout.cshtml`
   - Add new menu item: `<a class="nav-link text-dark" asp-area="" asp-controller="DeviceManagement" asp-action="Index">Device Management</a>`
   - Position after "Project" menu item
 
 ## 4. Frontend Views - Main Page
 
-- [ ] 4.1 Create `DeviceManagement` folder in `Views`
+- [x] 4.1 Create `DeviceManagement` folder in `Views`
   - Create directory: `Views/DeviceManagement/`
 
-- [ ] 4.2 Create `Index.cshtml` main page
+- [x] 4.2 Create `Index.cshtml` main page
   - Set layout to `_Layout`
   - Set page title: "设备管理"
   - Add Bootstrap card structure
@@ -87,39 +87,39 @@ When implementing this change, apply the guess-governance principles to:
   - Add pagination control at bottom
   - Add real-time update indicator with SignalR connection status
 
-- [ ] 4.3 Implement filter form UI
+- [x] 4.3 Implement filter form UI
   - Use Bootstrap form classes (`row`, `g-3`, `col-md-*`, `form-select`, `form-control`)
   - Add device type dropdown options: All, Scale (地磅), Camera (摄像头), LPR (车牌识别), Sound (音响), Printer (打印机)
   - Add status dropdown options: All, Online (在线), Offline (离线), Busy (忙碌)
   - Add ClientId text input with placeholder
   - Add Search button with Bootstrap icon (`bi bi-search`)
 
-- [ ] 4.4 Implement table UI
+- [x] 4.4 Implement table UI
   - Use Bootstrap table classes (`table`, `table-hover`, `table-responsive`)
   - Add table header with column names
   - Add table body with `id="deviceStatusTableBody"`
   - Add loading row: `<td colspan="5">加载中...</td>`
   - Add pagination nav with `id="pagination"`
 
-- [ ] 4.5 Add SignalR connection status indicator
+- [x] 4.5 Add SignalR connection status indicator
   - Add badge element for connection status (green ● for connected, red ● for disconnected)
   - Add "Last Heartbeat" timestamp display
   - Position in card title area
 
 ## 5. Frontend JavaScript - Query Logic
 
-- [ ] 5.1 Add jQuery document ready handler
+- [x] 5.1 Add jQuery document ready handler
   - Wrap all JavaScript code in `$(document).ready()` function
   - Initialize global variables: currentPage, pageSize, totalCount
 
-- [ ] 5.2 Implement `loadDeviceStatusList()` function
+- [x] 5.2 Implement `loadDeviceStatusList()` function
   - Build request object with current filters and pagination
   - Call `GET /api/app/device-status/get-list` with `$.ajax()`
   - Handle success: call `renderTable()` and `renderPagination()`
   - Handle error: show error alert with message from response
   - Show/hide loading overlay
 
-- [ ] 5.3 Implement `renderTable(items)` function
+- [x] 5.3 Implement `renderTable(items)` function
   - Clear existing table body (`$('#deviceStatusTableBody').empty()`)
   - Handle empty items case: show "暂无数据" row
   - Loop through items and append rows to table
@@ -127,88 +127,88 @@ When implementing this change, apply the guess-governance principles to:
   - Use `getDeviceTypeLabel(deviceType)` to get device type label
   - Use `formatDateTime(timestamp)` to format time
 
-- [ ] 5.4 Implement `renderPagination()` function
+- [x] 5.4 Implement `renderPagination()` function
   - Calculate total pages from totalCount and pageSize
   - Add "Previous" button (disabled if on first page)
   - Add page number buttons (highlight current page)
   - Add "Next" button (disabled if on last page)
   - Add total count info text
 
-- [ ] 5.5 Implement `getStatusBadge(status)` helper function
+- [x] 5.5 Implement `getStatusBadge(status)` helper function
   - Return green badge (`bg-success`) for "Online"
   - Return red badge (`bg-danger`) for "Offline"
   - Return yellow badge (`bg-warning`) for "Busy"
   - Include emoji: 🟢、🔴、🟡
 
-- [ ] 5.6 Implement `getDeviceTypeLabel(deviceType)` helper function
+- [x] 5.6 Implement `getDeviceTypeLabel(deviceType)` helper function
   - Return localized labels: "地磅 (Scale)" for "Scale", etc.
 
-- [ ] 5.7 Implement `formatDateTime(timestamp)` helper function
+- [x] 5.7 Implement `formatDateTime(timestamp)` helper function
   - Parse timestamp to Date object
   - Return "刚刚" if within 1 minute
   - Return "X分钟前" if within 1 hour
   - Return full datetime string otherwise
 
-- [ ] 5.8 Implement filter form submit handler
+- [x] 5.8 Implement filter form submit handler
   - Bind `$('#filterForm').on('submit', function(e) { ... })`
   - Prevent default form submission
   - Update current filter values from form inputs
   - Reset currentPage to 1
   - Call `loadDeviceStatusList()`
 
-- [ ] 5.9 Implement pagination click handlers
+- [x] 5.9 Implement pagination click handlers
   - Bind click event to page links
   - Update currentPage from clicked page number
   - Call `loadDeviceStatusList()`
 
 ## 6. Frontend SignalR Integration
 
-- [ ] 6.1 Add SignalR JavaScript library reference
+- [x] 6.1 Add SignalR JavaScript library reference
   - Add CDN script: `https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js`
   - Place in `@section Scripts` block
 
-- [ ] 6.2 Initialize SignalR connection
+- [x] 6.2 Initialize SignalR connection
   - Create connection: `new signalR.HubConnectionBuilder().withUrl("/hubs/devicestatus").withAutomaticReconnect().build()`
   - Add logging: `.configureLogging(signalR.LogLevel.Information)`
 
-- [ ] 6.3 Subscribe to device type updates
+- [x] 6.3 Subscribe to device type updates
   - Define device types array: `["Scale", "Camera", "LPR", "Sound", "Printer"]`
   - Loop through device types and call `connection.invoke("SubscribeDeviceUpdates", deviceType)`
   - Handle subscription errors with console error logging
 
-- [ ] 6.4 Handle "DeviceStatusUpdate" event
+- [x] 6.4 Handle "DeviceStatusUpdate" event
   - Register handler: `connection.on("DeviceStatusUpdate", (message) => { ... })`
   - Call `updateDeviceStatusRow(message)` to update table
   - Call `updateLastHeartbeat(message.timestamp)` to update heartbeat display
 
-- [ ] 6.5 Implement `updateDeviceStatusRow(message)` function
+- [x] 6.5 Implement `updateDeviceStatusRow(message)` function
   - Generate row ID: `device-${message.clientId}-${message.deviceType}`
   - Check if row exists in table
   - If exists: update row data using `updateRowData(row, message)`
   - If not exists: create new row using `createDeviceStatusRow(message)` and append to table
 
-- [ ] 6.6 Implement `createDeviceStatusRow(message)` function
+- [x] 6.6 Implement `createDeviceStatusRow(message)` function
   - Build table row HTML with message data
   - Use helper functions for status badge, device type label, time formatting
   - Return jQuery object for the row
 
-- [ ] 6.7 Implement `updateRowData(row, message)` function
+- [x] 6.7 Implement `updateRowData(row, message)` function
   - Find cells by index or class
   - Update status cell with new status badge
   - Update time cell with formatted timestamp
   - Update additional data cell
 
-- [ ] 6.8 Implement `updateLastHeartbeat(timestamp)` function
+- [x] 6.8 Implement `updateLastHeartbeat(timestamp)` function
   - Format timestamp to relative time ("刚刚", "X秒前")
   - Update `#lastHeartbeat` element text
   - Store last heartbeat time for connection status indicator
 
-- [ ] 6.9 Handle SignalR lifecycle events
+- [x] 6.9 Handle SignalR lifecycle events
   - Handle `connection.start()` success: log "SignalR 连接成功", call `loadDeviceStatusList()`
   - Handle `connection.start()` failure: log error, show connection status as disconnected
   - Handle reconnection events: log reconnecting, update connection status indicator
 
-- [ ] 6.10 Update connection status indicator
+- [x] 6.10 Update connection status indicator
   - Create function to update status badge based on connection state
   - Green badge (`bg-success`) for connected
   - Red badge (`bg-danger`) for disconnected
@@ -217,23 +217,23 @@ When implementing this change, apply the guess-governance principles to:
 
 ## 7. Error Handling and Edge Cases
 
-- [ ] 7.1 Handle query API errors
+- [x] 7.1 Handle query API errors
   - Add error handler in `loadDeviceStatusList()` AJAX call
   - Display error message using `alert()` or Bootstrap alert
   - Hide loading overlay on error
 
-- [ ] 7.2 Handle SignalR connection errors
+- [x] 7.2 Handle SignalR connection errors
   - Add catch block for `connection.start()`
   - Log error to console
   - Update connection status indicator to "disconnected"
   - Implement fallback polling (optional): `setInterval` to query every 30 seconds
 
-- [ ] 7.3 Handle empty query results
+- [x] 7.3 Handle empty query results
   - In `renderTable()`, check if items array is empty
   - Show "暂无数据" row with colspan=5
   - Hide pagination control
 
-- [ ] 7.4 Handle invalid filter inputs
+- [x] 7.4 Handle invalid filter inputs
   - Add client-side validation for filter inputs (optional)
   - Server-side validation in `DeviceStatusQueryService`
   - Return 400 Bad Request for invalid device types or status values
