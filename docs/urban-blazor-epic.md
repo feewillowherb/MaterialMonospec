@@ -1,4 +1,8 @@
-# UrbanManagement 前端框架技术方案：ABP Blazor UI 迁移分析
+# UrbanManagement ABP Blazor 迁移 Epic
+
+> **文档类型**: Epic 级别任务总览  
+> **作用范围**: UrbanManagement 前端框架迁移  
+> **执行方式**: 拆分为 4 个 OpenSpec 变更（遵循 guess-governance 原则）
 
 ## 文档信息
 
@@ -9,6 +13,23 @@
   2. 完全 AI 工程化
 - **当前技术栈**: ASP.NET Core MVC + jQuery + Bootstrap 5 + LayUI
 - **目标技术栈**: ABP Framework 10 + Blazor Server + LeptonX Lite
+- **Epic 类型**: 架构迁移（Infrastructure Migration）
+- **相关 OpenSpec 变更**: 
+  - `add-abp-blazor-core` (Core tier)
+  - `validate-abp-blazor-assumptions` (Assumption-Validation tier)
+  - `migrate-urban-to-abp-blazor` (Full tier)
+  - `abp-blazor-quality-hardening` (Quality-Delivery tier)
+
+## 文档说明
+
+**本文档不是可执行的 proposal**，而是：
+
+1. **Epic 总览**: 描述整个迁移的战略分析和方案设计
+2. **决策依据**: 为拆分出的 4 个 OpenSpec 变更提供背景和技术依据
+3. **技术参考**: 包含详细的技术分析、案例和最佳实践
+4. **变更拆分**: 第 7.5 节详细说明了如何遵循 guess-governance 原则拆分为 4 个变更
+
+**执行方式**: 不要直接执行本文档，而是按照第 7.5 节的拆分，依次创建和执行 4 个 OpenSpec 变更。
 
 ---
 
@@ -1104,6 +1125,349 @@ ABP Blazor 开发：
 | 第三方依赖 | 高 | 低（ABP 内置） | -70% |
 | 类型安全 | 部分 | 完全 | +100% |
 | 单元测试覆盖 | 30% | 85% | +183% |
+
+---
+
+### 7.5 OpenSpec 变更拆分（遵循 Guess-Governance 原则）
+
+#### 7.5.1 拆分原则
+
+根据 [guess-governance](../guess-governance-draft.md) 原则，**一个变更对应一个 delivery tier**，将整个 ABP Blazor 迁移拆分为 4 个 OpenSpec 变更：
+
+```
+变更序列：
+Core → Assumption-Validation → Full → Quality-Delivery
+```
+
+#### 7.5.2 拆分过程
+
+##### Step 1: 识别 Facts（核心述求）
+
+从用户需求中提取的 **Facts**：
+- **Fact-1**: 前后端不分离（统一 C# 技术栈）
+- **Fact-2**: 完全 AI 工程化（最大化 AI 辅助效率）
+- **Fact-3**: 基于 ABP Framework 10（充分利用现有基础设施）
+- **Fact-4**: LeptonX Lite 主题（免费版本，现代化 UI）
+- **Fact-5**: 渐进式迁移策略（保持系统稳定性）
+
+##### Step 2: 识别 Assumptions（需要验证的假设）
+
+| ID | Assumption | L-level | Risk | 验证方法 |
+|----|------------|---------|------|---------|
+| A-01 | ABP Blazor Server 性能满足内网管理系统需求 | L2 | 15 | 负载测试 |
+| A-02 | SignalR 连接在局域网环境下稳定 | L2 | 12 | 网络波动测试 |
+| A-03 | LeptonX Lite 主题满足城市管理业务需求 | L1 | 8 | 用户试用反馈 |
+| A-04 | AI 辅助开发效率提升 ≥ 50% | L2 | 20 | 开发时间统计 |
+| A-05 | 团队 C# 技能足以支持 Blazor 开发（AI 辅助） | L2 | 10 | 实际开发验证 |
+
+**Guess Ratio**: 5/10 = 50% → 需要 Assumption-Validation tier
+
+##### Step 3: 映射到 Delivery Tiers
+
+```
+┌─────────────────────────────────────────────┐
+│  Change 1: Core (MVP)                       │
+├─────────────────────────────────────────────┤
+│  变更名称: add-abp-blazor-core              │
+│  目标: 最短可运行、可验证、可回环的路径     │
+│  范围:                                      │
+│  ├─ ABP Blazor 基础设施搭建                 │
+│  ├─ LeptonX Lite 主题配置                   │
+│  ├─ 一个简单的验证页面（如：Hello World）   │
+│  └─ MVC 和 Blazor 路由共存                 │
+│  验收:                                      │
+│  □ Blazor 页面能正常渲染                    │
+│  □ SignalR 连接稳定                        │
+│  □ 可以回退到纯 MVC                         │
+│  假设: A-01, A-02（需要配置关闭开关）       │
+│  非目标: 完整业务功能、性能优化              │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│  Change 2: Assumption-Validation            │
+├─────────────────────────────────────────────┤
+│  变更名称: validate-abp-blazor-assumptions  │
+│  目标: 验证 Core tier 中的假设              │
+│  范围:                                      │
+│  ├─ 实现一个完整的业务模块（如：项目管理）  │
+│  ├─ 性能测试（加载时间、并发用户）           │
+│  ├─ SignalR 稳定性测试（网络波动场景）       │
+│  ├─ AI 辅助开发效率统计                     │
+│  └─ 用户试用和反馈收集                      │
+│  验收:                                      │
+│  □ A-01~A-05 所有假设都有验证结果            │
+│  □ 每个假设有 disposition（keep/replace）    │
+│  □ 不符合预期的假设有替代方案               │
+│  产出:                                      │
+│  └─ Assumption Validation Report            │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│  Change 3: Full                              │
+├─────────────────────────────────────────────┤
+│  变更名称: migrate-urban-to-abp-blazor      │
+│  目标: 完整迁移所有核心模块                  │
+│  前置: depends on validate-abp-blazor       │
+│  范围:                                      │
+│  ├─ 项目管理模块完整迁移                    │
+│  ├─ 客户管理模块完整迁移                    │
+│  ├─ 城市称重记录模块完整迁移                │
+│  ├─ 主页仪表板完整迁移                      │
+│  ├─ 异常处理和边界情况                      │
+│  └─ 权限、设置等 ABP 服务完全集成           │
+│  验收:                                      │
+│  □ 所有核心功能正常工作                     │
+│  □ 异常情况有适当的错误提示                 │
+│  □ ABP 基础设施充分利用                     │
+│  非目标: 新功能（应在 Assumption-Validation │
+│         中验证后再决定是否添加）              │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│  Change 4: Quality-Delivery                  │
+├─────────────────────────────────────────────┤
+│  变更名称: abp-blazor-quality-hardening     │
+│  目标: 生产环境准备和运维能力                │
+│  前置: depends on migrate-urban-to-abp-blazor│
+│  范围:                                      │
+│  ├─ 移除 jQuery 和 LayUI 依赖               │
+│  ├─ 清理旧的 MVC 控制器和视图               │
+│  ├─ 性能优化（SignalR、组件渲染）           │
+│  ├─ 回归测试套件                            │
+│  ├─ 回滚和降级演练                          │
+│  ├─ 监控和告警配置                          │
+│  └─ 文档更新（运维、故障排查）               │
+│  验收:                                      │
+│  □ 旧依赖完全清理                            │
+│  □ 性能基准达标（页面加载 < 2s）             │
+│  □ 回归测试通过率 100%                       │
+│  □ 回滚演练成功                              │
+│  □ 运维文档完整                              │
+└─────────────────────────────────────────────┘
+```
+
+##### Step 4: 每个 Tier 的详细分解
+
+**Change 1: Core (MVP)**
+
+```markdown
+## add-abp-blazor-core
+
+### Delivery tier
+| Field | Value |
+|-------|--------|
+| Tier | Core |
+| Role in path | 第一个变更，建立基础设施 |
+| Out of scope | 完整业务功能、性能优化、异常处理 |
+
+### Facts
+- 使用 ABP Framework 10.x Blazor Server
+- 使用 LeptonX Lite 主题
+- MVC 和 Blazor 路由可共存
+- 可回退到纯 MVC
+
+### Assumptions
+| ID | Assumption | L-level | Risk | Off-switch |
+|----|------------|---------|------|------------|
+| A-01 | ABP Blazor Server 性能满足需求 | L2 | 15 | 配置开关回退 MVC |
+| A-02 | SignalR 连接在局域网稳定 | L2 | 12 | 配置开关回退 MVC |
+
+### Decisions Needed
+- 无（Core tier 无 L3 项目）
+
+### Guess governance summary
+| Guess Count | Guess Ratio | High-risk (≥40) | Validation plan | Rollback | Degrade |
+|-------------|-------------|-----------------|-----------------|----------|---------|
+| 2 | 40% | 0 | Change 2 验证 | 禁用 Blazor 路由 | 降级到 MVC |
+```
+
+**Change 2: Assumption-Validation**
+
+```markdown
+## validate-abp-blazor-assumptions
+
+### Delivery tier
+| Field | Value |
+|-------|--------|
+| Tier | Assumption-Validation |
+| Role in path | 第二个变更，验证 Core tier 假设 |
+| Out of scope | 完整迁移所有模块 |
+
+### Facts
+- 验证 A-01: ABP Blazor 性能
+- 验证 A-02: SignalR 稳定性
+- 验证 A-03: LeptonX 主题适配性
+- 验证 A-04: AI 辅助效率提升
+- 验证 A-05: 团队 C# 技能充分性
+
+### Assumptions
+| ID | Assumption | L-level | Risk | Validation method |
+|----|------------|---------|------|-------------------|
+| A-01 | 性能满足需求 | L2 | 15 | 负载测试（目标：< 2s 首屏） |
+| A-02 | SignalR 稳定 | L2 | 12 | 网络波动测试（重连 < 3s） |
+| A-03 | 主题适配 | L1 | 8 | 用户试用反馈 |
+| A-04 | AI 效率提升 | L2 | 20 | 开发时间对比统计 |
+| A-05 | 团队技能充分 | L2 | 10 | 实际开发完成度 |
+
+### Guess governance summary
+| Guess Count | Guess Ratio | Validation plan |
+|-------------|-------------|-----------------|
+| 5 | 100% | 每个 assumption 都有验证方法 |
+
+### 验证产出
+- Assumption Validation Report
+- 每个 assumption 的 disposition（keep/replace/remove）
+- 不符合预期的替代方案
+```
+
+**Change 3: Full**
+
+```markdown
+## migrate-urban-to-abp-blazor
+
+### Delivery tier
+| Field | Value |
+|-------|--------|
+| Tier | Full |
+| Role in path | 第三个变更，完整迁移 |
+| Depends on | validate-abp-blazor-assumptions |
+| Out of scope | 新功能（应在 Assumption-Validation 中验证） |
+
+### Facts
+- 迁移项目管理模块
+- 迁移客户管理模块
+- 迁移城市称重记录模块
+- 迁移主页仪表板
+- 异常处理和边界情况
+
+### Assumptions
+- 无（已在 Change 2 中验证）
+
+### Design Decisions
+- [A-01 keep] ABP Blazor 性能符合预期
+- [A-02 keep] SignalR 稳定性符合预期
+- [A-03 keep] LeptonX 主题满足需求
+```
+
+**Change 4: Quality-Delivery**
+
+```markdown
+## abp-blazor-quality-hardening
+
+### Delivery tier
+| Field | Value |
+|-------|--------|
+| Tier | Quality-Delivery |
+| Role in path | 第四个变更，生产准备 |
+| Depends on | migrate-urban-to-abp-blazor |
+| Out of scope | 新功能添加 |
+
+### Facts
+- 清理旧依赖
+- 性能优化
+- 回归测试
+- 回滚演练
+- 文档更新
+
+### Quality Metrics
+- 页面加载时间 < 2s
+- 回归测试通过率 100%
+- 回滚演练成功率 100%
+```
+
+#### 7.5.3 拆分验证
+
+按照 guess-governance 检查清单：
+
+✅ **1. Facts、Assumptions、Decisions Needed 已分离**
+- 每个变更都明确列出
+- Core tier: 2 个 Assumptions，无 Decisions Needed
+- Assumption-Validation tier: 5 个 Assumptions 需验证
+- Full tier: 基于 Design Decisions（已验证的 Assumptions）
+
+✅ **2. 无 L3 或 Risk≥40 的 assumption**
+- 最高 Risk 为 20（A-04: AI 效率提升）
+- 无不可回滚的变更
+
+✅ **3. 每个假设有验证计划**
+- A-01: 负载测试
+- A-02: 网络波动测试
+- A-03: 用户试用
+- A-04: 开发时间统计
+- A-05: 实际开发验证
+
+✅ **4. 降级和回退路径明确**
+- Core tier: 配置开关回退 MVC
+- Assumption-Validation: 基于 Core，可回退
+- Full tier: 基于 Validated Assumptions
+- Quality-Delivery: 完整回滚演练
+
+✅ **5. 一个变更对应一个 tier**
+- Change 1 → Core
+- Change 2 → Assumption-Validation
+- Change 3 → Full
+- Change 4 → Quality-Delivery
+
+✅ **6. 递进式依赖关系**
+```
+Change 1 (Core)
+    ↓
+Change 2 (Assumption-Validation) depends on Change 1
+    ↓
+Change 3 (Full) depends on Change 2
+    ↓
+Change 4 (Quality-Delivery) depends on Change 3
+```
+
+#### 7.5.4 OpenSpec 变更映射
+
+基于上述拆分，在 OpenSpec 中创建以下变更：
+
+```
+openspec/changes/
+├── add-abp-blazor-core/                    # Change 1
+│   ├── proposal.md
+│   ├── design.md
+│   ├── specs/
+│   └── tasks.md
+├── validate-abp-blazor-assumptions/        # Change 2
+│   ├── proposal.md
+│   ├── design.md
+│   ├── specs/
+│   └── tasks.md
+├── migrate-urban-to-abp-blazor/            # Change 3
+│   ├── proposal.md
+│   ├── design.md
+│   ├── specs/
+│   └── tasks.md
+└── abp-blazor-quality-hardening/          # Change 4
+    ├── proposal.md
+    ├── design.md
+    ├── specs/
+    └── tasks.md
+```
+
+#### 7.5.5 执行顺序和依赖
+
+```
+执行流程：
+
+1. 创建并执行 add-abp-blazor-core
+   ├─ 验收通过 → 继续
+   └─ 验收失败 → 分析原因，调整方案
+
+2. 创建并执行 validate-abp-blazor-assumptions
+   ├─ 所有假设验证通过 → 继续
+   └─ 假设失败 → 调整方案或回退
+
+3. 创建并执行 migrate-urban-to-abp-blazor
+   ├─ 完整迁移成功 → 继续
+   └─ 迁移失败 → 回退到 Core
+
+4. 创建并执行 abp-blazor-quality-hardening
+   ├─ 生产就绪 → 完成
+   └─ 质量不达标 → 优化后重新验收
+```
 
 ---
 
