@@ -1,0 +1,87 @@
+# generated: 2026-06-04
+# last_updated: 2026-06-04
+# project: MaterialMonospec
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-06-04
+last_updated: 2026-06-04
+project: MaterialMonospec
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: ABP Blazor 基础设施 (Core Tier)
+  epic-1: backlog
+  1-1-abp-blazor-nuget-package-installation: backlog
+  1-2-leptonx-lite-theme-configuration: backlog
+  1-3-blazor-component-structure-creation: backlog
+  1-4-mvc-blazor-routing-coexistence: backlog
+  1-5-signalr-connection-configuration: backlog
+  1-6-hello-world-verification-page: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: 假设验证 (Assumption-Validation Tier)
+  epic-2: backlog
+  2-1-complete-business-module-implementation-project-management: backlog
+  2-2-performance-testing: backlog
+  2-3-signalr-stability-testing: backlog
+  2-4-ai-assisted-efficiency-statistics: backlog
+  2-5-team-skills-validation: backlog
+  2-6-user-trial-feedback: backlog
+  2-7-assumption-validation-report: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: 完整迁移 (Full Tier)
+  epic-3: backlog
+  3-1-project-management-module-complete-migration: backlog
+  3-2-client-management-module-complete-migration: backlog
+  3-3-urban-weighing-record-module-complete-migration: backlog
+  3-4-homepage-dashboard-complete-migration: backlog
+  3-5-abp-permission-system-complete-integration: backlog
+  3-6-abp-setting-system-complete-integration: backlog
+  3-7-abp-event-bus-complete-integration: backlog
+  3-8-exception-handling-and-edge-cases: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: 质量加固 (Quality-Delivery Tier)
+  epic-4: backlog
+  4-1-remove-jquery-and-layui-dependencies: backlog
+  4-2-clean-legacy-mvc-controllers-and-views: backlog
+  4-3-performance-optimization: backlog
+  4-4-regression-testing-suite: backlog
+  4-5-rollback-and-degradation-drill: backlog
+  4-6-monitoring-and-alerting-configuration: backlog
+  4-7-documentation-update: backlog
+  epic-4-retrospective: optional
