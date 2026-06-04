@@ -26,14 +26,13 @@
 - 项目创建/编辑表单
 - 项目详情查看
 - 数据验证和错误处理
-- 集成 ABP 权限系统
+- 内站无用户登录/权限 UI（ADR-007）
 
 #### 客户管理模块完整迁移
 - 客户列表页面
 - 客户信息管理
 - 搜索和筛选功能
 - 数据导入导出功能
-- 权限控制集成
 
 #### 城市称重记录模块完整迁移
 - 称重记录列表
@@ -50,17 +49,15 @@
 
 ### ABP 服务完整集成
 
-#### ABP 权限系统完整集成
-- 集成 IPermissionChecker
-- 使用 AuthorizedView 组件
-- 实现权限控制逻辑
-- 处理权限错误
-- 优化权限检查性能
+#### 安全模型对齐（ADR-007）
+- 管理端不集成 Identity、登录、JWT、`AuthorizedView`
+- 保持客户端 API：`BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId` 契约与幂等
+- 文档与 prd/architecture 一致
 
 #### ABP 设置系统完整集成
 - 集成 ISettingProvider
 - 创建设置配置界面
-- 实现多租户支持
+- 单租户内站（不引入多租户登录）
 - 实现设置验证
 - 优化设置性能
 
@@ -91,12 +88,12 @@
 
 ### New Capabilities
 
-- `urban-project-management-blazor`: 城市项目管理 Blazor 模块，包含完整的 CRUD 功能和权限控制
+- `urban-project-management-blazor`: 城市项目管理 Blazor 模块，包含完整的 CRUD 功能（内站无页面级权限）
 - `urban-client-management-blazor`: 客户管理 Blazor 模块，包含信息管理、搜索筛选、数据导入导出
 - `urban-weighing-record-blazor`: 城市称重记录 Blazor 模块，包含记录列表、详情查看、数据上传、审批流程
 - `urban-dashboard-blazor`: 主页仪表板 Blazor 模块，包含统计卡片、数据图表、实时更新
-- `abp-permission-integration`: ABP 权限系统集成，包含权限检查、权限控制、错误处理
-- `abp-setting-integration`: ABP 设置系统集成，包含设置读取、配置界面、多租户支持
+- `urban-security-model-alignment`: 内网无用户 Auth；客户端 API 字段身份与 OpenSpec 对齐
+- `abp-setting-integration`: ABP 设置系统集成，包含设置读取、配置界面（单租户内站）
 - `abp-eventbus-integration`: ABP 事件总线集成，包含事件发布、事件订阅、跨组件通信
 - `abp-dynamic-proxy-integration`: ABP 动态代理集成，包含服务注入、自动HTTP处理、异常处理
 
@@ -212,7 +209,7 @@ sequenceDiagram
 - 迁移客户管理模块（完整功能）
 - 迁移城市称重记录模块（完整功能）
 - 迁移主页仪表板（完整功能）
-- 集成 ABP 权限系统
+- 安全模型对齐（ADR-007，无用户 Auth）
 - 集成 ABP 设置系统
 - 集成 ABP 事件总线
 - 集成 ABP 动态代理
@@ -261,6 +258,7 @@ sequenceDiagram
 - [ADR-004] 渐进式迁移策略 - ✅ 本阶段执行
 - [ADR-005] 构造函数依赖注入模式 - ✅ 已验证可行
 - [ADR-006] 模块化组件架构 - ✅ 已验证合理
+- [ADR-007] 内网无用户 Auth，客户端 API 字段身份 - ✅ 本阶段遵循
 
 **本阶段新增决策**：
 - 按模块顺序迁移：项目管理 → 客户管理 → 称重记录 → 仪表板
@@ -297,7 +295,7 @@ sequenceDiagram
   - 所有功能正常工作
   - 搜索和筛选正常
   - 数据导入导出正常
-  - 权限控制正确
+  - 内站管理无需登录（与 ADR-007 一致）
 
 - [ ] 城市称重记录模块完整迁移
   - 称重记录列表正常显示
@@ -312,16 +310,15 @@ sequenceDiagram
   - 实时数据更新正常
 
 #### ABP 服务集成验收
-- [ ] ABP 权限系统完整集成
-  - 所有操作都有权限检查
-  - 权限 UI 正确显示
-  - 未授权操作被正确阻止
-  - 权限错误提示友好
+- [ ] 安全模型对齐（ADR-007）
+  - 无登录页、无 Identity、无 AuthorizedView
+  - 客户端 API 仍支持 BuildLicenseNo、FdBuildLicenseNo、ClientRecordId
+  - ClientRecordId 幂等与迁移前一致
 
 - [ ] ABP 设置系统完整集成
   - 设置读取功能正常
   - 设置配置界面正常
-  - 多租户支持正常
+  - 单租户内站配置正常
   - 设置验证和保存正常
 
 - [ ] ABP 事件总线完整集成
@@ -369,6 +366,7 @@ sequenceDiagram
 - ❌ jQuery 和 LayUI 移除（留待 Quality-Delivery tier）
 - ❌ 旧代码清理（留待 Quality-Delivery tier）
 - ❌ 数据库结构变更
+- ❌ ABP Identity / 用户登录 / JWT / 页面级权限 UI
 
 ---
 
@@ -406,7 +404,6 @@ sequenceDiagram
    ├─ 项目列表（分页、搜索、排序）
    ├─ 项目创建/编辑
    ├─ 项目详情查看
-   └─ 权限控制
 
 2. 客户管理模块
    ├─ 客户列表
@@ -431,7 +428,7 @@ sequenceDiagram
 
 ```
 1. 动态代理集成（每个模块迁移时自然集成）
-2. 权限系统集成（每个模块迁移时添加）
+2. 安全模型对齐审查（无 Identity/权限 UI）
 3. 设置系统集成（模块迁移完成后统一集成）
 4. 事件总线集成（模块间通信需要时集成）
 ```

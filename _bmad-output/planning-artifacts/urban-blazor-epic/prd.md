@@ -19,6 +19,12 @@ UrbanManagement ABP Blazor 迁移项目
 ### 1.3 产品背景
 UrbanManagement 当前采用传统的 ASP.NET Core MVC 架构，已基于 ABP Framework 构建，但前端仍使用 MVC + jQuery + Bootstrap 5 + LayUI，存在前后端语言分裂、ABP 资源利用不足、技术债务累积等问题。
 
+### 1.4 安全与身份模型（与 OpenSpec 对齐）
+
+- **内网 Web 管理端**：不实现用户登录、ABP Identity、JWT 会话或页面级 `IPermissionChecker` / `AuthorizedView`。
+- **信任边界**：部署于内网；Blazor 管理 UI 直接调用既有 Application Services（与当前 MVC 内页一致）。
+- **客户端身份**（MaterialClient.Urban 等调用 UrbanManagement API 时）：通过请求载荷中的 **`BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId`**（客户端记录 Id）标识与幂等；可选 **`DeviceId`**（见 urban-weighing-api / ADR-9）。不在本 Epic 引入用户账号体系。
+
 ---
 
 ## 2. 目标与成功指标
@@ -154,14 +160,14 @@ UrbanManagement 当前采用传统的 ASP.NET Core MVC 架构，已基于 ABP Fr
   - 快捷操作
 
 #### FR-3: ABP 服务集成
-- **FR-3.1** 权限系统集成
-  - 权限检查UI
-  - 权限控制组件
-  - 用户权限管理
+- **FR-3.1** 安全模型对齐（内网无用户 Auth）
+  - Blazor 管理端不集成登录、Identity、JWT、页面级权限组件
+  - 保持与现有内站行为一致（OpenSpec：internal site, no login）
+  - 客户端 API 继续依赖 `BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId` 等字段（Application 层既有契约，本 Epic 不削弱）
 - **FR-3.2** 设置系统集成
   - 设置读取UI
   - 设置配置界面
-  - 多租户支持
+  - 单租户内站（不引入多租户登录体系）
 - **FR-3.3** 事件总线集成
   - 本地事件订阅
   - 事件处理
@@ -200,10 +206,10 @@ UrbanManagement 当前采用传统的 ASP.NET Core MVC 架构，已基于 ABP Fr
 | 内存占用 | < 500MB | 性能监控 |
 
 #### 安全需求
-- 保持现有 ABP 安全机制
-- SignalR 连接使用 JWT 认证
-- 权限控制沿用 ABP 权限系统
-- 防止 XSS 和 CSRF 攻击
+- 内网部署信任模型：管理端无用户 Auth
+- Blazor / SignalR：内网 Circuit，不引入 JWT 用户认证
+- 客户端 API：`BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId` 身份与幂等（服务端 AppService 校验，非本 Epic 新增登录）
+- 防止 XSS 和 CSRF 攻击（ABP Anti-Forgery 等 Web 基线）
 
 #### 可维护性需求
 - 代码行数减少 50%
@@ -221,13 +227,14 @@ UrbanManagement 当前采用传统的 ASP.NET Core MVC 架构，已基于 ABP Fr
 - ABP Framework 10.x
 - Blazor Server (非 WebAssembly)
 - LeptonX Lite 主题（免费版本）
-- PostgreSQL 数据库
-- .NET 8.0+
+- SQLite 数据库（EF Core Code First，与现有 UrbanManagement 一致）
+- .NET 10
 
 #### 必须移除
 - jQuery 依赖
 - LayUI 依赖
 - Bootstrap 5（由 LeptonX 替代）
+- ABP Identity / 用户登录 / 页面级权限 UI（与内站无 Auth 产品约束冲突）
 
 #### 保持不变
 - Application 层接口
@@ -241,7 +248,7 @@ UrbanManagement 当前采用传统的 ASP.NET Core MVC 架构，已基于 ABP Fr
 - 依赖现有 UrbanManagement ABP 架构
 - 依赖现有数据库结构
 - 依赖现有 Application Services
-- 依赖现有权限系统
+- 依赖现有内站无登录策略与客户端 API 身份字段契约
 
 #### 外部依赖
 - ABP Framework 10.x 稳定版本
@@ -340,7 +347,7 @@ ABP 架构的优势：可以随时回退
 
 #### Phase 2 检查点
 - [ ] 新功能完全使用 Blazor
-- [ ] ABP 权限集成正常
+- [ ] 管理端无登录/权限 UI，与内站模型一致
 - [ ] 无第三方组件依赖（除 ABP）
 
 #### Phase 3 检查点

@@ -18,7 +18,7 @@
 
 ### 非功能需求 (NFRs)
 - **性能需求**: 页面加载 < 2s，SignalR 重连 < 3s
-- **安全需求**: 保持 ABP 安全机制，SignalR JWT 认证
+- **安全需求**: 内网无用户 Auth；客户端 API 用 BuildLicenseNo / FdBuildLicenseNo / ClientRecordId；XSS/CSRF 基线
 - **可维护性需求**: 代码减少 50%，测试覆盖 > 80%
 
 ---
@@ -36,7 +36,7 @@
 | FR-2.2 | Epic 3 | 客户管理模块迁移 |
 | FR-2.3 | Epic 3 | 称重记录模块迁移 |
 | FR-2.4 | Epic 3 | 主页仪表板迁移 |
-| FR-3.1 | Epic 3 | 权限系统集成 |
+| FR-3.1 | Epic 3 | 安全模型对齐（内网无用户 Auth） |
 | FR-3.2 | Epic 3 | 设置系统集成 |
 | FR-3.3 | Epic 3 | 事件总线集成 |
 | FR-3.4 | Epic 3 | 动态代理集成 |
@@ -300,7 +300,7 @@ And 错误处理完善
 - 实现项目创建/编辑表单
 - 实现项目详情查看
 - 实现数据验证和错误处理
-- 集成 ABP 权限系统
+- 不引入用户登录/权限 UI（与 ADR-007 一致）
 
 **文件创建**:
 - `UrbanManagement.App/Components/Project/ProjectList.razor`
@@ -489,7 +489,7 @@ Then 报告包含继续/停止的明确建议
 - 城市称重记录模块完整迁移
 - 主页仪表板完整迁移
 - 异常处理和边界情况
-- 权限、设置等 ABP 服务完全集成
+- 设置、事件总线、动态代理等 ABP 服务集成（不含 Identity/权限 UI）
 
 **验收标准**:
 - [ ] 所有核心功能正常工作
@@ -521,8 +521,7 @@ And 错误处理完善
 - 迁移项目创建功能
 - 迁移项目编辑功能
 - 迁移项目删除功能
-- 集成权限控制
-- 实现数据验证
+- 实现数据验证（内站无页面级权限）
 
 **文件修改**:
 - 完善项目管理相关组件
@@ -543,7 +542,7 @@ When 迁移客户管理模块
 Then 所有客户管理功能正常工作
 And 搜索和筛选功能正常
 And 数据导入导出功能正常
-And 权限控制正确
+And 内站管理功能无需登录即可使用（与现有行为一致）
 ```
 
 **技术需求**:
@@ -551,7 +550,7 @@ And 权限控制正确
 - 迁移客户信息管理
 - 迁移搜索和筛选
 - 迁移数据导入导出
-- 集成权限系统
+- 不集成 Identity/页面权限
 
 **文件创建**:
 - `UrbanManagement.App/Components/Client/ClientList.razor`
@@ -620,29 +619,27 @@ And 实时数据更新正常
 
 ---
 
-### Story 3.5: ABP 权限系统完整集成
+### Story 3.5: 安全模型与客户端 API 契约对齐
 
 **用户故事**:
 作为开发团队，
-我想要完整集成 ABP 权限系统，
-以便所有功能都有适当的权限控制。
+我想要 Blazor 迁移与内网无用户 Auth、客户端字段身份模型一致，
+以便不引入登录体系且 API 行为与 OpenSpec 一致。
 
 **验收标准**:
 ```gherkin
 Given 所有模块已迁移
-When 集成 ABP 权限系统
-Then 所有操作都有权限检查
-Then 权限 UI 正确显示
-Then 未授权操作被正确阻止
-Then 权限错误提示友好
+When 审查 Blazor 与 API 配置
+Then 管理端无登录页、无 Identity 模块、无 AuthorizedView
+Then 客户端上报 API 仍接受 BuildLicenseNo、FdBuildLicenseNo、ClientRecordId
+Then ClientRecordId 幂等行为与迁移前一致
+Then 文档与 ADR-007 一致
 ```
 
 **技术需求**:
-- 集成 IPermissionChecker
-- 使用 AuthorizedView 组件
-- 实现权限控制逻辑
-- 处理权限错误
-- 优化权限检查性能
+- 确认未引用 AbpIdentity* / OpenIddict 等用户认证模块
+- Blazor 页面不注入 IPermissionChecker / ICurrentUser
+- 保持 Receive/Approve 等 AppService 对许可证字段与 ClientRecordId 的处理
 
 ---
 
@@ -655,18 +652,17 @@ Then 权限错误提示友好
 
 **验收标准**:
 ```gherkin
-Given 权限系统已集成
+Given 模块迁移与安全模型已对齐
 When 集成 ABP 设置系统
 Then 设置读取功能正常
 Then 设置配置界面正常
-Then 多租户支持正常
 Then 设置验证和保存正常
 ```
 
 **技术需求**:
 - 集成 ISettingProvider
 - 创建设置配置界面
-- 实现多租户支持
+- 单租户内站（不引入多租户登录）
 - 实现设置验证
 - 优化设置性能
 
@@ -1017,7 +1013,7 @@ Then 用户文档更新
 ### ABP 利用率
 - [ ] 模块化 UI 系统使用
 - [ ] ABP 服务完全集成
-- [ ] 权限系统 UI 展现
+- [ ] 确认无登录/权限 UI（ADR-007）
 - [ ] 设置系统 UI 展现
 - [ ] 主题系统启用
 

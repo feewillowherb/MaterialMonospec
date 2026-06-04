@@ -16,7 +16,7 @@
 │            UrbanManagement.App              │
 │  ┌───────────────────────────────────────┐ │
 │  │  ABP Framework 10.x                    │ │
-│  │  ├─ Modules (Auth, Setting, etc.)    │ │
+│  │  ├─ Modules (Setting, etc.)          │ │
 │  │  ├─ DbContext & Repository            │ │
 │  │  └─ Application Services              │ │
 │  └───────────────────────────────────────┘ │
@@ -36,7 +36,7 @@
 │            UrbanManagement.App              │
 │  ┌───────────────────────────────────────┐ │
 │  │  ABP Framework 10.x                    │ │
-│  │  ├─ Modules (Auth, Setting, etc.)    │ │
+│  │  ├─ Modules (Setting, etc.)          │ │
 │  │  ├─ DbContext & Repository            │ │
 │  │  └─ Application Services              │ │
 │  └───────────────────────────────────────┘ │
@@ -142,7 +142,7 @@ public class ProjectController : Controller
         var projects = await ProjectAppService.GetListAsync(
             new PagedAndSortedResultRequestDto { SkipCount = 0, MaxResultCount = 10 }
         );
-        // ABP 自动处理 HTTP、JSON 序列化、异常、认证
+        // ABP 自动处理 HTTP、JSON 序列化、异常（内站 Blazor 无用户认证）
     }
 }
 ```
@@ -150,7 +150,7 @@ public class ProjectController : Controller
 #### 理由
 - 消除手动 HTTP 调用代码
 - 编译时类型检查
-- 自动处理认证、异常、序列化
+- 自动处理序列化、异常；内站管理端不引入用户认证
 - 大幅减少代码量
 
 #### 后果
@@ -278,6 +278,26 @@ UrbanManagement.App/
 - 共享组件复用
 - 清晰的模块边界
 
+### 2.7 ADR-007: 内网无用户 Auth，客户端 API 字段身份
+**状态**: 已批准  
+**日期**: 2026-06-04（规划对齐）
+
+#### 决策
+- **UrbanManagement Web（Blazor/MVC 管理端）**：不集成 ABP Identity、登录页、JWT 用户会话、`IPermissionChecker` / `AuthorizedView`。
+- **MaterialClient.Urban 等 API 调用方**：继续通过 DTO 携带 **`BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId`** 标识客户端与幂等；可选 **`DeviceId`**。服务端在 Application Service 层校验（与 OpenSpec `urban-weighing-api` 一致）。
+
+#### 理由
+- 与归档 OpenSpec 一致：internal site, no login/authorization。
+- Blazor 迁移为 UI 层替换，不改变内网信任模型。
+- 避免误加 Identity 模块导致与现有部署、客户端协议冲突。
+
+#### 后果
+- 多实例 + 共享会话/权限方案不在本 Epic 范围。
+- 安全依赖内网隔离 + API 字段契约 + XSS/CSRF 基线防护。
+
+#### 不在范围
+- 用户 RBAC、审批「管理员登录」、SignalR JWT。
+
 ---
 
 ## 3. 技术栈架构
@@ -320,9 +340,9 @@ UrbanManagement.App/
 │  └─ Button                          │
 ├─────────────────────────────────────┤
 │  ABP 组件                           │
-│  ├─ AuthorizedView                  │
 │  ├─ Alert                           │
 │  └─ ObjectExtension                 │
+│  （不使用 AuthorizedView — 内站无用户权限 UI）│
 ├─────────────────────────────────────┤
 │  LeptonX 布局组件                   │
 │  ├─ MainLayout                      │
@@ -335,8 +355,8 @@ UrbanManagement.App/
 
 #### 保持不变
 - ABP Framework 10.x
-- Entity Framework Core
-- PostgreSQL 数据库
+- Entity Framework Core + SQLite Provider
+- SQLite 数据库（Code First 迁移，如 `UrbanManagement.db`）
 - Application Services 接口
 
 #### 新增能力
@@ -390,8 +410,7 @@ UrbanManagement.App/
               ↕ SignalR
 ┌─────────────────────────────────────────┐
 │  ABP SignalR Hub                        │
-│  ├─ Authentication                      │
-│  ├─ Authorization                       │
+│  ├─ Blazor Circuit（内网，无 JWT 用户认证）│
 │  └─ Event Broadcasting                  │
 └─────────────────────────────────────────┘
               ↕
@@ -409,31 +428,34 @@ UrbanManagement.App/
 
 #### 开发环境
 ```
-UrbanManagement.App (Blazor Server)
+UrbanManagement.App (Blazor Server) — 单实例
 ├─ Kestrel Web Server
 ├─ SignalR Hub
-├─ PostgreSQL Local
+├─ SQLite（UrbanManagement.db，本机文件）
+├─ EF Core Code First 迁移
 └─ ABP Module System
 ```
 
-#### 生产环境
+#### 生产环境（当前阶段）
 ```
-Load Balancer
-    ├─ UrbanManagement Instance 1
-    ├─ UrbanManagement Instance 2
-    └─ UrbanManagement Instance N
+UrbanManagement.App (Blazor Server) — 单实例
+├─ Kestrel Web Server
+├─ SignalR Hub
+├─ SQLite（UrbanManagement.db，部署目录或挂载卷）
+├─ EF Core Code First 迁移
+└─ ABP Module System
+```
 
-Shared Resources:
-├─ PostgreSQL Server
-├─ Redis Cache (Optional)
-└─ File Storage
-```
+> **说明**：本 Epic 不部署多实例与负载均衡；横向扩展与共享数据库方案留待后续需求再评估。
 
 ### 5.2 配置管理
 
 #### appsettings.json 结构
 ```json
 {
+  "ConnectionStrings": {
+    "Default": "Data Source=UrbanManagement.db"
+  },
   "Abp": {
     "Blazor": {
       "EnableRemoteEnvironment": false,
@@ -487,53 +509,34 @@ Shared Resources:
 
 ## 7. 安全架构
 
-### 7.1 安全层次
+### 7.1 信任模型（ADR-007）
 
-#### 认证层次
 ```
-┌─────────────────────────────────────┐
-│  UI Layer (Blazor)                  │
-│  ├─ AuthorizedView Component       │
-│  └─ Permission Checking             │
-├─────────────────────────────────────┤
-│  SignalR Layer                      │
-│  ├─ JWT Authentication              │
-│  └─ Connection Authorization         │
-├─────────────────────────────────────┤
-│  Application Layer                   │
-│  ├─ ABP Permission System           │
-│  └─ Data Authorization              │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ 内网 Blazor 管理端（无用户登录）              │
+│  └─ 直接注入 I*AppService，无 Identity      │
+├──────────────────────────────────────────────┤
+│ Blazor Server / SignalR（内网 Circuit）       │
+│  └─ 不配置 JWT 用户认证                      │
+├──────────────────────────────────────────────┤
+│ Application / HTTP API（客户端上报）          │
+│  └─ BuildLicenseNo, FdBuildLicenseNo,        │
+│     ClientRecordId (+ 可选 DeviceId)        │
+│  └─ 幂等、字段校验在 AppService（既有逻辑）   │
+└──────────────────────────────────────────────┘
 ```
 
-#### 权限控制
-```csharp
-// UI 层权限控制
-<AuthorizedView Policy="UrbanManagement.Projects.Create">
-    <Button Color="Color.Primary" Click="OpenCreateModal">
-        添加项目
-    </Button>
-</AuthorizedView>
-
-// 代码层权限检查
-@inject IPermissionChecker PermissionChecker
-
-@code {
-    private async Task<bool> CanDeleteProject()
-    {
-        return await PermissionChecker.IsGrantedAsync("UrbanManagement.Projects.Delete");
-    }
-}
-```
+**说明**：管理端与 MaterialClient.Urban 上报 API 分层；前者无 Auth，后者用业务字段自证客户端身份，非用户账号体系。
 
 ### 7.2 安全威胁与防护
 
 | 威胁 | 防护措施 |
 |------|----------|
 | XSS 攻击 | Blazor 自动编码 |
-| CSRF 攻击 | ABP Anti-Forgery |
-| 未授权访问 | ABP Permission System |
-| SignalR 劫持 | JWT 认证 |
+| CSRF 攻击 | ABP Anti-Forgery（管理端表单/API） |
+| 内网误暴露 | 部署隔离；不对外网开放管理端口 |
+| 伪造客户端上报 | AppService 校验许可证字段与 `ClientRecordId` 幂等 |
+| SignalR 滥用 | 内网访问；单实例部署（见 §5.1） |
 
 ---
 
@@ -541,28 +544,24 @@ Shared Resources:
 
 ### 8.1 ABP 服务集成
 
-#### 权限系统集成
+#### ABP 服务集成（内站，无用户上下文）
 ```csharp
-@inject IPermissionChecker PermissionChecker
 @inject ISettingProvider SettingProvider
-@inject ICurrentUser CurrentUser
-@inject ICurrentTenant CurrentTenant
+@inject IGovProjectAppService GovProjectAppService
 
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // 权限检查
-        var canCreate = await PermissionChecker.IsGrantedAsync("UrbanManagement.Projects.Create");
-
-        // 读取设置
+        // 读取设置（单租户内站，不依赖 ICurrentUser / 多租户登录）
         var maxItems = await SettingProvider.GetAsync<int>("UrbanManagement.MaxProjectItems");
 
-        // 当前用户信息
-        var userName = CurrentUser.UserName;
-        var userId = CurrentUser.Id;
+        var projects = await GovProjectAppService.GetListAsync(
+            new GovProjectListRequestDto { MaxResultCount = 10 });
     }
 }
 ```
+
+**Out of scope**：`IPermissionChecker`、`AuthorizedView`、`ICurrentUser`、ABP Identity 模块。
 
 #### 事件总线集成
 ```csharp
@@ -860,8 +859,8 @@ Phase 3 完成 → Phase 4 完成 → 稳定运行
 ### 16.3 技术栈版本信息
 ```
 ABP Framework: 10.x
-.NET: 8.0+
-PostgreSQL: 15+
+.NET: 10
+SQLite: EF Core + Code First (UrbanManagement.db)
 SignalR: ASP.NET Core SignalR
 LeptonX: 10.x
 Blazorise: 1.x

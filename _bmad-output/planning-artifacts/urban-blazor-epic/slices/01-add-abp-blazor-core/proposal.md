@@ -308,8 +308,9 @@ sequenceDiagram
 
 ### 前置依赖
 - UrbanManagement 项目已基于 ABP Framework 10.x
-- .NET 8.0+ 开发环境
-- PostgreSQL 数据库（现有）
+- .NET 10 开发环境
+- SQLite 数据库（现有，EF Core Code First）
+- 内站无用户 Auth；客户端 API 使用 `BuildLicenseNo`、`FdBuildLicenseNo`、`ClientRecordId`（见 ADR-007）
 
 ### 后续依赖
 - **Epic 2 (Assumption-Validation)**: 依赖本变更的基础设施
