@@ -1,10 +1,4 @@
-# ABP Typed Device Cache
-
-## Purpose
-
-Defines the requirements for implementing ABP typed distributed caching in the Urban Management system, replacing manual JSON serialization with strongly-typed cache items for device status, client registry, and connection state management.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: CacheItem 类型定义
 
@@ -129,22 +123,8 @@ Defines the requirements for implementing ABP typed distributed caching in the U
 - **THEN** 若 `ProIds.Count` 超过 500 MUST 记录警告日志并截断到前 500 条
 - **AND** MUST NOT 无限制遍历所有 ProIds
 
-### Requirement: DeviceStatusHub 清理未使用依赖
+## REMOVED Requirements
 
-`DeviceStatusHub` MUST 移除未使用的 `IDistributedCache` 注入。
-
-#### Scenario: Hub 构造函数不含原始缓存
-
-- **WHEN** `DeviceStatusHub` 被 DI 容器构造
-- **THEN** 构造函数 MUST NOT 接受 `IDistributedCache` 参数
-- **AND** 所有缓存操作 MUST 通过 `IDeviceStatusService` 委托（已满足）
-
-### Requirement: 自定义 DateTime 转换器移除
-
-系统 MUST 删除不再需要的自定义 JSON 序列化转换器。
-
-#### Scenario: DateTimeJsonConverter 文件删除
-
-- **WHEN** 重构完成
-- **THEN** `DateTimeJsonConverter` 类和 `NullableDateTimeJsonConverter` 类 MUST 从代码库中删除
-- **AND** `Tools/DateTimeJsonConverter.cs` 文件 MUST 被移除
+### Requirement: ConnectionRegistryCacheItem 类结构
+**Reason**: `ConnectionRegistryCacheItem` 与 `ClientRegistryCacheItem` 结构完全相同（均包含 `HashSet<string> ProIds`），属于重复类型。连接发现注册表改用 `ClientRegistryCacheItem` 配合不同缓存键实现。
+**Migration**: `DeviceStatusService` 和 `DeviceStatusAppService` 中所有 `IDistributedCache<ConnectionRegistryCacheItem>` 替换为 `IDistributedCache<ClientRegistryCacheItem>`，使用缓存键 `"__connection_registry__"`。`ConnectionRegistryCacheItem.cs` 文件删除。
