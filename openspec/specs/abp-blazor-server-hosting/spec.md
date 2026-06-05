@@ -29,17 +29,21 @@
 - **THEN** MUST NOT 调用 `context.Services.AddServerSideBlazor()`
 
 ### Requirement: Blazor Server 端点映射
-`UrbanManagementAppModule` MUST 在 `OnApplicationInitializationAsync` 中映射 Blazor Server 端点，使其与现有 MVC 和 SignalR 路由共存。
+`UrbanManagementAppModule` MUST 在 `OnApplicationInitializationAsync` 中映射 Blazor Server 端点，使其作为主 UI 入口。LegacyApiController 的 MVC 路由 SHALL 作为仅存的 MVC 端点保留。
 
 #### Scenario: Blazor hub endpoint 已映射
 - **WHEN** 应用启动完成且 `UseConfiguredEndpoints` 执行
 - **THEN** MUST 调用 `endpoints.MapBlazorHub()` 映射 Blazor Server SignalR circuit endpoint
-- **AND** MUST 在 MVC 路由之后、自定义路由之前添加 Blazor fallback endpoint
+- **AND** MUST 调用 `endpoints.MapControllers()` 映射 LegacyApiController 的 MVC 路由
 
-#### Scenario: Blazor fallback 到 _Host.cshtml
-- **WHEN** Blazor 页面路由（`/blazor/**`）被请求
-- **THEN** MUST 通过 `endpoints.MapFallbackToPage("/blazor/{**catchall}", "/_Host")` 将路由 fallback 到 `_Host.cshtml` 页面
-- **AND** MUST NOT 影响现有 MVC 路由（`/{controller=Home}/{action=Index}/{id?}`）
+#### Scenario: Blazor fallback 作为默认路由
+- **WHEN** 根路径 `/` 或任何非 API 路由被请求
+- **THEN** MUST 通过 `endpoints.MapFallbackToPage("/{**catchall}", "/_Host")` 将所有非 API 请求 fallback 到 `_Host.cshtml` 页面
+- **AND** MUST NOT 使用 `/blazor` 前缀隔离
+
+#### Scenario: SignalR Hub 端点保留
+- **WHEN** 应用启动完成
+- **THEN** MUST 仍然映射 `endpoints.MapHub<DeviceStatusHub>("/hubs/devicestatus")` 供 MaterialClient SignalR 客户端使用
 
 ### Requirement: Blazor Server 宿主页面
 UrbanManagement MUST 包含 `_Host.cshtml` 作为 Blazor Server 的宿主页面。
