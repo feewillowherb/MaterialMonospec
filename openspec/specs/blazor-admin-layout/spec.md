@@ -11,7 +11,7 @@
 
 #### Scenario: Sidebar navigation links
 - **WHEN** `AdminLayout.razor` renders
-- **THEN** the sidebar SHALL contain navigation links for: 仪表盘 (`/`), 项目管理 (`/projects`), 称重记录 (`/weighing`), 客户端管理 (`/clients`), 设备状态 (`/device-status`)
+- **THEN** the sidebar SHALL contain navigation links for: 仪表盘 (`/`), 项目管理 (`/projects`), 称重记录 (`/weighing`)
 - **AND** the currently active link SHALL have a distinct visual style
 
 #### Scenario: Sidebar structure

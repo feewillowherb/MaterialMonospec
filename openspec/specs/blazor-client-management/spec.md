@@ -1,8 +1,10 @@
 # Blazor Client Management
 
+> **DEPRECATED**: This capability has been removed as of change `ui-interaction-logic-adjustment` (2026-06-05). ClientList.razor and ClientDetail.razor pages have been deleted. Client connection status and device details are now integrated into ProjectManagement.razor. See `project-client-merge` capability for the replacement specification.
+
 ## Purpose
 
-定义 UrbanManagement Blazor 应用的客户端管理页面，包括客户端列表页面和客户端设备详情页面。这些页面通过 SignalR 实时更新设备状态，并使用 ABP ApplicationService 进行数据操作。
+~~定义 UrbanManagement Blazor 应用的客户端管理页面，包括客户端列表页面和客户端设备详情页面。这些页面通过 SignalR 实时更新设备状态，并使用 ABP ApplicationService 进行数据操作。~~
 
 ## Requirements
 

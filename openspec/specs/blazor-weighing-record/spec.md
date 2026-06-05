@@ -2,7 +2,7 @@
 
 ## Purpose
 
-定义 UrbanManagement Blazor 应用的称重记录页面，包括称重记录列表、搜索、分页、数据质量显示、同步状态显示和审批操作。该页面通过 `IUrbanWeighingRecordAppService` 与 ABP ApplicationService 交互。
+定义 UrbanManagement Blazor 应用的称重记录页面，包括称重记录列表、搜索、分页、数据质量显示、同步状态显示、审批操作和可搜索项目下拉选择。项目名称输入已替换为 SearchableSelectable 下拉组件，支持 URL 参数预选项目。该页面通过 `IUrbanWeighingRecordAppService` 与 ABP ApplicationService 交互，项目列表通过 `IGovProjectAppService` 获取。
 
 ## Requirements
 
@@ -61,6 +61,17 @@
 - **THEN** an error message SHALL be displayed
 - **WHEN** the user submits with non-positive weight
 - **THEN** an error message SHALL be displayed
+
+### Requirement: SearchableSelect project name dropdown
+WeighingRecord.razor SHALL replace the plain text input for project name with a SearchableSelect dropdown. See `searchable-project-select` capability for full specification.
+
+#### Scenario: Project name dropdown replaces text input
+- **WHEN** WeighingRecord page renders
+- **THEN** the project name search field SHALL be a SearchableSelect dropdown component with search filtering and keyboard navigation
+
+#### Scenario: Pre-select project from URL parameter
+- **WHEN** the page loads with `proName` query parameter
+- **THEN** the SearchableSelect SHALL pre-select the matching project and trigger filtered search
 
 ### Requirement: No Layui dependency
 `WeighingRecord.razor` SHALL NOT load or use the Layui JavaScript library. All table rendering, pagination, and dialog functionality SHALL use pure Blazor components.

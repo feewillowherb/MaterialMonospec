@@ -1,8 +1,10 @@
 # Blazor Device Status Page Specification
 
+> **DEPRECATED**: This capability has been removed as of change `ui-interaction-logic-adjustment` (2026-06-05). DeviceStatus.razor page has been deleted. Device status is now viewed through device detail modals in ProjectManagement.razor. See `project-client-merge` capability for the replacement specification.
+
 ## Purpose
 
-定义 UrbanManagement 中设备状态 Blazor 页面的规范，包括页面组件、SignalR 实时更新机制和设备状态数据聚合逻辑。
+~~定义 UrbanManagement 中设备状态 Blazor 页面的规范，包括页面组件、SignalR 实时更新机制和设备状态数据聚合逻辑。~~
 
 ## Requirements
 

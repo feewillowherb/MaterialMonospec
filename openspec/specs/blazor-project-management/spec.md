@@ -2,7 +2,7 @@
 
 ## Purpose
 
-定义 UrbanManagement Blazor 应用的项目管理页面，包括项目列表、搜索、分页和 CRUD 操作。该页面通过 `IGovProjectAppService` 与 ABP ApplicationService 交互，不使用任何 MVC 控制器。
+定义 UrbanManagement Blazor 应用的项目管理页面，包括项目列表、搜索、分页、CRUD 操作、客户端连接状态显示、设备详情查看、称重记录导航和实时 SignalR 更新。该页面通过 `IGovProjectAppService` 与 ABP ApplicationService 交互，不使用任何 MVC 控制器。客户端状态和设备详情通过 `IDeviceStatusAppService` 获取。
 
 ## Requirements
 
@@ -58,6 +58,34 @@
 - **WHEN** the user clicks the sync status badge
 - **THEN** the page SHALL call `IGovProjectAppService.SetSyncStatusAsync()` with the inverted status
 - **AND** on success, the table SHALL refresh
+
+### Requirement: Client connection status column
+ProjectManagement.razor SHALL display each project's client connection status by merging data from `IDeviceStatusAppService.GetClientListAsync`. See `project-client-merge` capability for full specification.
+
+#### Scenario: Client status column rendering
+- **WHEN** ProjectManagement page loads
+- **THEN** the project table SHALL include a "客户端" column showing connection status badges (在线/离线/未注册)
+
+### Requirement: Device detail modal
+ProjectManagement.razor SHALL provide a "设备" button on each project row to view device details via modal. See `project-client-merge` capability for full specification.
+
+#### Scenario: Device modal opens from project row
+- **WHEN** user clicks "设备" on a project row
+- **THEN** a modal SHALL display device cards reusing `IDeviceStatusAppService.GetClientDevicesAsync`
+
+### Requirement: Weighing record navigation from project row
+ProjectManagement.razor SHALL provide a "称重" button on each project row that navigates to WeighingRecord with pre-selected project. See `project-weighing-link` capability for full specification.
+
+#### Scenario: Weighing button navigates with project name
+- **WHEN** user clicks "称重" on a project row
+- **THEN** the system SHALL navigate to `/weighing?proName=<project name>`
+
+### Requirement: Real-time client status via SignalR
+ProjectManagement.razor SHALL subscribe to SignalR for real-time client status updates with polling fallback. See `project-client-merge` capability for full specification.
+
+#### Scenario: SignalR client status updates
+- **WHEN** a `ClientConnectionUpdate` event fires
+- **THEN** the corresponding project row's client status badge SHALL update in real-time
 
 ### Requirement: No GovProjectApiController dependency
 `ProjectManagement.razor` SHALL NOT call any endpoint from `GovProjectApiController`. All data operations SHALL go through `IGovProjectAppService` (ABP convention routes).
