@@ -6,24 +6,43 @@
 
 ## Requirements
 
-### Requirement: StaticLicenseChecker returns hardcoded test license data
+### Requirement: StaticLicenseChecker reads and decrypts RSA.xml authorization data
 
-`StaticLicenseChecker.CheckLicenseAsync()` SHALL return a `LicenseCheckResult` containing hardcoded test values for ProId, ProName, BuildLicenseNo, and FdBuildLicenseNo. The check SHALL always succeed regardless of whether the license file exists.
+`StaticLicenseChecker.CheckLicenseAsync()` SHALL read the RSA.xml file at the given path, use `RsaLicenseDecryptor.ReadAndDecrypt()` to decrypt the authorization data, validate expiration, and return a `LicenseCheckResult` reflecting the authorization status. The check SHALL return fail if the file is missing, decryption fails, or authorization has expired.
 
-#### Scenario: Check returns test data
+#### Scenario: Valid RSA.xml with active authorization
 
-- **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with any file path
+- **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with a path to a valid RSA.xml where the decrypted `authEndTime` is in the future
 - **THEN** SHALL return `LicenseCheckResult.IsSuccess = true`
-- **AND** SHALL include `ProId` with a fixed test Guid value
-- **AND** SHALL include `ProName` with a fixed test string value
-- **AND** SHALL include `BuildLicenseNo` with a fixed test string value
-- **AND** SHALL include `FdBuildLicenseNo` with a fixed test string value
+- **AND** SHALL include `AuthEndTime` set to the decrypted expiration date
+- **AND** SHALL include a message containing the expiration date and remaining days
+- **AND** SHALL include `BuildLicenseNo` set to the decrypted xmlString value
+- **AND** SHALL include `ProId` set to `Guid.Parse` of the decrypted proId value
+- **AND** `ProName`, `FdBuildLicenseNo` SHALL be null (not present in RSA.xml)
 
-#### Scenario: File does not exist
+#### Scenario: Valid RSA.xml with expired authorization
+
+- **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with a path to a valid RSA.xml where the decrypted `authEndTime` is in the past
+- **THEN** SHALL return `LicenseCheckResult.IsSuccess = false`
+- **AND** SHALL include a message indicating the authorization has expired with the expiration date and days overdue
+
+#### Scenario: RSA.xml file does not exist
 
 - **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with a path to a non-existent file
-- **THEN** SHALL still return success with hardcoded test data
-- **AND** SHALL log a debug message noting the file was not found
+- **THEN** SHALL return `LicenseCheckResult.Fail()` with a message indicating the file was not found
+- **AND** SHALL log a warning
+
+#### Scenario: RSA.xml contains malformed XML
+
+- **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with a path to a file that is not valid XML
+- **THEN** SHALL return `LicenseCheckResult.Fail()` with a message about the parse error
+- **AND** SHALL log an error
+
+#### Scenario: RSA.xml decryption fails
+
+- **WHEN** `StaticLicenseChecker.CheckLicenseAsync()` is called with an RSA.xml that contains invalid encrypted data or wrong private key
+- **THEN** SHALL return `LicenseCheckResult.Fail()` with a message about the decryption error
+- **AND** SHALL log an error
 
 ### Requirement: LicenseCheckResult carries license data
 
