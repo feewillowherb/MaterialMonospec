@@ -21,7 +21,7 @@ The system SHALL provide a `UrbanWeighingRecordAttachment` entity with fields: `
 - **THEN** the system SHALL create `UrbanWeighingRecordAttachment` records linking the weighing record to each `AttachmentFile`
 
 ### Requirement: Base64 image save and compress
-The system SHALL accept an array of Base64-encoded image strings, decode them, save each to local disk at the path `{FilesPhysicalPath}/TempUpload/{buildLicenseNo}/{ticks}_{index}.jpg`, and automatically compress images exceeding the configured `CompressImage` KB threshold using JPEG quality 60.
+The system SHALL accept an array of Base64-encoded image strings, decode them, save each to local disk at the path `{FilesPhysicalPath}/{buildLicenseNo}/{ticks}_{index}.jpg`, and automatically compress images exceeding the configured `CompressImage` KB threshold using JPEG quality 60.
 
 #### Scenario: Image within size threshold
 - **WHEN** a Base64 image decodes to 150 KB and the threshold is 200 KB
@@ -78,7 +78,7 @@ UrbanManagement SHALL resolve `StorageOptions.FilesPhysicalPath` relative to the
 
 ### Requirement: MaterialClient.Urban attachment upload API
 
-UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that accepts Base64-encoded images and `attachType` (`Lrp` or `UrbanPhoto`), persists files under `{FilesPhysicalPath}/TempUpload/{buildLicenseNo}/`, applies compression per existing rules, creates `AttachmentFile` entities, and returns the created Guid identifiers.
+UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that accepts Base64-encoded images and `attachType` (`Lrp` or `UrbanPhoto`), persists files under `{FilesPhysicalPath}/{buildLicenseNo}/`, applies compression per existing rules, creates `AttachmentFile` entities, and returns the created Guid identifiers.
 
 #### Scenario: Successful batch upload
 
