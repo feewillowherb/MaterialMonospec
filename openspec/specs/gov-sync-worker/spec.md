@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Provides background synchronization capabilities for forwarding urban weighing records to government platforms automatically with retry logic and comprehensive logging. (TBD: expand with architectural overview)
+Provides background synchronization capabilities for forwarding urban weighing records to government platforms automatically with retry logic and logging via Serilog. (TBD: expand with architectural overview)
 
 ## Requirements
 
@@ -69,17 +69,6 @@ The system SHALL use a Refit-based `IGovSyncHttpClient` to POST payloads to the 
 #### Scenario: Missing image files
 - **WHEN** the background worker cannot find an image file referenced by an attachment record
 - **THEN** the system SHALL set `RetryCount` to 10 (stop retrying) and log the error
-
-### Requirement: Sync logging
-The system SHALL create a `GovLog` record for each sync attempt, containing: `SyncId` (the UrbanWeighingRecord Id cast to int? or stored as string), `SyncNumber` (current attempt count), `SyncTime` (current time), `SyncSource` (JSON payload sent), `SyncResult` (success/failure), `SyncCode` (response code), and `SyncMsg` (response message).
-
-#### Scenario: Logging a successful sync
-- **WHEN** a record is successfully forwarded to the government API
-- **THEN** a `GovLog` entry SHALL be created with the response details and a success indicator
-
-#### Scenario: Logging a failed sync
-- **WHEN** a forward attempt fails
-- **THEN** a `GovLog` entry SHALL be created with the failure reason and response code
 
 ### Requirement: Configurable government endpoint
 The government API address SHALL be read from `StorageOptions.GovAddress` configuration. The default value SHALL be empty (not a hardcoded URL), requiring explicit configuration in production.
