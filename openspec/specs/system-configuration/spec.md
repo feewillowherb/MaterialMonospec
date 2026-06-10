@@ -168,3 +168,63 @@
   - `Task<bool> IsAutoStartEnabledAsync()`：检查当前注册表状态
   - 所有方法应为异步并返回相应类型
   - 所有方法应在内部处理异常（不向调用方抛出）
+
+### 需求：ProductCode query interface
+
+`ISettingsService` SHALL provide a method to query the current `ProductCode` derived from the stored `WeighingMode`.
+
+#### Scenario: Get ProductCode from settings
+- **WHEN** `GetProductCodeAsync()` is called
+- **THEN** the system SHALL read the current `WeighingMode` from settings
+- **AND** SHALL return `ProductCode.Standard` for `WeighingMode.Standard`
+- **AND** SHALL return `ProductCode.SolidWaste` for `WeighingMode.SolidWaste`
+- **AND** SHALL return `ProductCode.Urban` for `WeighingMode.UrbanMode`
+
+#### Scenario: Default ProductCode when no settings exist
+- **WHEN** `GetProductCodeAsync()` is called and no settings record exists
+- **THEN** the system SHALL create default settings
+- **AND** SHALL return `ProductCode.Standard`
+
+### 需求：SaveDefaultWeighingModeAsync supports UrbanMode
+
+`ISettingsService.SaveDefaultWeighingModeAsync` SHALL correctly map `ProductCode.Urban` to `WeighingMode.UrbanMode`.
+
+#### Scenario: Save Urban ProductCode
+- **WHEN** `SaveDefaultWeighingModeAsync(ProductCode.Urban)` is called
+- **THEN** the system SHALL set `DefaultWeighingMode = WeighingMode.UrbanMode`
+- **AND** SHALL persist the settings
+
+#### Scenario: Save Standard ProductCode
+- **WHEN** `SaveDefaultWeighingModeAsync(ProductCode.Standard)` is called
+- **THEN** the system SHALL set `DefaultWeighingMode = WeighingMode.Standard`
+
+#### Scenario: Save SolidWaste ProductCode
+- **WHEN** `SaveDefaultWeighingModeAsync(ProductCode.SolidWaste)` is called
+- **THEN** the system SHALL set `DefaultWeighingMode = WeighingMode.SolidWaste`
+
+### 需求：高拍仪启用配置（DocumentCameraEnabled）
+
+系统 MUST 在 `SystemSettings` 中提供 `DocumentCameraEnabled` 布尔属性，控制高拍仪（USB 文档摄像头）是否参与应用启动与设备状态栏显示。
+
+#### 场景：属性默认值
+
+- **当** 创建新的 `SystemSettings` 实例且未显式设置 `DocumentCameraEnabled`
+- **则** `DocumentCameraEnabled` MUST 为 `false`
+
+#### 场景：持久化启用标志
+
+- **当** 用户在设置中启用或禁用高拍仪并保存
+- **则** 系统 MUST 通过 `ISettingsService` 持久化 `DocumentCameraEnabled`
+- **且** MUST 在下次应用启动时恢复该值
+
+#### 场景：未启用时不启动高拍仪
+
+- **当** 应用启动且 `DocumentCameraEnabled` 为 `false`
+- **则** 设备管理器 MUST NOT 将 USB/文档摄像头作为活动外设启动
+- **且** 设备状态栏 MUST NOT 显示高拍仪指示项
+
+#### 场景：启用时启动高拍仪
+
+- **当** 应用启动且 `DocumentCameraEnabled` 为 `true`
+- **则** 系统 MUST 按既有 USB 摄像头启动规则尝试启动文档摄像头服务
+- **且** 设备状态栏 MUST 显示高拍仪指示项（在线状态取决于连接）
