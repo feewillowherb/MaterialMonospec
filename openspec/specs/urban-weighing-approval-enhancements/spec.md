@@ -25,30 +25,6 @@ The system SHALL validate that the `PlateNumber` value is a valid Chinese licens
 - **THEN** the validation SHALL fail
 - **AND** an error message SHALL indicate that a license plate is required
 
-### Requirement: Anomaly flag update after approval
-The system SHALL recalculate and update the anomaly flag after a weighing record is modified during approval.
-
-#### Scenario: Anomaly flag recalculated on edit
-- **WHEN** `UpdateWeighingRecordAsync` completes successfully with edited `PlateNumber` and `TotalWeight`
-- **THEN** the system SHALL fetch the updated `WeighingRecord` entity
-- **AND** the system SHALL fetch the associated `UrbanWeighingExtension` by `WeighingRecordId`
-- **AND** `UrbanAnomalyDetector.IsAnomaly` SHALL be called with the updated record
-- **AND** `UpdateAnomalyFlagAsync` SHALL be called with the extension ID and calculated anomaly status
-- **AND** the `IsAnomaly` flag SHALL be persisted to the database
-
-#### Scenario: Anomaly status change reflected in UI
-- **WHEN** the anomaly flag is updated after approval
-- **THEN** `ReloadRecordsAsync` SHALL be called
-- **AND** the UI list SHALL refresh to display the updated anomaly status
-- **AND** records with `IsAnomaly=true` SHALL display "异常" badge
-- **AND** records with `IsAnomaly=false` SHALL display "正常" badge
-
-#### Scenario: Missing extension handling
-- **WHEN** `UpdateWeighingRecordAsync` updates a record with no associated `UrbanWeighingExtension`
-- **THEN** the anomaly flag update SHALL be skipped
-- **AND** no error SHALL be thrown
-- **AND** the record update SHALL complete successfully
-
 ### Requirement: DateTimePicker for weighing time filter
 The system SHALL provide `<u:DateTimePicker>` controls for the weighing time filter in `UrbanAttendedWeighingWindow`.
 

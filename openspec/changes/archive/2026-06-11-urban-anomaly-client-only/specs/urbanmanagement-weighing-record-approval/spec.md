@@ -1,10 +1,4 @@
-# UrbanManagement Weighing Record Approval
-
-## Purpose
-
-Web-based approval workflow for UrbanManagement weighing records: list action for anomalous rows only, approval dialog, plate/weight validation, anomaly clearance on approval, confirmation before persist, and sync state reset.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Weighing record list exposes approval action
 
@@ -27,43 +21,6 @@ The UrbanManagement weighing record **approval page** (`/weighing-approval`) SHA
 - **WHEN** the administrator views the weighing record management page (`/weighing`)
 - **THEN** no approval action SHALL be present on any row
 - **AND** the "操作" column SHALL NOT appear in the table
-
-### Requirement: Approval dialog matches client edit fields
-
-The approval UI SHALL allow editing `PlateNumber` and `TotalWeight` and SHALL pre-populate current values from the selected `UrbanWeighingRecord`.
-
-#### Scenario: Dialog opens with current values
-
-- **WHEN** the approval dialog opens for a record
-- **THEN** the plate number field SHALL show the record's current `PlateNumber`
-- **AND** the total weight field SHALL show the record's current `TotalWeight` formatted for editing (e.g. two decimal places)
-
-#### Scenario: Operator cancels
-
-- **WHEN** the operator closes the dialog without confirming
-- **THEN** no update SHALL be persisted
-- **AND** the list SHALL remain unchanged
-
-### Requirement: Approval validates plate number like the client
-
-Before persisting approval, the system SHALL validate the plate number using the same rules as MaterialClient.Urban (`PlateNumberValidator.IsValidChinesePlateNumber` semantics).
-
-#### Scenario: Empty plate rejected
-
-- **WHEN** the operator submits approval with an empty or whitespace plate number
-- **THEN** the system SHALL reject the submission with a validation error
-- **AND** the record SHALL NOT be updated
-
-#### Scenario: Invalid Chinese plate format rejected
-
-- **WHEN** the operator submits a non-empty plate number that fails Chinese plate format validation
-- **THEN** the system SHALL reject the submission with a message equivalent to「车牌号不符合规范请修改」
-- **AND** the record SHALL NOT be updated
-
-#### Scenario: Valid plate accepted
-
-- **WHEN** the operator submits a plate number that passes validation and a positive `TotalWeight`
-- **THEN** the system SHALL proceed with the approval update
 
 ### Requirement: Approval updates record and recalculates anomaly
 
@@ -100,21 +57,7 @@ On successful approval, the system SHALL update the server `UrbanWeighingRecord`
 - **THEN** the system SHALL NOT invoke government platform HTTP from the approval request path
 - **AND** resync SHALL rely on `GovSyncBackgroundWorker` for eligible records (`IsAnomaly == false`, project enabled, etc.)
 
-### Requirement: Approval does not modify attachments
-
-The approval workflow SHALL NOT provide image or attachment editing, upload, replacement, or deletion. Approval SHALL only accept `PlateNumber` and `TotalWeight` changes.
-
-#### Scenario: Approve request excludes attachment fields
-
-- **WHEN** the administrator submits approval
-- **THEN** the API and UI SHALL NOT accept attachment identifiers or image payloads
-- **AND** existing `UrbanWeighingRecordAttachment` rows SHALL remain unchanged
-
-### Requirement: List refreshes after approval
-
-- **WHEN** approval completes successfully
-- **THEN** the weighing record table SHALL refresh
-- **AND** updated `PlateNumber`, `TotalWeight`, `IsAnomaly`, and sync status columns SHALL reflect the new values
+## ADDED Requirements
 
 ### Requirement: Approval change confirmation before persist
 
