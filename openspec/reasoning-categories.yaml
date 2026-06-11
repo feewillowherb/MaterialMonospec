@@ -5,112 +5,238 @@
 # 项目: MaterialMonospec (MaterialClient + UrbanManagement)
 # 维护者: 用户和 AI agent 共同维护
 # 规范: skill-vault/docs/2026-06-11-reasoning-annotate-skill/02-分类表规范.md
+#
+# 技术栈概要:
+#   MaterialClient — .NET 10 / Avalonia / ReactiveUI / ABP / EF Core+SQLite
+#   UrbanManagement — .NET 10 / ABP / Blazor Server / EF Core+SQLite / SignalR
+#   硬件: 串口地磅 / USB摄像头 / 海康&微视LPR / 道闸 / 音频设备
+#   云端: 阿里云OSS / 政务平台同步 / Refit HTTP
 
 domains:
   技术:
 
     # --- high priority ---
 
-    arch-decision:
-      name: 架构决策
-      description: 涉及系统架构选择和权衡的推理，包括 Monospec 主仓库与子仓库的协作模式决策
+    hardware-integration:
+      name: 硬件集成
+      description: >
+        涉及硬件SDK选型、串口通信、设备生命周期、多供应商抽象的推理。
+        覆盖：地磅(SerialPort)、摄像头(FlashCap)、LPR(Hikvision HCNetSDK / Vzvision VzSDK /
+        华夏智信被动模式)、道闸(VzSDK)、音频设备。典型推理：SDK版本兼容性、
+        设备断连恢复策略、被动vs主动识别模式选择、COM端口竞态。
       priority: high
       subscribed: true
 
-    security:
-      name: 安全考量
-      description: 安全相关的设计推理，包括认证、令牌刷新、权限控制
+    reactive-stream:
+      name: 响应式流设计
+      description: >
+        涉及 Rx.NET / System.Reactive 管道设计的推理。
+        覆盖：地磅重量流采样、稳定检测算法(OffScale→WaitingForStability→WeightStabilized→
+        WaitingForDeparture)、防抖与采样率权衡、IObservable链路错误处理、
+        ReactiveUI绑定生命周期。典型推理：采样窗口选择、稳定阈值调优、背压策略。
       priority: high
       subscribed: true
 
-    data-sync:
-      name: 数据同步
-      description: 涉及客户端与服务端数据同步策略的推理，包括离线/在线切换、冲突处理、缓存一致性
+    state-machine:
+      name: 状态机设计
+      description: >
+        涉及称重状态或门禁会话状态机转换逻辑的推理。
+        覆盖：称重流水线状态(OffScale/Stabilized/Departure)、Gate IO会话
+        (进入→称重→离开)、Ghost Session检测与清理、互斥保护。
+        典型推理：状态转换条件完备性、异常状态恢复、并发安全。
       priority: high
       subscribed: true
 
-    integration:
-      name: 集成风险
-      description: 外部依赖和集成点相关推理，包括称重硬件SDK、LPR识别、摄像头、Gate IO设备集成
+    auth-license:
+      name: 认证与授权
+      description: >
+        涉及认证/授权/许可证机制的推理。
+        覆盖：JWT离线授权、RSA XML许可证签名验证、ABP权限体系、
+        Token自动刷新(HttpClient DelegatingHandler)、API Key认证。
+        典型推理：离线场景密钥管理、许可证有效期策略、Token刷新竞态。
       priority: high
       subscribed: true
 
     # --- medium priority ---
 
-    perf-impact:
-      name: 性能影响
-      description: 影响性能的设计选择推理，包括称重数据实时性、图片压缩、分页查询效率
-      priority: medium
-      subscribed: true
-
     data-model:
       name: 数据模型
-      description: 数据结构设计相关推理，包括实体迁移、关系映射、DTO 设计
+      description: >
+        涉及实体设计、EF Core映射、DTO分层、SQLite约束的推理。
+        覆盖：WeighingRecord/UrbanWeighingRecord字段设计、JSON存储的Materials字段、
+        ABP实体基类继承、Unique约束(ClientRecordId)、软删除、
+        Core与App层DTO显式映射(无AutoMapper)。典型推理：JSON vs 关联表、
+        客户端与服务端实体差异、迁移兼容性。
       priority: medium
       subscribed: true
 
-    ui-migration:
-      name: UI 迁移
-      description: 涉及前端视图迁移和布局设计的推理，包括 Avalonia 控件映射、Layui 组件迁移
+    cross-system-sync:
+      name: 跨系统数据同步
+      description: >
+        涉及 MaterialClient ↔ UrbanManagement ↔ 政务平台之间数据同步的推理。
+        覆盖：SignalR设备状态上报、Material Provider同步、固废订单同步扩展字段、
+        政务平台Refit推送(IGovSyncHttpClient)与Polly重试、手动同步触发、
+        ClientRecordId唯一性保证。典型推理：同步冲突解决、离线队列策略、
+        字段映射差异、幂等性保证。
       priority: medium
       subscribed: true
 
-    test-strategy:
+    abp-module:
+      name: ABP模块设计
+      description: >
+        涉及ABP模块划分、依赖注入(AutoConstructor)、领域服务(*Manager)、
+        应用服务(*AppService)、规约控制器自动生成、UnitOfWork事务边界的推理。
+        覆盖：模块注册与依赖关系、ILocalEventBus事件驱动解耦、
+        IDistributedCache缓存策略(UM:前缀/24h TTL)、ABP选项模式。
+        典型推理：模块边界划分、服务粒度、事件vs直接调用。
+      priority: medium
+      subscribed: true
+
+    api-compat:
+      name: API兼容性
+      description: >
+        涉及API版本兼容、Legacy API支持、Refit接口契约的推理。
+        覆盖：LegacyApiController向后兼容、GovSyncData旧格式桥接、
+        Refit HTTP客户端定义、CORS策略、Chinese plate number正则校验。
+        典型推理：旧客户端兼容策略、字段扩展不破坏现有消费方、
+        进出方向接口统一。
+      priority: medium
+      subscribed: true
+
+    test-infra:
       name: 测试策略
-      description: 涉及测试基础设施和验证方案的推理，包括测试注入、模拟数据、集成测试
+      description: >
+        涉及测试基础设施和验证方案的推理。
+        覆盖：BDD测试框架、Mock API(LprTestInjectionApi)、测试隔离、
+        场景化测试、xUnit+Shouldly AAA模式、依赖Mock注册。
+        典型推理：硬件Mock策略、测试数据隔离、集成vs单元测试边界。
       priority: medium
       subscribed: true
 
     # --- low priority ---
 
-    migration:
-      name: 迁移策略
-      description: 数据或系统迁移相关推理，包括数据库迁移脚本、配置迁移
+    ui-architecture:
+      name: UI架构
+      description: >
+        涉及前端UI架构和组件设计的推理。
+        覆盖：Avalonia MVVM(ReactiveUI)、Semi.Avalonia/Ursa控件、
+        Blazor Server组件、SignalR实时状态推送、Excel导出(ClosedXML)、
+        图片压缩(JpegCaptureCompression)、响应式布局。
+        典型推理：控件选型、对话框生命周期、分页策略。
       priority: low
       subscribed: true
 
-    monitoring:
-      name: 可观测性
-      description: 日志、监控、告警相关推理，包括设备状态监控、操作日志
+    perf-impact:
+      name: 性能考量
+      description: >
+        影响性能的设计选择推理。
+        覆盖：重量采样实时性、图片压缩质量与速度、SQLite查询效率、
+        分页查询优化(StandardWaybillPagedQuery)、批量同步性能、
+        缓存命中率。典型推理：采样率vsCPU开销、图片尺寸权衡。
+      priority: low
+      subscribed: false
+
+    file-storage:
+      name: 文件存储
+      description: >
+        涉及文件路径管理、存储策略、OSS集成的推理。
+        覆盖：相对路径规范化(FileApiRelativePathNormalization)、
+        阿里云OSS上传、本地Uploads目录结构、附件关联管理。
+        典型推理：路径可移植性、OSS vs 本地存储选择。
       priority: low
       subscribed: false
 
   业务:
 
-    biz-rule:
-      name: 业务规则
-      description: 涉及业务流程、领域逻辑的推理，包括称重流程、过磅规则、订单管理、废品分类
+    # --- high priority ---
+
+    weighing-flow:
+      name: 称重流程
+      description: >
+        涉及称重业务流程的核心推理。
+        覆盖：attended/unattended模式切换、毛重皮重计算、扣重规则、
+        收发料(Join/Out)匹配、称重记录生命周期、Material JSON存储、
+        固废模式特殊规则。典型推理：称重模式选择依据、扣重计算边界条件、
+        匹配算法策略(RecommendationService)、异常重量处理。
       priority: high
       subscribed: true
 
-    weighing-logic:
-      name: 称重逻辑
-      description: 涉及称重模式（ attended/unattended ）、毛重皮重计算、扣重规则的推理
+    gov-compliance:
+      name: 政务合规
+      description: >
+        涉及政务平台合规要求、数据上报规则的推理。
+        覆盖：GovProject项目管理与许可证号、固废数据上报格式、
+        异常数据审核流程(AnomalyReview)、图片合规要求、
+        项目级数据隔离。典型推理：上报字段完整性、异常阈值配置、
+        审核工作流设计、历史数据兼容。
       priority: high
+      subscribed: true
+
+    # --- medium priority ---
+
+    lpr-recognition:
+      name: 车牌识别
+      description: >
+        涉及车牌识别业务逻辑的推理。
+        覆盖：多供应商LPR统一抽象、识别结果缓存与颜色优先级
+        (PlateColorPriority)、匹配阈值配置(ManualMatchThreshold)、
+        车牌号锁定(PlateNumberLocking)、Ghost Session车牌缓存同步。
+        典型推理：识别置信度阈值选择、缓存失效策略、多帧结果聚合。
+      priority: medium
       subscribed: true
 
     gate-control:
       name: 门禁管控
-      description: 涉及道闸控制、进出方向、会话管理、车牌匹配的推理
+      description: >
+        涉及道闸控制业务逻辑的推理。
+        覆盖：GateIO方向控制(进/出)、会话管理(SessionManagement)、
+        配置校验(ConfigurationValidation)、状态同步(StateSynchronization)、
+        Vzvision道闸SDK集成。典型推理：进出方向判定策略、
+        会话超时处理、设备断连恢复。
       priority: medium
       subscribed: true
 
-    lpr-recognition:
-      name: 车牌识别
-      description: 涉及车牌识别流程、匹配阈值、锁定策略、缓存同步的推理
+    anomaly-detection:
+      name: 异常检测
+      description: >
+        涉及称重数据异常检测与审核的推理。
+        覆盖：重量偏差百分比计算、可配置阈值、自动标记、
+        人工复核流程、车牌/重量修正。典型推理：阈值设定依据、
+        误报与漏报权衡、复核权限设计。
       priority: medium
       subscribed: true
+
+    material-provider:
+      name: 物料与供应商
+      description: >
+        涉及物料管理、供应商管理、运单管理的推理。
+        覆盖：Material类型与单位、Provider供应商同步(MaterialProviderSync)、
+        Waybill运单管理(选择性作废WaybillSelectiveVoid)、
+        固废Excel导出。典型推理：物料单位换算、供应商数据来源、
+        运单状态机。
+      priority: medium
+      subscribed: false
 
   通用:
 
-    scope-decision:
-      name: 范围决策
-      description: 关于功能范围边界的推理，包括主仓库与子仓库职责划分
-      priority: medium
-      subscribed: true
-
     cross-repo:
       name: 跨仓库协调
-      description: 涉及 Monospec 主仓库与子仓库（MaterialClient/UrbanManagement）之间变更协调的推理
+      description: >
+        涉及 Monospec 主仓库与子仓库(MaterialClient/UrbanManagement)
+        之间变更协调的推理。覆盖：proposal在主仓库、实现在子仓库的
+        职责划分、跨仓库spec引用、monospecs.yaml配置。
+        典型推理：变更影响范围判定、哪些仓库需要同步修改、
+        子仓库AGENTS.md覆盖策略。
+      priority: high
+      subscribed: true
+
+    scope-decision:
+      name: 范围决策
+      description: >
+        关于功能范围边界的推理。
+        覆盖：Standard/SolidWaste/Urban三种称重模式的功能划分、
+        客户端vs服务端职责边界、当前版本vs后续迭代(Phase 2)的划界。
+        典型推理：某功能归属哪个应用、是否纳入当前迭代、
+        配置化vs硬编码选择。
       priority: medium
       subscribed: true
