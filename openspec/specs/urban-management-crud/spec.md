@@ -7,7 +7,7 @@ Provides real database CRUD operations for project and sync data management in t
 ## Requirements
 
 ### Requirement: Project CRUD with ABP auto-generated API endpoints
-The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, set sync status, and delete project. All endpoints use ABP standard DTOs.
+The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, set sync status, and delete project. All endpoints use ABP standard DTOs. The paged list behavior SHALL include records created by external BasePlatform pull sync in addition to manually created records.
 
 #### Scenario: Paged project list via ABP API
 - **WHEN** a GET request is sent to `/api/app/gov-project/get-list` with `PagedAndSortedResultRequestDto` parameters
@@ -35,6 +35,11 @@ The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints follo
 - **WHEN** a DELETE request is sent to `/api/app/gov-project/delete` with `EntityDto<Guid>` containing project ID
 - **THEN** the system SHALL update the `DeleteStatus` field to true on the corresponding `GovProject` record
 - **AND** ABP automatically maps DELETE verb to DeleteAsync method
+
+#### Scenario: List includes pull-synced projects
+- **WHEN** external BasePlatform pull sync inserts new `GovProject` rows
+- **THEN** subsequent `/api/app/gov-project/get-list` responses SHALL include those rows
+- **AND** those rows SHALL follow the same DTO shape and pagination behavior as manually created projects
 
 ### Requirement: Sync data listing with real database operations
 The `SyncInfoController` SHALL use `IRepository<GovSyncData, int>` and `IRepository<GovLog, int>` for querying sync records and logs, replacing the `SampleDataProvider` mock implementation.
