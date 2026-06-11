@@ -117,7 +117,8 @@ sequenceDiagram
 ## Reasoning Annotations
 
 **Classification source**: `openspec/reasoning-categories.yaml`
-**Categories active**: 15 / 19
+**Artifact type**: proposal
+**Categories active**: 17 / 20
 **Annotations found**: 9
 
 ### Summary by Domain
