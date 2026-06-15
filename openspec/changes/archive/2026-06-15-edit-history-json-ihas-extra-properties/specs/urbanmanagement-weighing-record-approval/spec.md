@@ -39,6 +39,9 @@ On successful approval, the system SHALL update the server `UrbanWeighingRecord`
 - **AND** resync SHALL rely on `GovSyncBackgroundWorker` for eligible records (`IsAnomaly == false`, project enabled, etc.)
 
 ### Requirement: List refreshes after approval
+The weighing record table SHALL refresh after a successful approval and display updated field values.
+
+#### Scenario: Table reflects updated values after approval
 - **WHEN** approval completes successfully
 - **THEN** the weighing record table SHALL refresh
 - **AND** updated `PlateNumber`, `TotalWeight`, `IsAnomaly`, and sync status columns SHALL reflect the new values

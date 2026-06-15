@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Anomaly flag update after approval
 The system SHALL recalculate and update the anomaly flag after a weighing record is modified during approval.
@@ -25,8 +25,6 @@ The system SHALL recalculate and update the anomaly flag after a weighing record
 - **THEN** the anomaly flag update SHALL be skipped
 - **AND** no error SHALL be thrown
 - **AND** the record update SHALL complete successfully
-
-## ADDED Requirements
 
 ### Requirement: Edit history appended on approval
 The system SHALL append edit history entries to `UrbanWeighingExtension.EditHistoryJson` after a weighing record is successfully modified during approval.

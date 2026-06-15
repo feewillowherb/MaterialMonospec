@@ -3,9 +3,7 @@
 ## Purpose
 
 Provides the core API for urban weighing record management, supporting extended fields for vehicle information, sync state management, and attachment file associations. (TBD: expand with API design principles)
-
 ## Requirements
-
 ### Requirement: UrbanWeighingRecord extended fields
 The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the following fields beyond what is currently implemented: `VehicleColor` (string?), `PlateColor` (string?), `VehicleType` (string?), `DeviceId` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `SiteType` (string?), `ProId` (string?), `ProName` (string?), `IsAnomaly` (bool, default false), `ClientSyncType` (int?), `ClientSyncTime` (DateTime?), `ClientRetryCount` (int?), `ClientLastErrorTime` (DateTime?), `SyncTime` (DateTime?), `RetryCount` (int?), `LastErrorTime` (DateTime?). The `SnapImages` string field SHALL be removed.
 
@@ -116,11 +114,17 @@ UrbanManagement SHALL expose an application service method to approve (correct) 
 - **THEN** 新建的 `UrbanWeighingRecord.TotalWeight` MUST 存为 `8500`
 - **AND** 政府同步构造载荷时 `grossWeight` / `goodsWeight` MUST 使用该千克值
 
-#### Scenario: 政府车型阈值按千克
+#### Scenario: 政府车型阈值按千克（大车）
 
 - **WHEN** 已存 `TotalWeight` 为 `5000`（kg）
-- **AND** `GovSyncBackgroundWorker` 构建政府载荷
-- **THEN** `carType` MUST 为 `Large`（因大于 4500 kg 阈值）
+- **AND** `GovSyncBackgroundWorker` 构建政府出站载荷
+- **THEN** 载荷字段 `carType` MUST 为 `"大车"`（因大于 4500 kg 阈值）
+
+#### Scenario: 政府车型阈值按千克（小车）
+
+- **WHEN** 已存 `TotalWeight` 为 `1000`（kg）
+- **AND** `GovSyncBackgroundWorker` 构建政府出站载荷
+- **THEN** 载荷字段 `carType` MUST 为 `"小车"`（因不大于 4500 kg 阈值）
 
 ### Requirement: Attachment upload endpoint for MaterialClient.Urban
 
@@ -142,3 +146,4 @@ When MaterialClient.Urban calls receive with `attachmentIds` produced by the upl
 - **THEN** the system SHALL insert the `UrbanWeighingRecord`
 - **AND** SHALL create one `UrbanWeighingRecordAttachment` per Guid
 - **AND** government sync worker SHALL later be able to read those files from `FilesPhysicalPath`-resolved storage
+
