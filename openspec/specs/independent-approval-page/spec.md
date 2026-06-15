@@ -3,9 +3,7 @@
 ## Purpose
 
 Dedicated approval page for anomalous weighing records, separated from the general weighing record management page, with anomaly filter controls and full approval workflow.
-
 ## Requirements
-
 ### Requirement: Independent approval page route
 
 The system SHALL provide a dedicated approval page at route `/weighing-approval` accessible from the sidebar navigation.
@@ -82,25 +80,25 @@ The approval page SHALL provide the same search controls as WeighingRecord.razor
 
 ### Requirement: Approval page approval modal
 
-The approval page SHALL include the complete approval modal with LPR/Urban photo preview, plate number and weight editing, validation, and submission — identical in behavior to the current WeighingRecord.razor approval modal.
+The approval page SHALL include the complete approval modal with LPR/Urban photo preview, plate number and weight editing, validation, and submission.
 
 #### Scenario: Open approval modal from approval page
 
-- **WHEN** the administrator clicks "审批" on a record row in the approval page
+- **WHEN** the administrator clicks「审批」on an anomalous record row
 - **THEN** the approval modal SHALL open with the record's current `PlateNumber` and `TotalWeight`
 - **AND** the system SHALL load attachment images via `GetApprovalAttachmentsAsync`
-- **AND** LPR and Urban photo previews SHALL be displayed if available
+- **AND** Lrp and UrbanPhoto previews SHALL be displayed if available, classified by `AttachType` enum (5 / 6)
 
 #### Scenario: Submit approval from approval page
 
-- **WHEN** the administrator edits fields and clicks "提交审批"
+- **WHEN** the administrator edits fields and clicks「提交审批」
 - **THEN** the system SHALL call `ApproveAsync` with the updated values
 - **AND** on success, the modal SHALL close and the list SHALL refresh
 - **AND** the anomaly filter SHALL remain active after refresh
 
 #### Scenario: Cancel approval from approval page
 
-- **WHEN** the administrator clicks "取消" or closes the modal
+- **WHEN** the administrator clicks「取消」or closes the modal
 - **THEN** no changes SHALL be persisted
 - **AND** the list SHALL remain unchanged
 
@@ -112,13 +110,15 @@ The approval page SHALL include the complete approval modal with LPR/Urban photo
 
 ### Requirement: Approval page table columns
 
-The approval page table SHALL include the same columns as the current WeighingRecord.razor table plus the "操作" column with the "审批" button.
+The approval page table SHALL include weighing record columns plus an 操作 column with row actions.
 
 #### Scenario: Table column layout
 
 - **WHEN** the approval page renders the table
-- **THEN** columns SHALL include: 车牌号, 重量(kg), 称重时间, 项目名, 对接码, 数据质量, 同步状态, 重试次数, 同步时间, 操作
-- **AND** the 操作 column SHALL contain a "审批" button for each row
+- **THEN** columns SHALL include: 车牌号, 重量(kg), 称重时间, 项目名, 对接码, 数据质量, 同步状态, 同步时间, 操作
+- **AND** the 操作 column SHALL contain「查看照片」on every row
+- **AND** SHALL contain「审批」for anomalous records
+- **AND** MAY contain「修改历史」per existing behavior
 
 #### Scenario: Anomaly and sync badges
 
@@ -135,3 +135,14 @@ The approval page SHALL use the same pagination controls and logic as WeighingRe
 - **WHEN** the administrator clicks a page button
 - **THEN** the system SHALL query with the selected page number and the current anomaly filter
 - **AND** the total count SHALL reflect the filtered result set
+
+### Requirement: Approval page standalone photo view
+
+`WeighingApproval.razor` SHALL provide「查看照片」as a standalone row action independent of the approval modal. See `urban-weighing-photo-view` capability.
+
+#### Scenario: View photos without opening approval modal
+
+- **WHEN** the administrator clicks「查看照片」on any row
+- **THEN** a read-only photo dialog SHALL open without requiring approval permissions on form fields
+- **AND** images SHALL be loaded via `GetApprovalAttachmentsAsync`
+

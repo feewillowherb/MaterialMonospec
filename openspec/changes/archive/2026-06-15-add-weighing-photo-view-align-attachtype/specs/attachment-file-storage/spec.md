@@ -9,17 +9,7 @@ The system SHALL provide an `AttachmentFile` entity with fields: `Id` (Guid PK),
 - **WHEN** an image is saved to disk during legacy or new client processing
 - **THEN** the system SHALL create an `AttachmentFile` record with the file name, relative local path, appropriate `AttachType` enum value, and current timestamp
 
-### Requirement: AttachType enum aligned with MaterialClient
-
-UrbanManagement SHALL define `AttachType` with the same members and numeric values as `MaterialClient.Common.Entities.Enums.AttachType`, including `UnmatchedEntryPhoto` (0), `EntryPhoto` (1), `ExitPhoto` (2), `TicketPhoto` (3), `Lrp` (5), and `UrbanPhoto` (6).
-
-#### Scenario: Full enum definition present
-
-- **WHEN** UrbanManagement compiles `UrbanManagement.Core.Entities.Enums.AttachType`
-- **THEN** all members and values SHALL match MaterialClient `AttachType`
-- **AND** the enum SHALL use `short` as the underlying type
-
-### Requirement: UrbanManagement attachment operations accept only Lrp and UrbanPhoto
+### Requirement: AttachType restricted to Lrp and UrbanPhoto
 
 Although the `AttachType` enum defines all MaterialClient members, UrbanManagement attachment create/upload APIs and `FileService.SaveAndCompressImagesAsync` SHALL only accept `AttachType.Lrp` (5) and `AttachType.UrbanPhoto` (6). Other enum values MUST NOT be persisted via UrbanManagement APIs in this capability.
 
@@ -61,6 +51,16 @@ UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that a
 - **THEN** the server SHALL return HTTP 400 and SHALL NOT create `AttachmentFile` records
 
 ## ADDED Requirements
+
+### Requirement: AttachType enum aligned with MaterialClient
+
+UrbanManagement SHALL define `AttachType` with the same members and numeric values as `MaterialClient.Common.Entities.Enums.AttachType`, including `UnmatchedEntryPhoto` (0), `EntryPhoto` (1), `ExitPhoto` (2), `TicketPhoto` (3), `Lrp` (5), and `UrbanPhoto` (6).
+
+#### Scenario: Full enum definition present
+
+- **WHEN** UrbanManagement compiles `UrbanManagement.Core.Entities.Enums.AttachType`
+- **THEN** all members and values SHALL match MaterialClient `AttachType`
+- **AND** the enum SHALL use `short` as the underlying type
 
 ### Requirement: Attachment images classified by AttachType enum for Web display
 
