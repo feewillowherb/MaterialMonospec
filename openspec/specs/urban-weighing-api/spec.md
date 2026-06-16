@@ -17,15 +17,33 @@ The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the
 - **THEN** no `SnapImages` column SHALL exist on the `Urban_WeighingRecord` table
 
 ### Requirement: ClientRecordId idempotency
-The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate.
+The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate, and SHALL apply upsert updates to the existing record's correctable fields from the incoming DTO.
 
 #### Scenario: First submission
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and no record with that ID exists
 - **THEN** a new record SHALL be created and its ID returned
 
-#### Scenario: Duplicate submission
+#### Scenario: Duplicate submission with corrected fields
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
-- **THEN** the existing record's ID SHALL be returned and no new record created
+- **AND** the payload contains updated `plateNumber`, `totalWeight`, and `isAnomaly: false`
+- **THEN** the existing record's ID SHALL be returned
+- **AND** no new record SHALL be created
+- **AND** the existing record's `PlateNumber` and `TotalWeight` MUST reflect the payload values
+- **AND** the existing record's `IsAnomaly` MUST be `false`
+- **AND** the existing record's `SyncType` MUST be reset to `0`
+- **AND** the existing record's `RetryCount` MUST be reset to `0`
+
+#### Scenario: Duplicate submission idempotent retry
+- **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
+- **AND** the payload fields match the stored values
+- **THEN** the existing record's ID SHALL be returned
+- **AND** no duplicate record SHALL be created
+
+#### Scenario: Duplicate submission ignores attachment updates
+- **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
+- **AND** the payload includes `attachmentIds` with one or more Guids
+- **THEN** the existing record's attachment associations MUST remain unchanged
+- **AND** the system MUST NOT insert additional `UrbanWeighingRecordAttachment` rows for that existing record
 
 ### Requirement: UrbanWeighingRecordDto extended with sync state fields
 The `UrbanWeighingRecordDto` SHALL accept the following additional fields: `VehicleColor`, `PlateColor`, `VehicleType`, `DeviceId`, `BuildLicenseNo`, `FdBuildLicenseNo`, `SiteType`, `ProId`, `ProName`, `IsAnomaly`, `ClientSyncType`, `ClientSyncTime`, `ClientRetryCount`, `ClientLastErrorTime`. The DTO field names SHALL use PascalCase and rely on global camelCase JSON serialization for wire format.
@@ -72,10 +90,13 @@ When UrbanManagement receives a weighing record from MaterialClient.Urban via `R
 - **THEN** the created `UrbanWeighingRecord.IsAnomaly` MUST be `false`
 - **AND** no server anomaly detector MUST be invoked
 
-#### Scenario: Duplicate receive does not recompute anomaly
+#### Scenario: Duplicate receive updates anomaly from client payload
 
 - **WHEN** `ReceiveAsync` is called with an existing `ClientRecordId` (idempotent return path)
-- **THEN** the system MUST return the existing record without recalculating `IsAnomaly`
+- **AND** the payload contains `isAnomaly: false` while the stored record has `IsAnomaly: true`
+- **THEN** the system MUST update the stored record's `IsAnomaly` to `false` from the payload
+- **AND** MUST NOT invoke server-side anomaly recalculation
+- **AND** MUST return the existing record Id
 
 ### Requirement: Urban weighing record approval API
 
