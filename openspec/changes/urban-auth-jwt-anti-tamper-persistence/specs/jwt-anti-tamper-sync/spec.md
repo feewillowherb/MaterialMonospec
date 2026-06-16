@@ -2,7 +2,7 @@
 
 ### Requirement: JWT anti-tamper check during online license sync
 
-`DeviceStatusSignalRClient.SyncProjectLicenseFromServerAsync()` SHALL, before performing the existing field sync, read the local JWT (from `.urban` file or `LicenseInfo.LatestJwtToken`) as raw text and submit it to the server via `VerifyJwtAsync` for anti-tamper verification. When verification passes, the server SHALL return its authoritative JWT for the client to adopt.
+`DeviceStatusSignalRClient.SyncProjectLicenseFromServerAsync()` SHALL, before performing the existing field sync, read the local JWT (from `.urban` file or `LicenseInfo.LatestJwtToken`) as raw text and submit it to the server via `VerifyJwtAsync` for anti-tamper verification. When verification passes, the server SHALL return its freshly signed JWT for the client to adopt.
 
 #### Scenario: Anti-tamper check passes
 
@@ -11,9 +11,9 @@
 - **AND** SHALL derive `LicenseInfo` fields from the server JWT claims (ProId, ProName, BuildLicenseNo, FdBuildLicenseNo, AuthEndTime)
 - **AND** SHALL overwrite the `LicenseInfo` database record with the derived values
 
-#### Scenario: Anti-tamper check fails with mismatch
+#### Scenario: Anti-tamper check fails with invalid signature
 
-- **WHEN** `VerifyJwtAsync` returns `Passed = false` with reason indicating token mismatch
+- **WHEN** `VerifyJwtAsync` returns `Passed = false` with reason indicating signature verification failure
 - **THEN** SHALL NOT proceed with the field sync
 - **AND** SHALL log a warning indicating the local JWT failed anti-tamper verification
 - **AND** SHALL NOT modify the local `LicenseInfo` entity
@@ -23,6 +23,12 @@
 - **WHEN** `VerifyJwtAsync` returns `Passed = false` with reason indicating the token is expired
 - **THEN** SHALL NOT proceed with the field sync
 - **AND** SHALL log a warning indicating the JWT is expired
+
+#### Scenario: Anti-tamper check fails with project not found
+
+- **WHEN** `VerifyJwtAsync` returns `Passed = false` with reason indicating the project was not found on the server
+- **THEN** SHALL NOT proceed with the field sync
+- **AND** SHALL log a warning indicating the project does not exist
 
 #### Scenario: Local .urban file does not exist and no LatestJwtToken during sync
 
@@ -58,7 +64,7 @@ The sync flow SHALL read the JWT as a raw string. The source priority SHALL be: 
 
 ### Requirement: Server JWT as authoritative source for LicenseInfo
 
-The server-side persisted JWT SHALL be the authoritative source for authorization state. On startup, the client SHALL use the server-provided JWT (stored in `LicenseInfo.LatestJwtToken`) if available; otherwise fall back to the `.urban` file as offline bootstrap. In either case, the JWT claims SHALL be used to overwrite the `LicenseInfo` database record, ensuring database tampering is transient.
+The server-side JWT SHALL be the authoritative source for authorization state. On startup, the client SHALL use the server-provided JWT (stored in `LicenseInfo.LatestJwtToken`) if available; otherwise fall back to the `.urban` file as offline bootstrap. In either case, the JWT claims SHALL be used to overwrite the `LicenseInfo` database record, ensuring database tampering is transient.
 
 #### Scenario: Startup with LatestJwtToken available
 

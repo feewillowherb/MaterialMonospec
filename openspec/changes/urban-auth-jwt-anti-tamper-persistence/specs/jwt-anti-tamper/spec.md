@@ -2,28 +2,24 @@
 
 ### Requirement: JWT anti-tamper verification service
 
-`IJwtAntiTamperService` SHALL define a `VerifyAndCompareAsync(string jwtToken, Guid proId)` method that validates the submitted JWT token against the server-persisted record. The method SHALL return a `JwtAntiTamperResult`.
+`IJwtAntiTamperService` SHALL define a `VerifyAndCompareAsync(string jwtToken, Guid proId)` method that validates the submitted JWT token using RS256 signature verification, extracts the `proId` claim, queries the `GovProject` by that `proId`, and if the project exists and the JWT is valid, re-signs a fresh JWT from the `GovProject` data. The method SHALL return a `JwtAntiTamperResult`.
 
-#### Scenario: Valid JWT matching persisted token
+#### Scenario: Valid JWT with matching project
 
-- **WHEN** `VerifyAndCompareAsync` is called with a JWT that has a valid RS256 signature, correct issuer (`UrbanManagement`) and audience (`MaterialClient.Urban`), and whose raw text exactly matches the persisted JWT for the given ProId
+- **WHEN** `VerifyAndCompareAsync` is called with a JWT that has a valid RS256 signature, correct issuer (`UrbanManagement`) and audience (`MaterialClient.Urban`), and the `proId` claim matches an existing `GovProject` record
 - **THEN** SHALL return `JwtAntiTamperResult` with `Passed = true`
-- **AND** `ProName`, `BuildLicenseNo`, `FdBuildLicenseNo`, `AuthEndTime` SHALL be populated from the JWT claims
+- **AND** `ServerJwt` SHALL contain a freshly signed JWT from the `GovProject` data
+- **AND** `ProName`, `BuildLicenseNo`, `FdBuildLicenseNo`, `AuthEndTime` SHALL be populated from the `GovProject` fields
 
 #### Scenario: Invalid RS256 signature
 
 - **WHEN** `VerifyAndCompareAsync` is called with a JWT whose RS256 signature does not verify against the configured RSA public key
 - **THEN** SHALL return `JwtAntiTamperResult` with `Passed = false` and `Reason` indicating signature verification failure
 
-#### Scenario: No persisted token found for ProId
+#### Scenario: No GovProject found for proId
 
-- **WHEN** `VerifyAndCompareAsync` is called with a validly-signed JWT but no `PersistedJwtToken` record exists for the given ProId
-- **THEN** SHALL return `JwtAntiTamperResult` with `Passed = false` and `Reason` indicating no server record exists
-
-#### Scenario: JWT text mismatch
-
-- **WHEN** `VerifyAndCompareAsync` is called with a validly-signed JWT whose raw text does not exactly match the persisted JWT for the given ProId
-- **THEN** SHALL return `JwtAntiTamperResult` with `Passed = false` and `Reason` indicating token mismatch (tampering detected)
+- **WHEN** `VerifyAndCompareAsync` is called with a validly-signed JWT but no `GovProject` record exists for the `proId` extracted from the JWT claims
+- **THEN** SHALL return `JwtAntiTamperResult` with `Passed = false` and `Reason` indicating the project was not found on the server
 
 #### Scenario: Expired JWT submitted
 
@@ -46,4 +42,4 @@
 
 ### Requirement: JwtAntiTamperResult DTO
 
-`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ProName` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `AuthEndTime` (DateTime?). The license fields SHALL only be populated when `Passed = true`.
+`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ServerJwt` (string?, the freshly signed JWT when passed), `ProName` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `AuthEndTime` (DateTime?). The `ServerJwt` and license fields SHALL only be populated when `Passed = true`.
