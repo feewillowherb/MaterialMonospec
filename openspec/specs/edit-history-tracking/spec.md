@@ -30,7 +30,7 @@ The system SHALL expose a `[NotMapped]` computed property `EditHistory` that ser
 - **AND** if the list is null or empty, `EditHistoryJson` SHALL be set to `null`
 
 ### Requirement: Append edit entry on approval
-The system SHALL append a edit entry to `EditHistoryJson` when `PlateNumber` or `TotalWeight` is modified during the approval process.
+The system SHALL append a edit entry to `EditHistoryJson` when `PlateNumber` or `TotalWeight` is modified during the approval process, and SHALL set `IsImagesModified` to `true` on the new edit entry when any image replacement occurred during the same approval.
 
 #### Scenario: PlateNumber change recorded
 - **WHEN** `ApproveAsync` modifies `PlateNumber` and the new value differs from the old value
@@ -49,6 +49,15 @@ The system SHALL append a edit entry to `EditHistoryJson` when `PlateNumber` or 
 - **WHEN** `ApproveAsync` is called but neither `PlateNumber` nor `TotalWeight` differs from the current values
 - **THEN** no edit entry SHALL be appended
 - **AND** `EditHistoryJson` SHALL remain unchanged
+
+#### Scenario: Image replacement marks IsImagesModified
+- **WHEN** `ApproveAsync` processes image replacement (non-null `LrpReplacementBase64` or `UrbanPhotoReplacementBase64`)
+- **AND** an edit entry is appended to the history
+- **THEN** the new `EditEntry.IsImagesModified` SHALL be set to `true`
+
+#### Scenario: No image replacement keeps IsImagesModified false
+- **WHEN** `ApproveAsync` processes without image replacement (both replacement fields null or empty)
+- **THEN** the new `EditEntry.IsImagesModified` SHALL be set to `false`
 
 ### Requirement: MaterialClient service method for edit history
 The system SHALL provide an `AppendEditEntryAsync` method on `IUrbanWeighingExtensionService` for writing edit entries on the MaterialClient side.
