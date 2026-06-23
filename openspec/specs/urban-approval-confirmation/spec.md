@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the secondary confirmation interaction for Urban weighing record approval, ensuring operators explicitly confirm before persisting edits and preventing accidental submissions.
+Defines the secondary confirmation interaction for Urban weighing record approval on MaterialClient.Urban, ensuring operators explicitly confirm before persisting edits.
 
 ## Requirements
 

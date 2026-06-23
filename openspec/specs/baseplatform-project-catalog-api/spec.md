@@ -1,11 +1,8 @@
-# BasePlatform Project Catalog API
+# baseplatform-project-catalog-api Specification
 
 ## Purpose
-
-Provides a read-only, API-key-protected project catalog endpoint on `FdSoft.BasePlatform.PublicApi` so UrbanManagement can pull `ProId` and `ProName` over HTTPS with bounded pagination.
-
+TBD - created by archiving change sync-gov-project-from-baseplatform-publicapi. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: Project catalog API provides paged ProId and ProName
 The `FdSoft.BasePlatform.PublicApi` system SHALL provide a read-only endpoint `GET /Api/ProjectCatalog/ListProjects` that returns paged project catalog data containing only `ProId` and `ProName`.
 
@@ -42,3 +39,4 @@ The project catalog API SHALL apply bounded pagination with default and maximum 
 #### Scenario: Oversized page request
 - **WHEN** a client requests `pageSize` above the configured maximum
 - **THEN** the API SHALL clamp to the maximum allowed size before querying data
+

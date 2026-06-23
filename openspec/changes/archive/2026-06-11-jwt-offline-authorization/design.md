@@ -208,13 +208,14 @@ sequenceDiagram
 ## Reasoning Annotations
 
 **Classification source**: `openspec/reasoning-categories.yaml`
-**Categories active**: 15 / 19
+**Artifact type**: design
+**Categories active**: 17 / 20
 **Annotations found**: 13
 
 ### Summary by Domain
 | Domain | Categories matched | Annotation count |
 |--------|-------------------|-----------------|
-| 技术   | auth-license, abp-module, data-model, ui-architecture | 8 |
+| 技术   | auth-license, abp-module, data-model, ui-architecture | 10 |
 | 业务   | gov-compliance | 1 |
 | 通用   | cross-repo, scope-decision | 4 |
 

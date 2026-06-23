@@ -1,11 +1,8 @@
-# Gov Project BasePlatform Pull Sync
+# gov-project-baseplatform-pull-sync Specification
 
 ## Purpose
-
-Enables UrbanManagement to periodically pull project catalog data from BasePlatform.PublicApi and import new `GovProject` records with initialized license fields, using idempotent insert-only semantics within this change scope.
-
+TBD - created by archiving change sync-gov-project-from-baseplatform-publicapi. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: UrbanManagement periodically pulls project catalog from BasePlatform
 UrbanManagement SHALL run a periodic background worker that calls BasePlatform.PublicApi project catalog endpoint to fetch project data (`ProId`, `ProName`) over HTTPS.
 
@@ -52,3 +49,4 @@ UrbanManagement pull sync SHALL read remote data in pages and SHALL keep local c
 - **THEN** worker SHALL log failure with actionable context
 - **AND** worker SHALL stop current execution without writing partial inconsistent updates
 - **AND** worker SHALL retry on next scheduled cycle
+

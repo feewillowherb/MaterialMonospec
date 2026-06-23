@@ -3,9 +3,7 @@
 ## Purpose
 
 Provides real database CRUD operations for project and sync data management in the urban management system, replacing mock implementations with production-ready data access. (TBD: expand with data access strategy details)
-
 ## Requirements
-
 ### Requirement: Project CRUD with ABP auto-generated API endpoints
 The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, set sync status, and delete project. All endpoints use ABP standard DTOs. The paged list behavior SHALL include records created by external BasePlatform pull sync in addition to manually created records.
 
@@ -205,3 +203,4 @@ The system SHALL maintain compatibility with legacy government client API throug
 - **WHEN** `LegacyGovSyncAppService` processes request
 - **THEN** returns `LegacyGovSyncResult` with success flag, message, and status code
 - **AND** maintains compatibility with existing client expectations
+

@@ -3,9 +3,7 @@
 ## Purpose
 
 Provides the core API for urban weighing record management, supporting extended fields for vehicle information, sync state management, and attachment file associations. (TBD: expand with API design principles)
-
 ## Requirements
-
 ### Requirement: UrbanWeighingRecord extended fields
 The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the following fields beyond what is currently implemented: `VehicleColor` (string?), `PlateColor` (string?), `VehicleType` (string?), `DeviceId` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `SiteType` (string?), `ProId` (string?), `ProName` (string?), `IsAnomaly` (bool, default false), `ClientSyncType` (int?), `ClientSyncTime` (DateTime?), `ClientRetryCount` (int?), `ClientLastErrorTime` (DateTime?), `SyncTime` (DateTime?), `RetryCount` (int?), `LastErrorTime` (DateTime?). The `SnapImages` string field SHALL be removed.
 
@@ -19,15 +17,33 @@ The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the
 - **THEN** no `SnapImages` column SHALL exist on the `Urban_WeighingRecord` table
 
 ### Requirement: ClientRecordId idempotency
-The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate.
+The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate, and SHALL apply upsert updates to the existing record's correctable fields from the incoming DTO.
 
 #### Scenario: First submission
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and no record with that ID exists
 - **THEN** a new record SHALL be created and its ID returned
 
-#### Scenario: Duplicate submission
+#### Scenario: Duplicate submission with corrected fields
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
-- **THEN** the existing record's ID SHALL be returned and no new record created
+- **AND** the payload contains updated `plateNumber`, `totalWeight`, and `isAnomaly: false`
+- **THEN** the existing record's ID SHALL be returned
+- **AND** no new record SHALL be created
+- **AND** the existing record's `PlateNumber` and `TotalWeight` MUST reflect the payload values
+- **AND** the existing record's `IsAnomaly` MUST be `false`
+- **AND** the existing record's `SyncType` MUST be reset to `0`
+- **AND** the existing record's `RetryCount` MUST be reset to `0`
+
+#### Scenario: Duplicate submission idempotent retry
+- **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
+- **AND** the payload fields match the stored values
+- **THEN** the existing record's ID SHALL be returned
+- **AND** no duplicate record SHALL be created
+
+#### Scenario: Duplicate submission ignores attachment updates
+- **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
+- **AND** the payload includes `attachmentIds` with one or more Guids
+- **THEN** the existing record's attachment associations MUST remain unchanged
+- **AND** the system MUST NOT insert additional `UrbanWeighingRecordAttachment` rows for that existing record
 
 ### Requirement: UrbanWeighingRecordDto extended with sync state fields
 The `UrbanWeighingRecordDto` SHALL accept the following additional fields: `VehicleColor`, `PlateColor`, `VehicleType`, `DeviceId`, `BuildLicenseNo`, `FdBuildLicenseNo`, `SiteType`, `ProId`, `ProName`, `IsAnomaly`, `ClientSyncType`, `ClientSyncTime`, `ClientRetryCount`, `ClientLastErrorTime`. The DTO field names SHALL use PascalCase and rely on global camelCase JSON serialization for wire format.
@@ -58,6 +74,30 @@ When `IsAnomaly` is `true` on an `UrbanWeighingRecord`, the record SHALL NOT be 
 - **WHEN** the background sync worker queries pending records and a record has `IsAnomaly = false`
 - **THEN** that record SHALL be eligible for forwarding
 
+### Requirement: Client IsAnomaly persisted on receive without server recalculation
+
+When UrbanManagement receives a weighing record from MaterialClient.Urban via `ReceiveAsync`, the system SHALL persist the `IsAnomaly` value from the request DTO and MUST NOT recalculate it using server-side threshold rules.
+
+#### Scenario: Receive preserves client anomaly flag true
+
+- **WHEN** `ReceiveAsync` receives a new record with `isAnomaly: true` from the client
+- **THEN** the created `UrbanWeighingRecord.IsAnomaly` MUST be `true`
+- **AND** no server anomaly detector MUST be invoked
+
+#### Scenario: Receive preserves client anomaly flag false
+
+- **WHEN** `ReceiveAsync` receives a new record with `isAnomaly: false` from the client
+- **THEN** the created `UrbanWeighingRecord.IsAnomaly` MUST be `false`
+- **AND** no server anomaly detector MUST be invoked
+
+#### Scenario: Duplicate receive updates anomaly from client payload
+
+- **WHEN** `ReceiveAsync` is called with an existing `ClientRecordId` (idempotent return path)
+- **AND** the payload contains `isAnomaly: false` while the stored record has `IsAnomaly: true`
+- **THEN** the system MUST update the stored record's `IsAnomaly` to `false` from the payload
+- **AND** MUST NOT invoke server-side anomaly recalculation
+- **AND** MUST return the existing record Id
+
 ### Requirement: Urban weighing record approval API
 
 UrbanManagement SHALL expose an application service method to approve (correct) an existing `UrbanWeighingRecord` by server primary key, aligned with MaterialClient.Urban approval semantics.
@@ -79,6 +119,12 @@ UrbanManagement SHALL expose an application service method to approve (correct) 
 - **THEN** the API SHALL return HTTP 400 with a clear validation message
 - **AND** SHALL NOT update the entity
 
+#### Scenario: Non-anomalous record rejected
+
+- **WHEN** `ApproveAsync` is called for a record with `IsAnomaly == false`
+- **THEN** the API SHALL return HTTP 400 with a clear message that the record is not eligible for approval
+- **AND** SHALL NOT update the entity
+
 ### Requirement: Receive 载荷 TotalWeight 单位为千克
 
 `UrbanWeighingRecordReceiveInputDto.totalWeight`（及持久化字段 `UrbanWeighingRecord.TotalWeight`）SHALL 表示车辆总重，单位为**千克（kg）**。MaterialClient.Urban 上云时 MUST 在客户端完成吨→千克换算；UrbanManagement MUST NOT 假定该字段为吨。
@@ -89,11 +135,17 @@ UrbanManagement SHALL expose an application service method to approve (correct) 
 - **THEN** 新建的 `UrbanWeighingRecord.TotalWeight` MUST 存为 `8500`
 - **AND** 政府同步构造载荷时 `grossWeight` / `goodsWeight` MUST 使用该千克值
 
-#### Scenario: 政府车型阈值按千克
+#### Scenario: 政府车型阈值按千克（大车）
 
 - **WHEN** 已存 `TotalWeight` 为 `5000`（kg）
-- **AND** `GovSyncBackgroundWorker` 构建政府载荷
-- **THEN** `carType` MUST 为 `Large`（因大于 4500 kg 阈值）
+- **AND** `GovSyncBackgroundWorker` 构建政府出站载荷
+- **THEN** 载荷字段 `carType` MUST 为 `"大车"`（因大于 4500 kg 阈值）
+
+#### Scenario: 政府车型阈值按千克（小车）
+
+- **WHEN** 已存 `TotalWeight` 为 `1000`（kg）
+- **AND** `GovSyncBackgroundWorker` 构建政府出站载荷
+- **THEN** 载荷字段 `carType` MUST 为 `"小车"`（因不大于 4500 kg 阈值）
 
 ### Requirement: Attachment upload endpoint for MaterialClient.Urban
 
@@ -115,3 +167,4 @@ When MaterialClient.Urban calls receive with `attachmentIds` produced by the upl
 - **THEN** the system SHALL insert the `UrbanWeighingRecord`
 - **AND** SHALL create one `UrbanWeighingRecordAttachment` per Guid
 - **AND** government sync worker SHALL later be able to read those files from `FilesPhysicalPath`-resolved storage
+

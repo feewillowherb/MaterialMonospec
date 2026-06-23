@@ -26,30 +26,6 @@ Defines the Urban anomaly detection subsystem that identifies anomalous weighing
 - **AND** 配置节 MUST 在 `MaterialClient.Urban/appsettings.json` 中定义
 - **AND** 若配置节缺失，MUST 使用默认值
 
-### Requirement: UrbanManagement 服务端异常检测配置（千克）
-
-UrbanManagement SHALL 提供 `UrbanAnomalyDetectionOptions`，阈值 MUST 与 `UrbanWeighingRecord.TotalWeight` 使用相同单位：**千克（kg）**（与 MaterialClient 本地吨值配置独立）。
-
-#### Scenario: 服务端配置模型结构
-
-- **WHEN** `UrbanAnomalyDetectionOptions` 被定义（UrbanManagement）
-- **THEN** `UpperLimit` MUST 表示重量上限（**kg**）
-- **AND** `LowerLimit` MUST 表示重量下限（**kg**）
-- **AND** `DeviationPercentage` MUST 表示允许的偏差百分比
-
-#### Scenario: 服务端默认配置值（千克）
-
-- **WHEN** UrbanManagement 使用默认配置（未覆盖 appsettings）
-- **THEN** `UpperLimit` 默认值 MUST 为 `30000`（对应约 30 吨）
-- **AND** `LowerLimit` 默认值 MUST 为 `2000`（对应约 2 吨）
-- **AND** `DeviationPercentage` 默认值 MUST 为 `10.0`
-
-#### Scenario: 服务端配置从 appsettings.json 读取
-
-- **WHEN** UrbanManagement 应用启动时读取 `appsettings.json`
-- **THEN** 系统 MUST 将 `UrbanAnomalyDetection` 配置节绑定到 `UrbanAnomalyDetectionOptions`
-- **AND** 配置值 MUST 以千克解释
-
 ### Requirement: Urban 异常检测服务
 
 系统 SHALL 提供 `IUrbanAnomalyDetector` 接口及其实现 `UrbanAnomalyDetector`，封装异常判断业务逻辑。
@@ -175,3 +151,16 @@ UrbanManagement SHALL 提供 `UrbanAnomalyDetectionOptions`，阈值 MUST 与 `U
 - **WHEN** 系统生成 `AnomalyReason` 文案
 - **THEN** 文案 MUST 使用短语表达，避免长句
 - **AND** 文案长度 SHOULD 控制在 8 个汉字以内
+
+### Requirement: 异常判定权威源为 MaterialClient
+
+Urban 称重记录的 `IsAnomaly` 业务含义 SHALL 由 MaterialClient.Urban 在创建与本地审批时判定；UrbanManagement MUST NOT 使用阈值规则（上下限、偏差百分比）重新计算或覆盖该标志，接收上传路径除外下的审批清除逻辑见 `urbanmanagement-weighing-record-approval`。
+
+#### Scenario: 客户端创建时判定异常
+- **WHEN** MaterialClient.Urban 创建 Urban 模式称重记录
+- **THEN** MUST 调用 `IUrbanAnomalyDetector` 并写入本地 `UrbanWeighingExtension.IsAnomaly`
+- **AND** 上传 DTO MUST 携带相同 `IsAnomaly` 值
+
+#### Scenario: 服务端不得阈值重算
+- **WHEN** UrbanManagement 接收上传或处理审批以外的写路径
+- **THEN** MUST NOT 调用基于 `UpperLimit`/`LowerLimit`/`DeviationPercentage` 的检测器覆盖 `IsAnomaly`

@@ -1,11 +1,9 @@
 ## Purpose
 
 Defines the Urban Weighing Extension entity pattern that extends base `WeighingRecord` with Urban-specific properties (sync status, retry tracking). Association to the parent record is by scalar `WeighingRecordId` only—no EF navigation properties and no database foreign-key constraints—enabling clean separation of mode-specific concerns and explicit lifecycle control via `IUrbanWeighingExtensionService`.
-
 ## Requirements
-
 ### Requirement: Urban weighing extension entity
-The system SHALL provide an `UrbanWeighingExtension` entity that stores Urban-specific properties for weighing records. Association to `WeighingRecord` SHALL be expressed only as a scalar `WeighingRecordId` (`long`) without Entity Framework navigation properties on either entity and without database foreign-key constraints.
+The system SHALL provide an `UrbanWeighingExtension` entity that stores Urban-specific properties for weighing records. Association to `WeighingRecord` SHALL be expressed only as a scalar `WeighingRecordId` (`long`) without Entity Framework navigation properties on either entity and without database foreign-key constraints. The entity SHALL implement `IHasExtraProperties` for storing extension data such as edit history.
 
 #### Scenario: Extension entity structure
 - **WHEN** the `UrbanWeighingExtension` entity is defined
@@ -16,6 +14,8 @@ The system SHALL provide an `UrbanWeighingExtension` entity that stores Urban-sp
 - **AND** it MUST contain a `LastErrorTime` property of type `DateTime?` for recording last failure timestamp
 - **AND** it MUST contain an `IsAnomaly` property of type `bool` for marking anomalous weighing records
 - **AND** `IsAnomaly` 默认值 MUST 为 `false`
+- **AND** it MUST implement `IHasExtraProperties` with an `ExtraProperties` property of type `ExtraPropertyDictionary`
+- **AND** it MUST NOT contain a dedicated `EditHistoryJson` property or `[NotMapped] EditHistory` computed property
 
 #### Scenario: Optional extension per record
 - **WHEN** a `WeighingRecord` exists without an extension row
@@ -40,6 +40,12 @@ The system SHALL persist `UrbanWeighingExtension` in its own table with indexes 
 - **THEN** a unique index MUST exist on `WeighingRecordId`
 - **AND** a composite index MUST exist on `(SyncStatus, WeighingRecordId)` for efficient background worker queries
 - **AND** an index MUST exist on `IsAnomaly` for efficient tab filtering queries
+
+#### Scenario: ExtraProperties column managed by ABP convention
+- **WHEN** `UrbanWeighingExtension` implements `IHasExtraProperties`
+- **THEN** the `ExtraProperties` column MUST be managed by ABP's `ConfigureByConvention()` (automatic JSON column)
+- **AND** the Fluent API MUST NOT contain manual `EditHistoryJson` property configuration
+- **AND** the Fluent API MUST NOT contain `entity.Ignore(e => e.EditHistory)` configuration
 
 ### Requirement: Urban extension creation lifecycle
 The system SHALL create an `UrbanWeighingExtension` row when an Urban mode weighing record is created. Creation and association MUST be performed by `IUrbanWeighingExtensionService` (Domain Service), not by EF navigation or database cascades. The parent `WeighingRecord` MUST be persisted and assigned a non-zero `Id` before the extension row is inserted.
@@ -127,12 +133,13 @@ The system SHALL preserve existing `SyncStatus` values when migrating from the o
 - **AND** the old `SyncStatus` column data MUST remain intact for continued operation
 
 ### Requirement: Type safety and compile-time checking
-The system SHALL provide compile-time type safety for Urban-specific weighing record properties through strong typing rather than dictionary-based storage.
+The system SHALL provide compile-time type safety for Urban-specific weighing record properties through strong typing rather than dictionary-based storage. Edit history data stored in `ExtraProperties` SHALL be accessed through dedicated extension methods that provide type-safe access.
 
 #### Scenario: Strong-typed property access
 - **WHEN** application code accesses Urban-specific properties
-- **THEN** properties MUST be accessed as strongly-typed members (e.g., `extension.SyncStatus`)
-- **AND** properties MUST NOT be accessed through string-based dictionary lookups (e.g., `ExtraProperties["SyncStatus"]`)
+- **THEN** core properties (SyncStatus, IsAnomaly, etc.) MUST be accessed as strongly-typed members (e.g., `extension.SyncStatus`)
+- **AND** edit history MUST be accessed through extension methods (e.g., `extension.GetEditHistory()` returning `List<EditEntry>`)
+- **AND** edit history MUST NOT be accessed through raw string-based dictionary lookups
 
 #### Scenario: Compiler validation
 - **WHEN** code is compiled
@@ -153,3 +160,24 @@ The system SHALL organize Urban-specific domain entities within a dedicated fold
 - **THEN** it MUST include a `DbSet<UrbanWeighingExtension>` property
 - **AND** Fluent API configuration MUST reside in the same `OnModelCreating` method
 - **AND** no separate DbContext or module replacement MUST be required
+
+### Requirement: Edit history stored via ExtraProperties with extension methods
+The system SHALL store edit history data for `UrbanWeighingExtension` in the `ExtraProperties` dictionary under the key `"EditHistory"`, accessed through type-safe extension methods following the same pattern as `SolidWasteInfoExtensions`.
+
+#### Scenario: GetEditHistory extension method
+- **WHEN** `extension.GetEditHistory()` is called on an `UrbanWeighingExtension` that has edit history stored in ExtraProperties
+- **THEN** the method MUST deserialize the JSON string from `ExtraProperties["EditHistory"]` into `List<EditEntry>`
+- **AND** if the key is missing or deserialization fails, it MUST return an empty `List<EditEntry>`
+- **AND** each `EditEntry` in the list MUST contain: `ChangedAt` (DateTime), `PlateNumber` (string), `TotalWeight` (decimal), `AnomalyReason` (string?)
+
+#### Scenario: SetEditHistory extension method
+- **WHEN** `extension.SetEditHistory(entries)` is called with a non-empty list
+- **THEN** the method MUST serialize the list to JSON and store it in `ExtraProperties["EditHistory"]`
+- **AND** when called with `null` or an empty list, the method MUST remove the key or set it to `null`
+
+#### Scenario: AppendEditEntryAsync uses extension methods
+- **WHEN** `IUrbanWeighingExtensionService.AppendEditEntryAsync` is called with a complete snapshot of current field values (PlateNumber, TotalWeight, AnomalyReason)
+- **THEN** the implementation MUST create a new `EditEntry` containing the full snapshot (ChangedAt, PlateNumber, TotalWeight, AnomalyReason)
+- **AND** MUST append it to the existing history list via `GetEditHistory()` / `SetEditHistory()` extension methods
+- **AND** the implementation MUST NOT reference `EditHistoryJson` or `EditHistory` properties directly
+
