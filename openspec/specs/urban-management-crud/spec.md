@@ -115,13 +115,22 @@ The database SHALL have indexes on `GovProject.BuildLicenseNo` and `GovProject.F
 - **WHEN** the EF Core model is configured
 - **THEN** indexes SHALL be created on both `BuildLicenseNo` and `FdBuildLicenseNo` columns of the `Gov_Project` table
 
+### Requirement: GovProject stores project address and construction unit
+The `GovProject` entity SHALL include nullable `ProAddress` and `ShigongUnitName` string properties for project location and construction unit name. The entity SHALL NOT include a persisted `ProductCode` property.
+
+#### Scenario: Extended fields available on entity
+- **WHEN** a `GovProject` is created or loaded
+- **THEN** the entity SHALL expose `ProAddress` and `ShigongUnitName` properties
+- **AND** SHALL NOT expose a `ProductCode` column or property for persistence
+
 ### Requirement: DTO mapping for government projects with UpdateDto
-The system SHALL provide `GovProjectDto` and `GovProjectUpdateDto` with entity mapping methods for data transfer operations, following ABP patterns.
+The system SHALL provide `GovProjectDto` and `GovProjectUpdateDto` with entity mapping methods for data transfer operations, following ABP patterns. `GovProjectDto` SHALL include `ProAddress` and `ShigongUnitName`. `GovProjectDto` SHALL NOT include `ProductCode`.
 
 #### Scenario: FromEntity mapping
 - **WHEN** calling `GovProjectDto.FromEntity(entity)`
-- **THEN** system creates DTO with all entity properties mapped correctly
+- **THEN** system creates DTO with all entity properties mapped correctly including `ProAddress` and `ShigongUnitName`
 - **AND** handles nullable properties appropriately
+- **AND** SHALL NOT include `ProductCode` in the DTO
 
 #### Scenario: ToEntity mapping for creation
 - **WHEN** calling `GovProjectCreateDto.ToEntity()`
@@ -133,6 +142,7 @@ The system SHALL provide `GovProjectDto` and `GovProjectUpdateDto` with entity m
 - **THEN** system updates existing `GovProject` entity with provided properties
 - **AND** preserves existing Id, AddTime, LastSyncTime values
 - **AND** updates only modifiable fields (ProName, BuildLicenseNo, FdBuildLicenseNo, SyncStatus)
+- **AND** SHALL NOT change `ProAddress` or `ShigongUnitName` via update DTO in this change scope
 
 ### Requirement: ApplicationService inheritance for project operations
 The system SHALL implement `GovProjectAppService` inheriting from `ApplicationService` to handle project CRUD operations.

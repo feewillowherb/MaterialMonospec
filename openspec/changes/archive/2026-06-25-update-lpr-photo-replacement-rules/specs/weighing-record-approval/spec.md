@@ -58,13 +58,3 @@ The `UrbanAttendedWeighingViewModel` SHALL provide an `ApproveRecordCommand` tha
 
 - **WHEN** the approval dialog session included successful local Lrp create or replace
 - **THEN** the ViewModel or Service SHALL pass that fact to edit-history append logic so `IsImagesModified` is set on the new edit entry
-
----
-
-## REMOVED Requirements
-
-### Requirement: Client approval invokes ApproveWeighingRecordAsync
-
-**Reason**: Client approval syncs via `UpdateWeighingRecordAsync` + `ReceiveAsync` upsert; `ApproveAsync` is Web-only. The `approval-image-replacement-capture-anomaly` path that passed `LrpReplacementBase64` / `UrbanPhotoReplacementBase64` (and plate/weight) through `ApproveWeighingRecordAsync` duplicates `ReceiveAsync` and violates non-blocking upload rules.
-
-**Migration**: Remove `await api.ApproveWeighingRecordAsync(...)` from `UrbanAttendedWeighingViewModel`; remove `ApproveWeighingRecordAsync` from `IUrbanManagementApi` if present; remove `UrbanWeighingRecordApproveDto` client usage for approval.

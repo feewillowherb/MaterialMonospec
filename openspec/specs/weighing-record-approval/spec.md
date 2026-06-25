@@ -1,9 +1,7 @@
 ## Purpose
 
 Defines the approval workflow for Urban weighing records: the edit dialog UI, the ViewModel command that orchestrates the flow, and the service method that persists field edits and resets sync status.
-
 ## Requirements
-
 ### Requirement: Weighing record edit dialog
 The system SHALL provide a `WeighingRecordEditDialog` window that allows the operator to modify the `PlateNumber` and `TotalWeight` of a weighing record during approval. The dialog SHALL follow the `AddCameraDialog` pattern with dedicated ViewModel, code-behind command subscription, and `Close(result)` on Save/Cancel.
 
@@ -29,9 +27,11 @@ The system SHALL provide a `WeighingRecordEditDialog` window that allows the ope
 - **AND** the dialog SHALL remain open
 
 ### Requirement: ApproveRecordCommand on ViewModel
-The `UrbanAttendedWeighingViewModel` SHALL provide an `ApproveRecordCommand` that accepts an `UrbanWeighingListItemDto` parameter, opens the edit dialog, validates the license plate, processes the result, and updates the anomaly flag. The command MUST NOT perform HTTP upload to UrbanManagement on the UI thread; upload SHALL be delegated to the Urban `PollingBackgroundService` after sync status is reset to `Pending`.
+
+The `UrbanAttendedWeighingViewModel` SHALL provide an `ApproveRecordCommand` that accepts an `UrbanWeighingListItemDto` parameter, opens the edit dialog, validates the license plate, processes the result, and updates the anomaly flag. The command MUST NOT perform HTTP upload to UrbanManagement on the UI thread. After a successful local approval update, upload SHALL be requested by publishing `UrbanWeighingUploadRequestedEventData` via `ILocalEventBus` for immediate background sync of that record; `PollingBackgroundService` SHALL remain the fallback for retries and batch pending scans. The command MUST NOT invoke `ApproveWeighingRecordAsync`, `ApproveAsync`, or synchronously await `SubmitRecordAsync`.
 
 #### Scenario: Successful approval with valid license plate
+
 - **WHEN** `ApproveRecordCommand` executes with a valid `UrbanWeighingListItemDto`
 - **THEN** a `WeighingRecordEditDialog` SHALL be created with the item's current values
 - **AND** the dialog SHALL be shown modally via `ShowDialog`
@@ -40,22 +40,24 @@ The `UrbanAttendedWeighingViewModel` SHALL provide an `ApproveRecordCommand` tha
 - **AND** after successful update, `UpdateAnomalyFlagAsync` SHALL be called to recalculate the anomaly status
 - **AND** the list SHALL be refreshed via `ReloadRecordsAsync`
 - **AND** `IUrbanServerUploadService.SubmitRecordAsync` SHALL NOT be invoked synchronously from the approval command path
+- **AND** after successful local update with `SyncStatus == Pending` and `IsAnomaly == false`, SHALL publish `UrbanWeighingUploadRequestedEventData` for immediate background upload
+- **AND** `ApproveWeighingRecordAsync` (or equivalent Approve Refit method) SHALL NOT be invoked from the approval command path
 
-#### Scenario: Approval rejected due to invalid license plate
-- **WHEN** the dialog returns a result with an invalid `PlateNumber`
-- **THEN** the system SHALL display an error message indicating the license plate format is invalid
-- **AND** `UpdateWeighingRecordAsync` SHALL NOT be called
-- **AND** the list SHALL remain unchanged
+#### Scenario: Re-upload after approval via immediate event with polling fallback
 
-#### Scenario: Approval cancelled
-- **WHEN** the dialog returns `null` (operator cancelled)
-- **THEN** no service call SHALL be made
-- **AND** the list SHALL remain unchanged
+- **WHEN** approval succeeds and `UpdateWeighingRecordAsync` resets `SyncStatus` to `Pending` and clears anomaly (`IsAnomaly == false`)
+- **THEN** the ViewModel SHALL publish `UrbanWeighingUploadRequestedEventData` with the approved `WeighingRecordId`
+- **AND** the upload event handler SHALL attempt `SubmitRecordAsync` for that record without blocking the UI
+- **AND** if immediate upload fails, `PollingBackgroundService` SHALL still upload the record on a subsequent worker tick when polling is enabled
+- **AND** server sync SHALL use `ReceiveWeighingRecordAsync` (upsert by `ClientRecordId`), not an Approve API
 
-#### Scenario: Re-upload after approval via background worker
-- **WHEN** approval succeeds and `UpdateWeighingRecordAsync` resets `SyncStatus` to `Pending`
-- **THEN** the record SHALL become eligible for `GetPendingForUploadAsync`
-- **AND** `MaterialClient.Urban.Backgrounds.PollingBackgroundService` SHALL upload the record on a subsequent worker tick when `BackgroundServices:Polling` is enabled and `IsAnomaly` is false
+#### Scenario: Re-upload after approval via background worker only when immediate path skipped
+
+- **WHEN** approval succeeds but immediate upload event is not published (e.g. `IsAnomaly == true`)
+- **THEN** the record SHALL become eligible for `GetPendingForUploadAsync` only after anomaly is cleared
+- **AND** `PollingBackgroundService` SHALL upload when eligible
+
+---
 
 ### Requirement: UpdateWeighingRecordAsync service method
 The `IWeighingRecordService` SHALL provide an `UpdateWeighingRecordAsync` method that updates a weighing record's `PlateNumber` and `TotalWeight`, resets the associated `UrbanWeighingExtension.SyncStatus` to `Pending`, and updates the anomaly flag.
@@ -140,3 +142,79 @@ After a successful client-side approval that resets `SyncStatus` to `Pending`, t
 - **WHEN** the background upload completes successfully after client approval
 - **THEN** the client SHALL mark local `SyncStatus` as `Synced`
 - **AND** querying UrbanManagement for that `ClientRecordId` MUST return the same plate and weight as the approved local record
+
+### Requirement: Client approval orchestrates local Lrp changes without Approve API
+
+`UrbanAttendedWeighingViewModel.ApproveRecordAsync` (or the approval command handler) SHALL coordinate client-side approval so that Lrp adopt and file-replace actions persist local attachments through the Service layer, record edit history with `IsImagesModified` when applicable, publish `UrbanWeighingUploadRequestedEventData` after successful local approval for immediate background sync, and rely on `PollingBackgroundService` as fallback. It SHALL NOT call UrbanManagement approval APIs or synchronously await upload HTTP on the UI thread.
+
+#### Scenario: Approve after adopt creates local Lrp only
+
+- **WHEN** the operator clicks「采纳」in the approval dialog and then confirms approval
+- **THEN** local Lrp attachment creation SHALL have occurred before or during Save via Service layer
+- **AND** `UpdateWeighingRecordAsync` SHALL update plate/weight and reset `SyncStatus` to `Pending`
+- **AND** SHALL publish `UrbanWeighingUploadRequestedEventData` when the record is eligible for upload (`IsAnomaly == false`)
+- **AND** `IUrbanServerUploadService.SubmitRecordAsync` SHALL NOT be invoked on the UI thread
+- **AND** `ApproveWeighingRecordAsync` / `ApproveAsync` SHALL NOT be called
+
+#### Scenario: Approve without Lrp changes unchanged
+
+- **WHEN** the operator confirms approval without adopt or Lrp file replace
+- **THEN** the approval flow SHALL update local fields and reset `SyncStatus` to `Pending` only
+- **AND** background upload SHALL sync via `ReceiveAsync` as today
+
+#### Scenario: Dialog tracks whether local Lrp was modified
+
+- **WHEN** the approval dialog session included successful local Lrp create or replace
+- **THEN** the ViewModel or Service SHALL pass that fact to edit-history append logic so `IsImagesModified` is set on the new edit entry
+
+### Requirement: Client applies server approval sync locally
+
+MaterialClient.Urban SHALL apply server approval sync messages (from SignalR push or pull API) to local weighing records via the Service layer inside a Unit of Work.
+
+#### Scenario: Apply server approval from push
+
+- **WHEN** the client receives a `WeighingRecordApproved` SignalR message for `ClientRecordId`
+- **THEN** the Service layer SHALL update local `PlateNumber` and `TotalWeight` to the pushed values
+- **AND** SHALL set local `IsAnomaly` to `false` and clear `AnomalyReason`
+- **AND** SHALL set local `SyncStatus` to `Synced`
+- **AND** SHALL call the server ACK API to set `ClientApprovalAckAt`
+- **AND** SHALL publish a local event to refresh the weighing list UI
+
+#### Scenario: Apply server approval from pull on startup
+
+- **WHEN** the application starts or SignalR reconnects
+- **AND** the pull API returns pending server approvals for this `ProId`
+- **THEN** the client SHALL apply each pending record using the same local application logic as push
+- **AND** SHALL ACK each successfully applied record
+
+#### Scenario: Idempotent apply when already synced
+
+- **WHEN** a server approval sync message arrives for a record that is already locally non-anomalous with matching plate and weight
+- **THEN** the client MAY skip field updates
+- **AND** SHALL still invoke ACK if server `ClientApprovalAckAt` is null
+
+### Requirement: Disable client approval after server approval applied
+
+The Urban weighing list SHALL disable or hide the「审批」action for records that have been updated by server approval sync.
+
+#### Scenario: Approval button disabled after server sync
+
+- **WHEN** local `IsAnomaly == false` because server approval sync was applied
+- **THEN** the list row MUST NOT expose an enabled「审批」control
+
+#### Scenario: Approval dialog interrupted by server sync
+
+- **WHEN** the operator has the approval dialog open
+- **AND** a server approval sync message arrives for the same `WeighingRecordId`
+- **THEN** the system SHALL notify the operator that the record was approved on the server
+- **AND** SHALL close the dialog without persisting local approval changes
+
+### Requirement: Relaxed client-server approval conflict
+
+When server approval sync and client local approval overlap, MaterialClient SHALL NOT implement strict conflict arbitration. Either outcome is acceptable.
+
+#### Scenario: Client upload after server approval
+
+- **WHEN** the client later performs local approval and uploads via `ReceiveAsync` after server approval was applied locally
+- **THEN** the existing client upload and server upsert flow SHALL proceed without client-side blocking solely due to prior server approval sync
+

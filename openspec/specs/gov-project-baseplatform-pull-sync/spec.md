@@ -78,3 +78,16 @@ UrbanManagement pull sync SHALL read remote data in pages and SHALL keep local c
 - **AND** the system SHALL read `remote.AccessCode` instead
 - **AND** `BuildLicenseNo` field in response MAY be used for protocol compatibility only
 
+### Requirement: Sync persists project address and construction unit name
+UrbanManagement SHALL persist `ProAddress` and `ShigongUnitName` from the catalog API when inserting new `GovProject` records and when updating existing records during pull sync.
+
+#### Scenario: Address and unit name mapped on insert
+- **WHEN** pull sync inserts a new `GovProject` from a catalog item containing `proAddress` and `shigongUnitName`
+- **THEN** `GovProject.ProAddress` SHALL be set from `proAddress`
+- **AND** `GovProject.ShigongUnitName` SHALL be set from `shigongUnitName`
+
+#### Scenario: Address and unit name updated on sync for existing record
+- **WHEN** pull sync updates an existing local `GovProject` from a catalog item
+- **THEN** `GovProject.ProAddress` SHALL be updated from `proAddress`
+- **AND** `GovProject.ShigongUnitName` SHALL be updated from `shigongUnitName`
+
