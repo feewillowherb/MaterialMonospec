@@ -16,7 +16,10 @@
 - **向后兼容**：需保持政府平台协议字段名不变（`buildLicenseNo`）
 - **灰度发布**：需支持 Feature Flag 控制迁移启用
 - **客户端兼容**：MaterialClient 的 `LicenseInfo.BuildLicenseNo` 属性暂不重命名（后续单独立项）
-- **依赖关系**：需等待 BasePlatform PublicApi 完成 `accessCode`、`machineCode` 字段输出（见 02-BasePlatform 提案 P1）
+- **依赖关系**：
+  - ✅ BasePlatform PublicApi 已完成 `accessCode`、`machineCode` 字段输出（见 `2026-06-24-add-access-token-support` 提案）
+  - ✅ BasePlatform PublicApi 已完成 JWT 签发端点（见 `2025-06-25-baseplatform-jwt` 提案）
+  - UrbanManagement 可直接对接 BasePlatform 已实现的功能
 
 ### 利益相关者
 
@@ -114,6 +117,7 @@ else
 - **一致性**：项目已使用 Refit 实现 `IBasePlatformProjectHttpClient`
 - **类型安全**：编译时检查 API 契约
 - **易测试**：可轻松 Mock Refit 接口进行单元测试
+- **对接已实现 API**：BasePlatform PublicApi 已完成相关端点实现
 
 **实施细节**：
 
@@ -121,20 +125,41 @@ else
 [Headers("Content-Type: application/json")]
 public interface IBasePlatformAuthHttpClient
 {
-    [Get("/Api/Auth/license-file")]
+    // 对接 BasePlatform 已实现的 JWT 签发端点
+    [Get("/api/auth/license-file")]
     Task<BasePlatformApiResponse<LicenseFileResponse>> GetLicenseFileAsync(
         [Query] int productCode,
         [Query] string machineCode,
-        [Query] Guid proId,
+        [Query] string proId,
         [Query] DateTime authEndDate,
+        [Query] string format = "json",
+        CancellationToken cancellationToken = default);
+
+    // 可选：对接 BasePlatform 在线激活端点
+    [Post("/api/auth/activate-urban")]
+    Task<BasePlatformApiResponse<ActivateUrbanResponse>> ActivateUrbanAsync(
+        [Body] ActivateUrbanRequest request,
         CancellationToken cancellationToken = default);
 }
 
 public class LicenseFileResponse
 {
     public string JwtToken { get; set; } = string.Empty;
+    public string ProId { get; set; } = string.Empty;
+    public string ProName { get; set; } = string.Empty;
+    public string AuthEndDate { get; set; } = string.Empty;
 }
 ```
+
+**BasePlatform API 规格**（已实现）：
+
+1. **GET /api/auth/license-file**
+   - 参数：`productCode`（固定 5001）、`machineCode`、`proId`、`authEndDate`、`format`
+   - 返回：JSON 或 Stream 格式的 JWT token
+
+2. **POST /api/auth/activate-urban**
+   - 参数：`productCode`、`code`、`machineCode`
+   - 功能：验证 Redis 授权码、回写 MachineCode、签发 JWT
 
 ### 决策 4：JWT 防篡改服务改造策略
 
@@ -522,10 +547,12 @@ CREATE INDEX IX_Gov_Projects_BuildLicenseNo ON Gov_Projects(BuildLicenseNo);
 
 ### 依赖关系
 
-本迁移依赖于以下前置变更：
+本迁移依赖于以下前置变更（均已完成）：
 
-- **02-BasePlatform-AccessCode分列与ListProjects拟稿提案** P1：PublicApi 输出 `accessCode`、`machineCode` 字段
-- **03-BasePlatform-JWT签发迁移拟稿提案** P2：PublicApi 提供 `/api/auth/license-file` 端点支持 Urban 产品
+- ✅ **BasePlatform-AccessCode与MachineCode分列**（`2026-06-24-add-access-token-support`）：PublicApi 输出 `accessCode`、`machineCode` 字段
+- ✅ **BasePlatform-JWT签发迁移**（`2025-06-25-baseplatform-jwt`）：PublicApi 提供 `/api/auth/license-file` 端点支持 Urban 产品
+
+**注**：BasePlatform 相关基础设施已实现，UrbanManagement 可直接对接使用。
 
 ## Open Questions
 

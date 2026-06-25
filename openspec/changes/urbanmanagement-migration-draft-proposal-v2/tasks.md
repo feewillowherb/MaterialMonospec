@@ -1,5 +1,62 @@
 # UrbanManagement 迁移实施任务清单
 
+## 前置条件
+
+- ✅ BasePlatform PublicApi 已完成 AccessCode 与 MachineCode 分列（见 `2026-06-24-add-access-token-support` 提案）
+- ✅ BasePlatform PublicApi 已完成 JWT 签发基础设施（见 `2025-06-25-baseplatform-jwt` 提案）
+- ✅ BasePlatform `/Api/ProjectCatalog/ListProjects` 已返回 `accessCode`、`machineCode` 字段
+- ✅ BasePlatform `/api/auth/license-file` 已支持 GET 方法签发 ProductCode=5001 JWT
+- ✅ BasePlatform `/api/auth/activate-urban` 已实现在线激活功能
+
+## BasePlatform 已实现功能规格
+
+### ProjectCatalog API
+- 端点：`GET /Api/ProjectCatalog/ListProjects?pageIndex={}&pageSize={}`
+- 响应字段：
+  - `ProId` (Guid)
+  - `ProName` (string)
+  - `ProductCode` (int) - 固定为 5001
+  - `ProAddress` (string)
+  - `ShigongUnitName` (string)
+  - `AccessCode` (string) - 接入码
+  - `MachineCode` (string) - 机器码
+  - `FdBuildLicenseNo` (string) - MD5 处理后的许可证号
+  - `AuthEndTime` (DateTime?)
+
+### Auth License File API
+- 端点：`GET /api/auth/license-file?productCode={}&machineCode={}&proId={}&authEndDate={}&format={}`
+- 请求参数：
+  - `productCode`: 固定为 5001（Urban 产品）
+  - `machineCode`: 机器码
+  - `proId`: 项目 ID（Guid 字符串）
+  - `authEndDate`: 授权截止日期
+  - `format`: 返回格式（`json` 或 `stream`，默认 `json`）
+- 响应格式：
+  ```json
+  {
+    "success": true,
+    "msg": "签发成功",
+    "data": {
+      "jwtToken": "eyJhbGc...",
+      "proId": "...",
+      "proName": "...",
+      "authEndDate": "2026-12-31"
+    }
+  }
+  ```
+
+### Activate Urban API
+- 端点：`POST /api/auth/activate-urban`
+- 请求体：
+  ```json
+  {
+    "productCode": 5001,
+    "code": "授权码",
+    "machineCode": "机器码"
+  }
+  ```
+- 功能：验证 Redis 授权码、回写 MachineCode、签发 JWT
+
 ## 1. EF 实体与数据库迁移
 
 - [ ] 1.1 修改 `GovProject` 实体：将 `BuildLicenseNo` 属性重命名为 `AccessCode`
@@ -15,9 +72,9 @@
 
 ## 2. 拉取同步逻辑更新
 
-- [ ] 2.1 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `AccessCode` 属性
-- [ ] 2.2 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `MachineCode` 属性
-- [ ] 2.3 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `AuthToken` 属性
+- [ ] 2.1 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `AccessCode` 属性（对接 BasePlatform 已实现字段）
+- [ ] 2.2 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `MachineCode` 属性（对接 BasePlatform 已实现字段）
+- [ ] 2.3 修改 `IBasePlatformProjectHttpClient`：在 `ProjectCatalogItemResponse` 中新增 `AuthToken` 属性（存储授权令牌，非 BasePlatform 字段）
 - [ ] 2.4 修改 `GovProjectPullManager.MapRemoteToNewEntity`：映射 `remote.AccessCode` → `entity.AccessCode`
 - [ ] 2.5 修改 `GovProjectPullManager.MapRemoteToNewEntity`：映射 `remote.MachineCode` → `entity.MachineCode`
 - [ ] 2.6 修改 `GovProjectPullManager.MapRemoteToNewEntity`：映射 `remote.AuthToken` → `entity.AuthToken`
@@ -25,7 +82,7 @@
 - [ ] 2.8 修改 `GovProjectPullManager.ApplyRemoteFieldsIfChanged`：如果不同，更新 `entity.AccessCode`
 - [ ] 2.9 修改 `GovProjectPullManager.ApplyRemoteFieldsIfChanged`：比较 `entity.MachineCode` 与 `remote.MachineCode`
 - [ ] 2.10 修改 `GovProjectPullManager.ApplyRemoteFieldsIfChanged`：如果不同，更新 `entity.MachineCode`
-- [ ] 2.11 新增 `GovProjectPullManager.NormalizeRemoteItems`：过滤 `ProductCode != 5001` 的项目
+- [ ] 2.11 新增 `GovProjectPullManager.NormalizeRemoteItems`：过滤 `ProductCode != 5001` 的项目（BasePlatform API 已实现 ProductCode 过滤）
 - [ ] 2.12 更新 `GovProjectPullManager.PullAndInsertNewProjectsAsync`：调用 `NormalizeRemoteItems` 进行数据清洗
 - [ ] 2.13 编写单元测试：验证 `NormalizeRemoteItems` 正确过滤无效项目
 - [ ] 2.14 编写单元测试：验证 `ApplyRemoteFieldsIfChanged` 正确映射新字段
@@ -33,8 +90,8 @@
 
 ## 3. JWT 委托逻辑实现
 
-- [ ] 3.1 新增 `IBasePlatformAuthHttpClient` Refit 接口：定义 `GetLicenseFileAsync` 方法
-- [ ] 3.2 新增 `LicenseFileResponse` 类：包含 `JwtToken` 属性
+- [ ] 3.1 新增 `IBasePlatformAuthHttpClient` Refit 接口：定义 `GetLicenseFileAsync` 方法（对接 BasePlatform `/api/auth/license-file`）
+- [ ] 3.2 新增 `LicenseFileResponse` 类：包含 `JwtToken`、`ProId`、`ProName`、`AuthEndDate` 属性（匹配 BasePlatform 响应格式）
 - [ ] 3.3 新增 `BasePlatformApiResponse<LicenseFileResponse>` 类：包装 BasePlatform 响应
 - [ ] 3.4 在 `UrbanManagementCoreModule` 中注册 `IBasePlatformAuthHttpClient`：使用 Refit 配置
 - [ ] 3.5 新增 `BasePlatformAuthOptions` 配置类：包含 `BaseUrl` 配置属性

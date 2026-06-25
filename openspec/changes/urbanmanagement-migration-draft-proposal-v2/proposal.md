@@ -2,7 +2,15 @@
 
 ## Why
 
-当前 UrbanManagement 服务端存在两个关键的技术债务：(1) `GovProject.BuildLicenseNo` 字段语义不清晰，应为 `AccessCode`（城管接入码），且缺少 `MachineCode` 和 `AuthToken` 字段；(2) JWT 授权令牌由 UrbanManagement 本地签发，存在密钥管理风险且无法与 BasePlatform 授权体系统一。此迁移旨在优化数据语义并下线本地 JWT 签发，委托 BasePlatform 统一管理。
+当前 UrbanManagement 服务端存在两个关键的技术债务：(1) `GovProject.BuildLicenseNo` 字段语义不清晰，应为 `AccessCode`（城管接入码），且缺少 `MachineCode` 和 `AuthToken` 字段；(2) JWT 授权令牌由 UrbanManagement 本地签发，存在密钥管理风险且无法与 BasePlatform 授权体系统一。
+
+**现状更新**：BasePlatform PublicApi 已完成相关基础设施建设（见 BasePlatform 仓库的 `2026-06-24-add-access-token-support` 和 `2025-06-25-baseplatform-jwt` 归档提案），包括：
+- `JC_ProductAuthority` 表已新增 `AccessCode` 列，与 `MachineCode` 分列存储
+- PublicApi `/Api/ProjectCatalog/ListProjects` 已返回 `accessCode`、`machineCode`、`fdBuildLicenseNo` 字段
+- PublicApi `/api/auth/license-file` 已支持 GET 方法，可签发 ProductCode=5001 JWT
+- PublicApi `/api/auth/activate-urban` 已实现在线激活功能
+
+此迁移旨在利用 BasePlatform 已实现的能力，优化 UrbanManagement 数据语义并下线本地 JWT 签发，委托 BasePlatform 统一管理。
 
 ## What Changes
 
@@ -11,6 +19,9 @@
 - **BREAKING**：`GovProject.BuildLicenseNo` 字段重命名为 `AccessCode`（EF 迁移）
 - 新增 `GovProject.MachineCode` 和 `GovProject.AuthToken` 可空字符串字段
 - 更新 `GovProjectPullManager` 映射：从 BasePlatform PublicApi 的 `accessCode`、`machineCode` 字段拉取（不再读 `buildLicenseNo`）
+  - BasePlatform API 端点：`GET /Api/ProjectCatalog/ListProjects?pageIndex={}&pageSize={}`
+  - 响应字段：`ProId`, `ProName`, `ProductCode`, `ProAddress`, `ShigongUnitName`, `AccessCode`, `MachineCode`, `FdBuildLicenseNo`, `AuthEndTime`
+  - 筛选条件：`ProductCode = 5001`（已在 BasePlatform 实现）
 - 政府平台出站协议保持 `payload.buildLicenseNo = govProject.AccessCode`（协议名不变）
 - 实施脏数据修复脚本：以 BasePlatform 拉取结果覆盖本地 `AccessCode`
 
@@ -18,6 +29,30 @@
 
 - **BREAKING**：删除 `UrbanLicenseGenerator` 本地 JWT 签发逻辑（移除 RSA 私钥依赖）
 - 新增代理 API：`GET /api/urban/auth/license-file` → 调用 BasePlatform PublicApi `/api/auth/license-file` 透传 JWT
+  - BasePlatform API 端点：`GET /api/auth/license-file?productCode={}&machineCode={}&proId={}&authEndDate={}&format={}`
+  - 请求参数：
+    - `productCode`: 5001（固定值，Urban 产品）
+    - `machineCode`: 机器码（从 GovProject.MachineCode 获取）
+    - `proId`: 项目 ID（Guid）
+    - `authEndDate`: 授权截止日期
+    - `format`: 返回格式（`json` 或 `stream`，默认 `json`）
+  - 响应格式：
+    ```json
+    {
+      "success": true,
+      "msg": "签发成功",
+      "data": {
+        "jwtToken": "eyJhbGc...",
+        "proId": "...",
+        "proName": "...",
+        "authEndDate": "2026-12-31"
+      }
+    }
+    ```
+- 新增代理 API（可选）：`POST /api/urban/auth/activate-urban` → 调用 BasePlatform PublicApi `/api/auth/activate-urban` 代理在线激活
+  - BasePlatform API 端点：`POST /api/auth/activate-urban`
+  - 请求体：`{productCode, code, machineCode}`
+  - 功能：验证 Redis 授权码、回写 MachineCode、签发 JWT
 - 更新 `DeviceStatusHub.GetClientProjectLicenseInfo` 和 SignalR 推送：JWT 由 BasePlatform 签发，Urban 仅转发
 - 移除 `appsettings.json` 中 `Jwt:PrivateKey` 配置
 - 保留 Feature Flag（`UseBasePlatformJwtIssuer`）支持灰度回退
@@ -34,9 +69,10 @@
   - `UrbanManagement.Core/Api/IBasePlatformProjectHttpClient.cs`：`ProjectCatalogItemResponse` 新增 `AccessCode`、`MachineCode` 字段
   - `UrbanManagement.Core/EntityFrameworkCore/`：EF 迁移脚本
 
-- **BasePlatform PublicApi**（独立仓库，本提案仅更新 spec 描述）：
-  - `/Api/ProjectCatalog/ListProjects` 响应新增 `accessCode`、`machineCode` 字段
-  - `/api/auth/license-file` 签发 Urban 产品 JWT（ProductCode=5001）
+- **BasePlatform PublicApi**（已实现，本提案仅对接）：
+  - `/Api/ProjectCatalog/ListProjects`：已返回 `accessCode`、`machineCode`、`fdBuildLicenseNo` 字段（见 BasePlatform `2026-06-24-add-access-token-support` 提案）
+  - `/api/auth/license-file`：已支持 GET 方法，可签发 ProductCode=5001 JWT（见 BasePlatform `2025-06-25-baseplatform-jwt` 提案）
+  - `/api/auth/activate-urban`：已实现在线激活功能（见 BasePlatform `2025-06-25-baseplatform-jwt` 提案）
 
 - **MaterialClient**（`repos/MaterialClient/`）：
   - `MaterialClient.Common/Entities/LicenseInfo.cs`：字段 `BuildLicenseNo` 保持不变（客户端属性重命名可后续单独立项）
@@ -66,8 +102,9 @@
 | **UrbanManagement** | `src/UrbanManagement.Core/Hubs/DeviceStatusHub.cs` | SignalR 推送 JWT 来源 | 推送 BasePlatform JWT | 客户端 JWT 同步 |
 | **UrbanManagement** | `src/UrbanManagement.Core/Api/IBasePlatformProjectHttpClient.cs` | 新增响应字段 | 接收 `AccessCode`、`MachineCode` | BasePlatform HTTP 客户端 |
 | **UrbanManagement** | `src/UrbanManagement.Core/EntityFrameworkCore/` | 新增 EF 迁移 | 数据库字段变更 | SQLite 数据库结构 |
-| **BasePlatform** | `PublicApi/ProjectCatalogController.cs` | 新增响应字段 | 返回 `accessCode`、`machineCode` | 目录 API（本提案仅更新 spec） |
-| **BasePlatform** | `PublicApi/AuthController.cs` | 新增 Urban JWT 签发 | 支持 ProductCode=5001 | 授权 API（本提案仅更新 spec） |
+| **BasePlatform** | `PublicApi/ProjectCatalogController.cs` | 已实现 | 已返回 `accessCode`、`machineCode`、`fdBuildLicenseNo` | 目录 API（已实现，见 `2026-06-24-add-access-token-support` 提案） |
+| **BasePlatform** | `PublicApi/AuthController.cs` | 已实现 | 已支持 GET `/api/auth/license-file`，ProductCode=5001 | 授权 API（已实现，见 `2025-06-25-baseplatform-jwt` 提案） |
+| **BasePlatform** | `PublicApi/AuthController.cs` | 已实现 | 已支持 POST `/api/auth/activate-urban` | 在线激活 API（已实现，见 `2025-06-25-baseplatform-jwt` 提案） |
 
 ## Interaction Flow
 
@@ -101,7 +138,9 @@ sequenceDiagram
 1. **EF 迁移**：生成 `BuildLicenseNo → AccessCode` 重命名脚本 + 新增 `MachineCode`、`AuthToken` 列
 2. **Pull Worker 更新**：`GovProjectPullManager.ApplyRemoteFieldsIfChanged` 改为映射 `AccessCode`、`MachineCode`
 3. **脏数据修复**：执行 SQL 脚本以 BasePlatform 拉取结果覆盖本地 `AccessCode`（可后台任务执行）
-4. **依赖条件**：BasePlatform PublicApi 已输出 `accessCode`、`machineCode` 字段（见 02-BasePlatform 提案 P1）
+4. **依赖条件**：
+   - ✅ BasePlatform PublicApi 已输出 `accessCode`、`machineCode` 字段（`2026-06-24-add-access-token-support` 提案已完成）
+   - ✅ BasePlatform 已实现 AccessCode 与 MachineCode 分列存储（`JC_ProductAuthority` 表）
 
 ### §B JWT 下线步骤
 
@@ -109,7 +148,10 @@ sequenceDiagram
 2. **代理 API**：`GovProjectLicenseAppService.GenerateAsync` 改为调用 BasePlatform 并透传 JWT
 3. **SignalR 更新**：`DeviceStatusHub` 推送的 `JwtToken` 字段来自 BasePlatform 签发
 4. **Feature Flag**：`UseBasePlatformJwtIssuer=true` 启用新路径，灰度验证后移除旧代码
-5. **依赖条件**：BasePlatform `/api/auth/license-file` 支持 Urban 产品（ProductCode=5001）
+5. **依赖条件**：
+   - ✅ BasePlatform `/api/auth/license-file` 已支持 GET 方法，可签发 ProductCode=5001 JWT（`2025-06-25-baseplatform-jwt` 提案已完成）
+   - ✅ BasePlatform `/api/auth/activate-urban` 已实现在线激活功能（`2025-06-25-baseplatform-jwt` 提案已完成）
+   - ✅ BasePlatform 已有 `ILicenseFileAppService` 签发服务和 `BasePlatformJwtTokenGenerator` 签发器
 
 ### Rollback 策略
 
