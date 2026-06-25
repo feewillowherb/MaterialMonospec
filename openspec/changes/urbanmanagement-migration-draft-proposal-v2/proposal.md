@@ -12,6 +12,42 @@
 
 此迁移旨在利用 BasePlatform 已实现的能力，优化 UrbanManagement 数据语义并下线本地 JWT 签发，委托 BasePlatform 统一管理。
 
+## Execution Status
+
+**当前状态：✅ 可以执行**
+
+### 前置依赖检查
+
+- ✅ **BasePlatform PublicApi AccessCode/MachineCode 分列**：已完成（`2026-06-24-add-access-token-support` 提案）
+- ✅ **BasePlatform PublicApi JWT 签发基础设施**：已完成（`2025-06-25-baseplatform-jwt` 提案）
+- ✅ **BasePlatform ProjectCatalog API**：已返回 `accessCode`、`machineCode` 字段
+- ✅ **BasePlatform Auth License File API**：已支持 GET 方法，可签发 ProductCode=5001 JWT
+- ✅ **BasePlatform Activate Urban API**：已实现在线激活功能
+
+### UrbanManagement 执行准备
+
+- ✅ **提案规格文档**：已完成（proposal.md、design.md、tasks.md）
+- ✅ **API 对接规格**：已明确 BasePlatform API 端点和响应格式
+- ⏳ **代码迁移**：待执行（见 tasks.md 任务清单）
+- ⏳ **EF 迁移脚本**：待生成和测试
+- ⏳ **集成测试**：待编写和验证
+
+### 执行建议
+
+1. **可立即开始**：所有 BasePlatform 依赖已满足，可按 tasks.md 任务清单开始执行
+2. **建议顺序**：
+   - 第 1 阶段：EF 实体与数据库迁移（tasks.md §1）
+   - 第 2 阶段：拉取同步逻辑更新（tasks.md §2）
+   - 第 3 阶段：JWT 委托逻辑实现（tasks.md §3）
+   - 第 4 阶段：Feature Flag 与配置（tasks.md §4）
+3. **灰度策略**：使用 Feature Flag 控制迁移启用，确保可快速回滚
+
+### 风险提示
+
+- ⚠️ **数据库迁移**：需在生产环境执行前充分测试 EF 迁移脚本
+- ⚠️ **BasePlatform API 可用性**：需确保 BasePlatform PublicApi 在 UrbanManagement 迁移期间保持可用
+- ⚠️ **客户端兼容性**：MaterialClient 的 `LicenseInfo.BuildLicenseNo` 属性暂不重命名，保持兼容
+
 ## What Changes
 
 ### §A AccessCode 数据语义迁移

@@ -1,5 +1,29 @@
 # UrbanManagement 迁移实施任务清单
 
+## Execution Status
+
+**当前状态：✅ 可以执行**
+
+### 前置依赖状态
+
+- ✅ **BasePlatform PublicApi AccessCode/MachineCode 分列**：已完成
+- ✅ **BasePlatform PublicApi JWT 签发基础设施**：已完成
+- ✅ **BasePlatform API 端点可用性**：已验证可正常访问
+
+### UrbanManagement 执行准备
+
+- ✅ **提案规格文档**：已完成（proposal.md、design.md）
+- ✅ **任务清单**：已完成（本文档）
+- ✅ **API 对接规格**：已明确
+- ⏳ **代码执行**：可立即开始
+
+### 执行建议
+
+1. **可立即开始执行**：所有外部依赖已满足
+2. **建议执行顺序**：按本文档章节顺序执行（§1 → §2 → §3 → §4）
+3. **灰度策略**：使用 Feature Flag 控制启用，确保可快速回滚
+4. **测试验证**：每阶段完成后执行对应的测试任务
+
 ## 前置条件
 
 - ✅ BasePlatform PublicApi 已完成 AccessCode 与 MachineCode 分列（见 `2026-06-24-add-access-token-support` 提案）

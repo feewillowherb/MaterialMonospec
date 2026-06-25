@@ -1,5 +1,16 @@
 # UrbanManagement 迁移设计文档
 
+## Execution Status
+
+**当前状态：✅ 可以执行**
+
+本设计文档基于以下已完成的基础设施：
+- ✅ BasePlatform PublicApi 已实现 AccessCode/MachineCode 分列存储
+- ✅ BasePlatform PublicApi 已实现 JWT 签发端点
+- ✅ 所有 API 端点和响应格式已明确并可使用
+
+UrbanManagement 可按本设计文档开始执行代码迁移。
+
 ## Context
 
 ### 背景与现状
