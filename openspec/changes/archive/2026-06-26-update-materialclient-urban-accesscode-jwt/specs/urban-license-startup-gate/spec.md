@@ -33,6 +33,8 @@ MaterialClient.Urban SHALL evaluate authorization during ABP application initial
 - **THEN** invalid startup authorization MUST block the main window in both Debug and Release builds
 - **AND** MUST NOT provide a configuration flag or compile-time bypass
 
+## ADDED Requirements
+
 ### Requirement: Bootstrap from license.urban writes LatestJwtToken
 
 When startup authorization succeeds by reading `license.urban` (because `LatestJwtToken` was empty or invalid), the module SHALL persist the JWT text to `LicenseInfo.LatestJwtToken` so subsequent starts and SignalR sync use the same authoritative token.

@@ -72,6 +72,8 @@ The server-side JWT SHALL be the authoritative source for authorization state. O
 - **THEN** startup SHALL fall back to `.urban` file if available
 - **AND** if `.urban` file is also unavailable or invalid, SHALL return `IsSuccess = false`
 
+## ADDED Requirements
+
 ### Requirement: Hub field sync maps buildLicenseNo to AccessCode
 
 `GetClientProjectLicenseInfo` 返回的 JSON 字段 `buildLicenseNo` SHALL 映射到 `LicenseInfo.AccessCode`。`SyncProjectFieldsFromServerAsync` MUST NOT 接受或同步 `fdBuildLicenseNo` 参数。
@@ -88,8 +90,6 @@ The server-side JWT SHALL be the authoritative source for authorization state. O
 - **WHEN** `VerifyJwtAsync` returns `JwtAntiTamperResult` with `BuildLicenseNo` (wire name) and `ServerJwt`
 - **THEN** `StoreServerJwtAsync` SHALL persist `ServerJwt` to `LatestJwtToken`
 - **AND** SHALL map `BuildLicenseNo` wire value to `LicenseInfo.AccessCode`
-
-## ADDED Requirements
 
 ### Requirement: UpdateClientLicense Hub handler
 
