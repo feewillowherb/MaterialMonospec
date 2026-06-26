@@ -25,7 +25,7 @@ MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委
 ### §C 在线激活与离线导入
 
 - 新增 Refit **`POST /api/urban/auth/activate`**（`ProductCode=5001`、`Code`、`MachineCode`）
-- 新增 `ILicenseService.ActivateUrbanAsync` 与 Urban 专用授权 UI
+- 新增 `ILicenseService.ActivateAsync` 与 Urban 专用授权 UI
 - **禁止** 5001 走 `VerifyAuthorizationCodeAsync` 直连 BasePlatform
 - 启动从 `license.urban` bootstrap 成功时**回写** `LatestJwtToken`
 

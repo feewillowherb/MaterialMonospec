@@ -79,7 +79,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 
 ### 决策 5：Urban 激活走 Urban 代理，禁止直连 BasePlatform
 
-**决策**：5001 产品通过 `IUrbanAuthApi.ActivateUrbanAsync` → Urban `activate`；**禁止** `VerifyAuthorizationCodeAsync` 直连 BasePlatform。
+**决策**：5001 产品通过 `IUrbanAuthApi.ActivateAsync` → Urban `activate`；**禁止** `VerifyAuthorizationCodeAsync` 直连 BasePlatform。
 
 **理由**：与联合发版架构一致；Urban 作为 BFF 统一入口。
 
@@ -135,7 +135,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 | `MaterialClient.Common/Migrations/*` | 新 Migration |
 | `MaterialClient.Common/Services/StaticLicenseChecker.cs` | iss、claims、machineCode |
 | `MaterialClient.Common/Services/IStaticLicenseChecker.cs` | `LicenseCheckResult.AccessCode` |
-| `MaterialClient.Common/Services/Authentication/LicenseService.cs` | `ActivateUrbanAsync`；Store/Sync 签名 |
+| `MaterialClient.Common/Services/Authentication/LicenseService.cs` | `ActivateAsync`；Store/Sync 签名 |
 | `MaterialClient.Common/Services/DeviceStatusSignalRClient.cs` | DTO 映射；可选 `UpdateClientLicense` |
 | `MaterialClient.Urban/MaterialClientUrbanModule.cs` | 启动写 `LatestJwtToken` |
 | `MaterialClient.Common/Api/IUrbanAuthApi.cs` | `activate` |

@@ -23,9 +23,9 @@
 
 ## 4. 在线激活 activate（P-Client-2）
 
-- [x] 4.1 在 `IUrbanAuthApi` 添加 `POST /api/urban/auth/activate` Refit 方法（Urban 模块注册）
+- [x] 4.1 在 `IUrbanAuthApi` 添加 `POST /api/urban/auth/activate` Refit 方法 `ActivateAsync`（Urban 模块注册）
 - [x] 4.2 定义 `ActivateUrbanRequest` / `ActivateUrbanResponseData`（命名 record / class）
-- [x] 4.3 在 `ILicenseService` / `LicenseService` 实现 `ActivateUrbanAsync`（`[UnitOfWork]`）
+- [x] 4.3 在 `ILicenseService` / `LicenseService` 实现 `ActivateAsync`（`[UnitOfWork]`）
 - [x] 4.4 新建 Urban 专用授权对话框（展示 MachineCode、输入接入码）
 - [x] 4.5 未授权提示增加「在线激活」入口（或等价触发方式）
 - [x] 4.6 确认 5001 不走 `VerifyAuthorizationCodeAsync` 直连 BasePlatform
