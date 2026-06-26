@@ -2,12 +2,12 @@
 
 ### Requirement: Urban 在线激活 API
 
-`MaterialClient.Urban` SHALL 通过 Refit 接口 `IUrbanManagementApi` 调用 UrbanManagement 代理端点 `POST /api/urban/auth/activate-urban`，请求体包含 `ProductCode = 5001`、`Code`（接入码）、`MachineCode`（本机机器码）。MUST NOT 在请求中传递 `ProId`。
+`MaterialClient.Urban` SHALL 通过 Refit 接口 `IUrbanAuthApi` 调用 UrbanManagement 代理端点 `POST /api/urban/auth/activate`，请求体包含 `ProductCode = 5001`、`Code`（接入码）、`MachineCode`（本机机器码）。MUST NOT 在请求中传递 `ProId`。
 
 #### Scenario: Refit 端点定义
 
-- **WHEN** 查看 `IUrbanManagementApi`
-- **THEN** SHALL 存在 `[Post("/api/urban/auth/activate-urban")]` 方法
+- **WHEN** 查看 `IUrbanAuthApi`
+- **THEN** SHALL 存在 `[Post("/api/urban/auth/activate")]` 方法
 - **AND** 请求类型 SHALL 包含 `ProductCode`、`Code`、`MachineCode`
 
 #### Scenario: 激活成功响应
@@ -20,7 +20,7 @@
 
 - **WHEN** ProductCode 为 Urban（5001/5030 上下文下的城管激活）
 - **THEN** MUST NOT 调用 `VerifyAuthorizationCodeAsync` 直连 BasePlatform
-- **AND** SHALL 仅通过 `activate-urban` 代理激活
+- **AND** SHALL 仅通过 `activate` 代理激活
 
 ### Requirement: ActivateUrbanAsync 服务方法
 

@@ -2,7 +2,7 @@
 
 ## Why
 
-MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委托签发契约不一致：`StaticLicenseChecker` 仍接受 `iss=UrbanManagement`，读取 `buildLicenseNo` / `fdBuildLicenseNo` claim；`LicenseInfo` 仍使用 `BuildLicenseNo`、`FdBuildLicenseNo`、`AuthToken` 等过时字段；且缺少 Urban 在线激活（`activate-urban`）能力。UrbanManagement **尚未上线**，不存在需兼容的旧 JWT，可与服务端同期切换到 BasePlatform 统一签发。
+MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委托签发契约不一致：`StaticLicenseChecker` 仍接受 `iss=UrbanManagement`，读取 `buildLicenseNo` / `fdBuildLicenseNo` claim；`LicenseInfo` 仍使用 `BuildLicenseNo`、`FdBuildLicenseNo`、`AuthToken` 等过时字段；且缺少 Urban 在线激活（`activate`）能力。UrbanManagement **尚未上线**，不存在需兼容的旧 JWT，可与服务端同期切换到 BasePlatform 统一签发。
 
 ## What Changes
 
@@ -24,7 +24,7 @@ MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委
 
 ### §C 在线激活与离线导入
 
-- 新增 Refit **`POST /api/urban/auth/activate-urban`**（`ProductCode=5001`、`Code`、`MachineCode`）
+- 新增 Refit **`POST /api/urban/auth/activate`**（`ProductCode=5001`、`Code`、`MachineCode`）
 - 新增 `ILicenseService.ActivateUrbanAsync` 与 Urban 专用授权 UI
 - **禁止** 5001 走 `VerifyAuthorizationCodeAsync` 直连 BasePlatform
 - 启动从 `license.urban` bootstrap 成功时**回写** `LatestJwtToken`
@@ -45,7 +45,7 @@ MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委
 ### New Capabilities
 
 - `materialclient-license-accesscode`：`LicenseInfo` 实体 `AccessCode` 迁移；删除 `FdBuildLicenseNo`、`AuthToken`；EF Migration 与引用清理
-- `materialclient-urban-activation`：Urban 在线激活（`activate-urban` API、Service、专用 UI）
+- `materialclient-urban-activation`：Urban 在线激活（`activate` API、Service、专用 UI）
 
 ### Modified Capabilities
 
@@ -61,7 +61,7 @@ MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委
 | **子仓库** | `repos/MaterialClient`（`MaterialClient.Common`、`MaterialClient.Urban`） |
 | **实体** | `LicenseInfo`、EF Migration |
 | **服务** | `StaticLicenseChecker`、`LicenseService`、`DeviceStatusSignalRClient` |
-| **API** | `IUrbanManagementApi` 新增 `activate-urban` |
+| **API** | `IUrbanAuthApi` 新增 `activate` |
 | **UI** | Urban 专用授权对话框（新建） |
 | **配置** | `appsettings.json` → `Jwt:PublicKey`（BasePlatform 公钥） |
 | **依赖** | UrbanManagement V2（`urban-jwt-delegation`、`jwt-anti-tamper` 已归档）；BasePlatform JWT 签发 |
@@ -72,7 +72,7 @@ MaterialClient.Urban 现网授权模型与 UrbanManagement V2 / BasePlatform 委
 | 阶段 | 交付 | 阻塞 |
 |------|------|------|
 | P-Client-1 | AccessCode 实体 + `iss=BasePlatform` + machineCode | 可与 Urban 并行 |
-| P-Client-2 | `activate-urban` + UI | Urban JWT 委托已启用 |
+| P-Client-2 | `activate` + UI | Urban JWT 委托已启用 |
 | P-Client-3 | `UpdateClientLicense` handler | Urban Hub 推送就绪（可选） |
 
 **参考文档**：vault `docs/2026-06-24-buildlicenseno-machinecode-confusion/06-MaterialClient.Urban迁移拟稿提案.md`；Urban V2 归档 `2026-06-25-urbanmanagement-migration-draft-proposal-v2`

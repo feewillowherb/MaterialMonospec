@@ -11,7 +11,7 @@ MaterialClient.Urban 授权链路仍基于 UrbanManagement 本地签发时代的
 | `LicenseInfo` | `BuildLicenseNo`、`FdBuildLicenseNo`、`AuthToken` | `AccessCode`；**删除** `FdBuildLicenseNo`、`AuthToken` |
 | `StaticLicenseChecker` | `iss=UrbanManagement`；读 `buildLicenseNo` / `fdBuildLicenseNo` | `iss=BasePlatform`；读 `accessCode`；校验 `machineCode` |
 | 启动验权 | bootstrap 成功**不写回** `LatestJwtToken` | bootstrap 成功**写回** `LatestJwtToken` |
-| 在线激活 | **无** Urban 专用激活 | `POST /api/urban/auth/activate-urban` |
+| 在线激活 | **无** Urban 专用激活 | `POST /api/urban/auth/activate` |
 | SignalR 同步 | 同步 `FdBuildLicenseNo` | **不同步** `FdBuildLicenseNo`；`buildLicenseNo` → `AccessCode` |
 
 UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-proposal-v2`），JWT 委托 BasePlatform 签发。Urban **尚未上线**，客户端无需兼容 `iss=UrbanManagement` 或旧 claim 组合。
@@ -28,7 +28,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 ### 利益相关者
 
 - **MaterialClient 团队**：实体迁移、验权、激活 UI、SignalR 适配
-- **UrbanManagement 团队**：`activate-urban` 代理、Hub JWT 来源（V2 已规格化）
+- **UrbanManagement 团队**：`activate` 代理、Hub JWT 来源（V2 已规格化）
 - **联调**：与 Urban V2 + BasePlatform 同期首发
 
 ## Goals / Non-Goals
@@ -37,7 +37,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 
 1. `LicenseInfo.BuildLicenseNo` → `AccessCode`；**彻底删除** `FdBuildLicenseNo` 与 `AuthToken`
 2. `StaticLicenseChecker` 仅接受 `iss=BasePlatform`；`accessCode` + `machineCode` 校验
-3. 实现 `activate-urban` 在线激活与 Urban 专用授权 UI
+3. 实现 `activate` 在线激活与 Urban 专用授权 UI
 4. 启动 bootstrap 回写 `LatestJwtToken`；SignalR 字段映射对齐 Urban V2
 5. 可选：`UpdateClientLicense` Hub 订阅
 
@@ -79,7 +79,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 
 ### 决策 5：Urban 激活走 Urban 代理，禁止直连 BasePlatform
 
-**决策**：5001 产品通过 `IUrbanManagementApi.ActivateUrbanAsync` → Urban `activate-urban`；**禁止** `VerifyAuthorizationCodeAsync` 直连 BasePlatform。
+**决策**：5001 产品通过 `IUrbanAuthApi.ActivateUrbanAsync` → Urban `activate`；**禁止** `VerifyAuthorizationCodeAsync` 直连 BasePlatform。
 
 **理由**：与联合发版架构一致；Urban 作为 BFF 统一入口。
 
@@ -101,7 +101,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 |------|------|
 | EF Migration 在已有现场库执行失败 | 开发环境充分测试；回滚上一 Migration |
 | BasePlatform 公钥配置错误导致全体拒签 | 联调 checklist 验证 `Jwt:PublicKey`；启动日志明确报错 |
-| Urban `activate-urban` 未就绪阻塞 P-Client-2 | P-Client-1 可独立交付；离线 `license.urban` 仍可用 |
+| Urban `activate` 未就绪阻塞 P-Client-2 | P-Client-1 可独立交付；离线 `license.urban` 仍可用 |
 | 遗漏 `FdBuildLicenseNo` 引用导致编译错误或运行时空引用 | 全仓 grep 清理；spec 与测试清单覆盖 |
 | `machineCode` 与本机不一致导致激活后无法启动 | UI 展示本机 machineCode；激活请求自动填充 |
 
@@ -114,7 +114,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 | 1 | `LicenseInfo` + Migration；全引用 `AccessCode`；删除 `FdBuildLicenseNo` / `AuthToken` | 1d |
 | 2 | `StaticLicenseChecker`（iss / claims / machineCode） | 0.5d |
 | 3 | 启动回写 `LatestJwtToken` | 0.25d |
-| 4 | `activate-urban` + Service + UI | 1.5d |
+| 4 | `activate` + Service + UI | 1.5d |
 | 5 | `DeviceStatusSignalRClient` + DTO 映射 | 0.5d |
 | 6 | Urban 上传服务 `AccessCode` | 0.25d |
 | 7 | 与 Urban V2 + BasePlatform 联调 | 1d |
@@ -138,7 +138,7 @@ UrbanManagement V2 已归档（`2026-06-25-urbanmanagement-migration-draft-propo
 | `MaterialClient.Common/Services/Authentication/LicenseService.cs` | `ActivateUrbanAsync`；Store/Sync 签名 |
 | `MaterialClient.Common/Services/DeviceStatusSignalRClient.cs` | DTO 映射；可选 `UpdateClientLicense` |
 | `MaterialClient.Urban/MaterialClientUrbanModule.cs` | 启动写 `LatestJwtToken` |
-| `MaterialClient.Urban/Api/IUrbanManagementApi.cs` | `activate-urban` |
+| `MaterialClient.Common/Api/IUrbanAuthApi.cs` | `activate` |
 | `MaterialClient.Urban/Services/UrbanServerUploadService.cs` | `AccessCode` |
 | Urban 授权 UI（新） | 在线激活 |
 | `appsettings.json` | `Jwt:PublicKey` |

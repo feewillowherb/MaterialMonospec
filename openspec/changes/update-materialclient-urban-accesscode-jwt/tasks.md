@@ -21,9 +21,9 @@
 - [x] 3.2 从 `license.urban` bootstrap 成功时回写 `LatestJwtToken`
 - [x] 3.3 确认启动失败路径不写 `LicenseInfo`、不进入主界面
 
-## 4. 在线激活 activate-urban（P-Client-2）
+## 4. 在线激活 activate（P-Client-2）
 
-- [x] 4.1 在 `IUrbanAuthApi` 添加 `POST /api/urban/auth/activate-urban` Refit 方法（Urban 模块注册）
+- [x] 4.1 在 `IUrbanAuthApi` 添加 `POST /api/urban/auth/activate` Refit 方法（Urban 模块注册）
 - [x] 4.2 定义 `ActivateUrbanRequest` / `ActivateUrbanResponseData`（命名 record / class）
 - [x] 4.3 在 `ILicenseService` / `LicenseService` 实现 `ActivateUrbanAsync`（`[UnitOfWork]`）
 - [x] 4.4 新建 Urban 专用授权对话框（展示 MachineCode、输入接入码）
@@ -42,12 +42,14 @@
 - [x] 6.1 注册 SignalR `UpdateClientLicense` handler
 - [x] 6.2 验签后复用 `StoreServerJwtAsync` 更新 `LatestJwtToken` 与 `AccessCode`
 
-## 7. 联调与验证
+## 7. 联调与验证（由用户执行与勾选）
+
+> 本节为人工联调清单；**未勾选不代表实现缺口**，仅作验收记录。
 
 - [ ] 7.1 JWT `iss=BasePlatform` + `accessCode` + `machineCode` 启动通过
 - [ ] 7.2 JWT `iss=UrbanManagement` 被拒绝
 - [ ] 7.3 JWT 无 `accessCode`（仅旧 claim）被拒绝
-- [ ] 7.4 `activate-urban` 成功写入 `LatestJwtToken`；无 `AuthToken` / `FdBuildLicenseNo`
+- [ ] 7.4 `activate` 成功写入 `LatestJwtToken`；无 `AuthToken` / `FdBuildLicenseNo`
 - [ ] 7.5 Hub `VerifyJwtAsync` 覆盖 `LatestJwtToken`；`GetClientProjectLicenseInfo` 同步 `AccessCode`
 - [ ] 7.6 `license.urban` bootstrap 后 DB 含 `LatestJwtToken`
 - [ ] 7.7 与 Urban V2 + BasePlatform 端到端联调
