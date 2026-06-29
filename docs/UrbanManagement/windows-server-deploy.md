@@ -262,7 +262,8 @@ sc.exe start UrbanManagement
 | `ConnectionStrings:Default` | SQLite 路径，建议使用数据盘绝对路径 |
 | `StorageOptions:FilesPhysicalPath` | 附件根目录（绝对路径） |
 | `StorageOptions:GovAddress` | 政府平台 API 基地址 |
-| `BasePlatformSync` | BasePlatform 同步（`BaseUrl`、`ApiKey`、`Enabled`） |
+| `PublicApiServiceAuth` | BasePlatform PublicApi 连接（`BaseUrl`、`ApiKey`，项目同步与 JWT 签发共用） |
+| `BasePlatformSync` | GovProject 定时拉取（`Enabled`、`PullIntervalMinutes`、`PageSize`） |
 | `BackgroundServices:Polling` | `true` 时启动称重数据上报轮询 |
 | `Jwt` | **生产必须更换**公私钥，勿使用开发环境密钥 |
 | `SignalR:AllowedOrigins` | MaterialClient 等桌面客户端来源；默认仅 localhost |
@@ -274,7 +275,7 @@ sc.exe start UrbanManagement
 - `BackgroundServices:Polling` = `true`
 - `BasePlatformSync:Enabled` = `true`
 
-生产环境按业务需要开启，并确保出站网络可达 `GovAddress` 与 `BasePlatformSync:BaseUrl`。
+生产环境按业务需要开启，并确保出站网络可达 `GovAddress` 与 `PublicApiServiceAuth:BaseUrl`。
 
 ---
 
