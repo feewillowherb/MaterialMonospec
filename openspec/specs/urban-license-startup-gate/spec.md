@@ -48,18 +48,19 @@ When startup authorization is invalid, MaterialClient.Urban SHALL display a moda
 - **AND** MUST NOT 展示离线授权文件导入按钮或路径选择
 - **AND** MUST NOT 出现「请导入离线授权文件」类引导文案
 
-#### Scenario: 在线激活成功后继续启动
+#### Scenario: 在线激活成功后重启进程
 
-- **WHEN** 用户在未授权窗在线激活成功（`ActivateAsync` 写入 `LatestJwtToken`）
-- **THEN** SHALL 关闭未授权窗并继续启动称重主界面
-- **AND** SHALL NOT 要求重启（或按现有激活流程收敛）
+- **WHEN** 用户在未授权窗在线激活成功（`ActivateUrbanAsync` 写入 `LatestJwtToken`）
+- **THEN** SHALL 关闭未授权窗并请求重启整个应用进程（见 `urban-activation-process-restart`）
+- **AND** MUST NOT 在同进程继续启动称重主界面或后台服务
+- **AND** 新进程冷启动通过后 SHALL 打开 `UrbanAttendedWeighingWindow` 并完成完整初始化（含 SignalR）
 
 #### Scenario: 用户取消未授权窗退出应用
 
 - **WHEN** 用户关闭/取消未授权窗（未完成在线激活）
 - **THEN** SHALL 调用应用关闭
 - **AND** SHALL NOT 启动 SignalR、轮询上传、称重设备服务
-
+- **AND** SHALL NOT 启动新进程
 
 ### Requirement: Startup authorization result exposed to App layer
 

@@ -3,6 +3,7 @@
 - [x] 1.1 修改 `DeviceStatusSignalRClient.OnConnectionRestoredAsync`：`FlushMessageQueue` → `SyncProjectLicenseFromServerAsync` → `Publish(SignalRConnectionRestoredEventData)`
 - [x] 1.2 在 `OnConnectionRestoredAsync` 末尾注入 `ISharedDeviceStatusTrackerRegistry` 并调用 `RepublishActiveStatuses()` 兜底
 - [x] 1.3 确认 `SignalRConnectionRestoredHandler` 行为与新区顺序一致，无需额外改动或补充注释
+- [x] 1.4 `SharedDeviceStatusTracker.StartMonitoring`：若 SignalR 已连接则 `RepublishCurrentStatuses()`，弥补模块初始化早于 tracker 注册的竞态
 
 ## 2. UrbanManagement：项目管理页 SignalR 订阅
 

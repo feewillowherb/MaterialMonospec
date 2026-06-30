@@ -3,9 +3,7 @@
 ## Purpose
 
 将 UrbanManagement 系统的本地 JWT 签发逻辑委托给 BasePlatform PublicApi，实现统一的授权管理。下线本地 `UrbanLicenseGenerator` 服务，改为调用 BasePlatform 的 `/api/auth/license-file` 端点获取由 BasePlatform 签发的 JWT 令牌。
-
 ## Requirements
-
 ### Requirement: UrbanManagement JWT 签发委托 BasePlatform
 
 系统 SHALL 下线本地 JWT 签发逻辑（`UrbanLicenseGenerator`），改为调用 BasePlatform PublicApi 的 `/api/auth/license-file` 端点获取由 BasePlatform 签发的 JWT 令牌。
@@ -33,6 +31,7 @@
 - **THEN** 系统 SHALL 注册 `IBasePlatformAuthHttpClient` Refit 接口
 - **AND** 该客户端 SHALL 配置 BasePlatform 基础 URL（来自 `appsettings.json`）
 - **AND** 该客户端 SHALL 支持调用 `GetLicenseFileAsync` 方法
+- **AND** 该客户端 SHALL 支持调用 `ActivateAsync` 方法（`POST /api/auth/activate-urban`）
 - **AND** 超时时间 SHALL 设置为 30 秒
 
 ### Requirement: SignalR Hub 推送 BasePlatform JWT
@@ -220,3 +219,27 @@
 - **THEN** 日志 SHALL 不包含完整的 JWT 令牌内容
 - **AND** 日志 SHALL 不包含私钥或公钥的 PEM 内容
 - **AND** 日志 MAY 包含 JWT 的前 10 个字符（用于调试）
+
+### Requirement: BasePlatform 在线激活 HTTP 客户端
+
+系统 SHALL 扩展 `IBasePlatformAuthHttpClient`，除 `GetLicenseFileAsync` 外支持 `ActivateAsync` 方法，用于调用 BasePlatform `POST /api/auth/activate-urban` 完成 ProductCode 5001 在线激活。
+
+#### Scenario: Refit 激活方法定义
+
+- **WHEN** 应用启动并注册 `IBasePlatformAuthHttpClient`
+- **THEN** 接口 SHALL 包含 `[Post("/api/auth/activate-urban")]` 方法 `ActivateAsync`
+- **AND** 方法 SHALL 接受请求 DTO（含 `ProductCode`、`Code`、`MachineCode`）
+- **AND** 方法 SHALL 返回 `BasePlatformApiResponse<ActivateUrbanResponseData>`（或等价命名 record/class）
+
+#### Scenario: 激活响应字段映射
+
+- **WHEN** BasePlatform `activate-urban` 返回成功 JSON
+- **THEN** Refit 反序列化 SHALL 映射 `data.jwtToken`、`data.proId`、`data.proName`、`data.accessCode`、`data.authEndDate`
+- **AND** `success` 与 `msg` 字段 SHALL 与 BasePlatform 包装格式一致
+
+#### Scenario: 与 license-file 共用客户端配置
+
+- **WHEN** `IBasePlatformAuthHttpClient` 调用 `ActivateAsync`
+- **THEN** SHALL 使用与 `GetLicenseFileAsync` 相同的 BasePlatform BaseUrl 与超时配置
+- **AND** SHALL 使用 `Content-Type: application/json`
+
