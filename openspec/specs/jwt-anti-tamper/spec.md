@@ -59,9 +59,34 @@ Provides server-side JWT anti-tamper verification capabilities for the UrbanMana
 - **THEN** SHALL return `JwtAntiTamperResult` with `Passed = false` and `Reason` indicating invalid ProId format
 - **AND** the system SHALL NOT attempt to call BasePlatform API
 
+### Requirement: 提交 JWT 的 machineCode 设备绑定校验
+
+`JwtAntiTamperService.VerifyAndCompareAsync` SHALL 在 RS256 验签通过、查询到 `GovProject` 之后、调用 BasePlatform 获取新 JWT 之前，提取**提交 JWT 的 `machineCode` claim** 并与 `GovProject.MachineCode`（权威机器码）比对。两者不一致时 SHALL 返回 `Passed = false` 并以 `DEVICE_CHANGED` 标记原因，表明授权设备已变更。
+
+#### Scenario: machineCode 一致正常通过
+
+- **WHEN** 提交 JWT 的 `machineCode` claim 与 `GovProject.MachineCode` 一致
+- **THEN** SHALL 继续既有流程（调用 BasePlatform 获取新 JWT）
+- **AND** SHALL 返回 `Passed = true`、`ServerJwt` 为 BasePlatform 新签发 JWT
+
+#### Scenario: machineCode 不一致返回设备变更失败
+
+- **WHEN** 提交 JWT 的 `machineCode` claim 与 `GovProject.MachineCode` 不一致（如旧设备在跨设备重新激活后连接）
+- **THEN** SHALL 返回 `Passed = false`
+- **AND** `Reason` SHALL 标记设备变更（如 `DEVICE_CHANGED:授权设备已变更，请在当前设备重新激活`）
+- **AND** `RevocationReason` SHALL 标记为设备变更类型
+- **AND** SHALL NOT 调用 BasePlatform API 获取新 JWT
+- **AND** `ServerJwt` SHALL 为 null
+
+#### Scenario: 提交 JWT 缺少 machineCode claim
+
+- **WHEN** 提交 JWT 通过签名验证但不含 `machineCode` claim
+- **THEN** SHALL 返回 `Passed = false`，`Reason` 指示令牌缺少设备绑定信息
+- **AND** SHALL NOT 调用 BasePlatform API
+
 ### Requirement: JwtAntiTamperResult DTO
 
-`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ServerJwt` (string?, the JWT retrieved from BasePlatform when passed), `ProName` (string?), `BuildLicenseNo` (string?, from `GovProject.AccessCode`), `FdBuildLicenseNo` (string?), `AuthEndTime` (DateTime?). The `ServerJwt` and license fields SHALL only be populated when `Passed = true`.
+`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ServerJwt` (string?, the JWT retrieved from BasePlatform when passed), `ProName` (string?), `BuildLicenseNo` (string?, from `GovProject.AccessCode`), `FdBuildLicenseNo` (string?), `AuthEndTime` (DateTime?), `RevocationReason` (enum/string?, for distinguishing failure types such as `DEVICE_CHANGED`, `EXPIRED`, `NOT_FOUND`, `INVALID_SIGNATURE`). The `ServerJwt` and license fields SHALL only be populated when `Passed = true`.
 
 #### Scenario: Result with BasePlatform JWT
 - **WHEN** `JwtAntiTamperResult` is constructed with `Passed = true`
@@ -70,6 +95,12 @@ Provides server-side JWT anti-tamper verification capabilities for the UrbanMana
 - **AND** `FdBuildLicenseNo` SHALL contain `GovProject.FdBuildLicenseNo` value
 - **AND** `ProName` SHALL contain `GovProject.ProName` value
 - **AND** `AuthEndTime` SHALL contain `GovProject.AuthEndTime` value
+
+#### Scenario: Device change failure result
+- **WHEN** `Passed = false` due to machineCode mismatch
+- **THEN** `RevocationReason` SHALL be `DEVICE_CHANGED`
+- **AND** `Reason` SHALL contain user-facing Chinese message
+- **AND** `ServerJwt` SHALL be null
 
 ### Requirement: Local JWT re-signing
 **Reason**: Replaced by delegating JWT signing to BasePlatform for unified authorization management
