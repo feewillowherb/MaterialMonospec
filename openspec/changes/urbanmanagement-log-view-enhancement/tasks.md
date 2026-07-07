@@ -65,3 +65,11 @@
 - [x] 9.2 检查所有新增和修改文件，确认代码风格与现有代码一致（file-scoped namespaces、nullable 引用类型、ABP 约定）
 - [x] 9.3 确认 `ClientLogAppService` 的 `NotImplementedException` 方法已全部替换为实际实现
 - [x] 9.4 确认 SignalR Hub 连接、文件传输、断连处理的关键路径覆盖
+
+## 10. 前端拉取逻辑重构 — 服务端主动拉取
+
+- [x] 10.1 在 `ClientLogs.razor` 查询条件面板中新增"拉取到服务器"按钮（`layui-btn-warm` 样式），调用 `PullLogsByDateAsync(clientId, dateFolder)` 一键拉取指定日期全部日志
+- [x] 10.2 重构"拉取并缓存"按钮，从浏览器 SignalR 中转模式改为调用 `PullAndCacheAsync(PullLogDto)` 服务端 API
+- [x] 10.3 移除浏览器端 SignalR 连接相关代码：删除 `HubConnection`、`EnsureHubConnectionAsync`、`OnReceiveFileChunk`、`_fileChunkBuffers`、`_fileCompletionSources`、`IAsyncDisposable` 实现
+- [x] 10.4 移除浏览器端拉取进度弹窗（`_showPullProgress`、分块进度 UI），替换为简单的加载状态提示（`_pullStatusMessage`）
+- [x] 10.5 按钮禁用联动：拉取期间同时禁用"查询日志"和"拉取到服务器"按钮

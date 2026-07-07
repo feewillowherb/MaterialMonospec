@@ -127,3 +127,43 @@
 - **WHEN** 调用 `DownloadCachedAsync(id)`
 - **THEN** 系统 SHALL 从 `_pathMap` 中移除该 Guid
 - **AND** 抛出 `UserFriendlyException("文件不存在")`
+
+### Requirement: 服务端主动拉取日志（由 UI 触发）
+
+服务端必须提供由管理员在 UI 中触发的主动拉取能力，服务端直接通过 SignalR 从客户端拉取日志文件并写入磁盘，浏览器不参与文件传输。
+
+#### Scenario: 一键拉取指定日期全部日志
+
+- **假设** 管理员在 `ClientLogs.razor` 页面选择了客户端 "material-client-001" 和日期 "2025/06/22/"
+- **WHEN** 管理员点击"拉取到服务器"按钮
+- **THEN** 系统 SHALL 调用 `PullLogsByDateAsync(clientId, dateFolder)`
+- **AND** 服务端首先通过 `RequestLogListAsync` 查询该日期的日志文件列表
+- **AND** 对每个文件通过 `IHubContext` 发送 `ReceiveFileContentRequest` 到客户端
+- **AND** 客户端返回的文件分块通过 `OnServerFileChunk` 静态回调直接写入服务端 `MemoryStream`
+- **AND** 文件传输完成后直接写入 `ClientLogs/{ClientId}/{Date}/{FileName}` 磁盘目录
+- **AND** 返回 `PullLogsByDateResult`，包含 `TotalFilesFound`、`PulledCount`、`PulledFiles`
+- **AND** 页面显示拉取结果并自动刷新已缓存列表
+- **AND** 数据路径为 Client → DeviceStatusHub → AppService → 磁盘（无浏览器中转）
+
+#### Scenario: 一键拉取时客户端离线
+
+- **假设** 客户端未注册或已离线
+- **WHEN** 调用 `PullLogsByDateAsync`
+- **THEN** 系统 SHALL 在 `RequestLogListAsync` 阶段抛出 `UserFriendlyException`
+- **AND** 页面显示错误提示"客户端未注册日志拉取能力"
+
+#### Scenario: 一键拉取时无日志文件
+
+- **假设** 指定日期无日志文件
+- **WHEN** `PullLogsByDateAsync` 查询到 0 个文件
+- **THEN** 系统 SHALL 返回 `PullLogsByDateResult`，`TotalFilesFound` 为 0
+- **AND** 页面显示"该日期无日志文件"
+
+#### Scenario: 选择性拉取指定文件
+
+- **假设** 管理员已查询日志列表并选中 2 个文件
+- **WHEN** 管理员点击"拉取并缓存"按钮
+- **THEN** 系统 SHALL 调用 `PullAndCacheAsync(new PullLogDto { ClientId, Files })`
+- **AND** 服务端通过 `IHubContext` 逐文件发送 `ReceiveFileContentRequest`
+- **AND** 文件分块通过 `OnServerFileChunk` 直接写入磁盘
+- **AND** 页面显示拉取结果"成功拉取 2 个文件"并刷新已缓存列表

@@ -50,22 +50,22 @@ MaterialClient.Urban（Avalonia 桌面端）作为参考仓库，已实现完整
 
 **替代方案**：重构接口改为 `DownloadCachedAsync(string clientId, string dateFolder, string fileName)` 直接参数定位。拒绝原因：改动接口签名影响 ABP Auto API 路由，且需要前端传递多个参数。
 
-### D3: SignalR 文件传输 — 复用 Hub 的 LogRequesters 组
+### D3: 文件拉取 — 服务端主动拉取（非浏览器中转）
 
-**选择**：`PullAndCacheAsync` 在 Blazor Server 中直接使用注入的 `IHubContext<DeviceStatusHub>` 发起文件传输请求，通过 `LogRequesters` SignalR 组接收分块回调。
+**选择**：Blazor 页面通过 HTTP API 调用 `ClientLogAppService.PullAndCacheAsync` / `PullLogsByDateAsync`，由服务端通过 `IHubContext<DeviceStatusHub>` 直接发起 SignalR 文件传输请求，客户端分块返回后由 `ClientLogAppService.OnServerFileChunk` 静态回调直接写入磁盘。浏览器不参与文件传输过程。
 
 **理由**：
-- `DeviceStatusHub.ReceiveFileChunk` 已实现分块转发到 `LogRequesters` 组
-- Blazor Server 页面可订阅同一 Hub 的 `LogRequesters` 组监听分块到达
-- 保持与现有 `RequestLogListAsync` 一致的 SignalR ↔ HTTP 桥接模式
+- `PullAndCacheAsync` 已完整实现服务端直接拉取逻辑（`IHubContext` 发送请求 + `ConcurrentDictionary<MemoryStream>` 收集分块 + 直接写磁盘）
+- `PullLogsByDateAsync` 已实现一键查询列表 + 全量拉取的组合操作
+- 服务端拉取路径（Client → Hub → AppService → 磁盘）比浏览器中转路径（Client → Hub → 浏览器 → Base64 → API → 磁盘）更高效，消除了 Base64 编码/解码开销和浏览器内存占用
+- 移除 Blazor 页面的 SignalR 连接代码，降低前端复杂度和出错风险
+- ABP Auto API 自动暴露 `PullAndCacheAsync`（POST `/api/app/client-log/pull-and-cache`）和 `PullLogsByDateAsync`（POST `/api/app/client-log/pull-logs-by-date`）
 
-**实现要点**：
-- Blazor 页面 SignalR 连接加入 `LogRequesters` 组
-- `PullAndCacheAsync` 通过 `IHubContext` 调用 `RequestFileContent` 向客户端发请求
-- Blazor 页面的 `OnReceiveFileChunk` 回调将分块写入内存 `MemoryStream`
-- 所有分块接收完毕后，通过 API 调用将文件内容 POST 到后端保存
+**替代方案（已废弃）**：Blazor 页面自行建立 SignalR 连接，加入 `LogRequesters` 组，接收分块后转 Base64 POST 到服务端保存。废弃原因：数据路径低效，浏览器内存压力大，代码复杂度高。
 
-**替代方案**：`PullAndCacheAsync` 内部直接使用 `ConcurrentDictionary<string, MemoryStream>` 收集分块。拒绝原因：AppService 是 transient/singleton 生命周期，与 Hub 静态字典状态管理耦合复杂。
+**UI 操作入口**：
+1. **"拉取到服务器"按钮**（查询面板）：一键拉取，调用 `PullLogsByDateAsync`，无需先查询文件列表
+2. **"拉取并缓存"按钮**（文件表格下方）：选择性拉取已查询的指定文件，调用 `PullAndCacheAsync`
 
 ### D4: 下载 Controller — 独立 Controller 替代 ABP Auto API
 
@@ -111,16 +111,12 @@ UrbanManagement Blazor Server — 日志管理模块架构
 │  │ - 客户端选择  │  │ - 复选框选择    │  │ - 分页列表       │    │
 │  │ - 日期选择器  │  │ - 文件大小      │  │ - 单文件下载     │    │
 │  │ - 查询按钮    │  │ - 修改时间      │  │ - 删除按钮       │    │
-│  └──────────────┘  │ - 拉取按钮      │  │ - 批量下载ZIP    │    │
-│                     └───────────────┘  │ - 批量删除       │    │
+│  │ - 拉取到服务器★│  │ - 拉取按钮      │  │ - 批量下载ZIP    │    │
+│  └──────────────┘  └───────────────┘  │ - 批量删除       │    │
 │                                        └──────────────────┘    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │ SignalR HubConnection (Blazor ↔ Server)                  │   │
-│  │ - LogListResponse 回调                                    │   │
-│  │ - ReceiveFileChunk 回调 → MemoryStream → POST 保存       │   │
-│  └──────────────────────────────────────────────────────────┘   │
+│  (无 SignalR 连接 — 拉取完全由服务端处理)                        │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ HTTP API / SignalR
+                            │ HTTP API
 ┌───────────────────────────▼─────────────────────────────────────┐
 │  ASP.NET Core Backend                                          │
 │                                                                 │
@@ -129,8 +125,9 @@ UrbanManagement Blazor Server — 日志管理模块架构
 │  │ (新增)               │  │ (完善现有)                       │  │
 │  │ - GET download/{id}  │  │ - GetOnlineClients ★ 补全       │  │
 │  │ - POST download-batch│  │ - RequestLogList ✓ 已完成      │  │
-│  │   → ZIP FileStream   │  │ - PullAndCache ★ 补全           │  │
-│  └─────────┬───────────┘  │ - GetCachedLogs ✓ 已完成        │  │
+│  │   → ZIP FileStream   │  │ - PullAndCache ✓ 服务端直接拉取 │  │
+│  └─────────┬───────────┘  │ - PullLogsByDate ✓ 一键拉取     │  │
+│            │              │ - GetCachedLogs ✓ 已完成        │  │
 │            │              │ - DownloadCached ★ 补全         │  │
 │            │              │ - DownloadBatch ★ 实现 ZIP      │  │
 │            │              │ - DeleteCached ★ 实现           │  │
@@ -142,6 +139,7 @@ UrbanManagement Blazor Server — 日志管理模块架构
 │  │ - RegisterLogCapability ✓                                    ││
 │  │ - RequestLogList / ReturnLogList ✓                           ││
 │  │ - RequestFileContent / ReceiveFileChunk ✓                   ││
+│  │ - OnServerFileChunk → ClientLogAppService 静态回调 ✓       ││
 │  │ - _logCapabilityRegistry (内存字典) → GetOnlineClients 数据源 ││
 │  └────────────────────────┬────────────────────────────────────┘│
 │                           │ SignalR                            │
@@ -162,49 +160,46 @@ UrbanManagement Blazor Server — 日志管理模块架构
 sequenceDiagram
     participant Admin as 管理员
     participant Razor as ClientLogs.razor
-    participant HubConn as Blazor SignalR 连接
     participant API as ClientLogAppService
     participant HubCtx as IHubContext<DeviceStatusHub>
     participant Hub as DeviceStatusHub
     participant Client as MaterialClient.Urban
     participant FS as 服务端文件系统
 
-    Note over Admin,Hub: 阶段1: 查询日志列表
+    Note over Admin,Client: 方式A: 一键拉取到服务器
 
-    Admin->>Razor: 选择客户端 + 日期, 点击查询
-    Razor->>API: POST /api/app/client-log/request-log-list
-    API->>HubCtx: SendAsync("ReceiveLogListRequest", requestId, clientId, dateFolder)
-    HubCtx->>Hub: [Hub方法] ReceiveLogListRequest 转发
+    Admin->>Razor: 选择客户端 + 日期, 点击"拉取到服务器"
+    Razor->>API: POST /api/app/client-log/pull-logs-by-date
+    API->>HubCtx: RequestLogList(requestId, clientId, dateFolder)
     Hub->>Client: ReceiveLogListRequest (SignalR)
-    Client->>Client: ClientLogScanner.Scan(Logs/YYYY/MM/DD/)
     Client->>Hub: ReturnLogList(requestId, files[])
-    Hub->>API: TryCompleteLogListRequest(result) [TCS 完成]
-    API-->>Razor: ClientLogListResultDto (JSON)
-
-    Note over Admin,Hub: 阶段2: 拉取并缓存 (逐文件)
-
-    Admin->>Razor: 勾选文件, 点击拉取
-    Razor->>HubConn: InvokeAsync("SubscribeToLogResponses", requestId)
-    loop 每个选中文件
-        Razor->>API: POST /api/app/client-log/pull-and-cache
-        API->>HubCtx: RequestFileContent(requestId, clientId, filePath, fileName)
-        HubCtx->>Client: ReceiveFileContentRequest (SignalR)
+    Hub->>API: TryCompleteLogListRequest [TCS 完成]
+    loop 每个文件（服务端直接拉取）
+        API->>HubCtx: RequestFileContent(clientId, filePath)
+        Hub->>Client: ReceiveFileContentRequest (SignalR)
         loop 64KB 分块
-            Client->>Hub: SendFileChunk(requestId, chunkIndex, data)
-            Hub->>HubConn: ReceiveFileChunk (组播到 LogRequesters)
-            HubConn->>Razor: OnReceiveFileChunk 回调
-            Razor->>Razor: 写入 MemoryStream
+            Client->>Hub: SendFileChunk(data)
+            Hub->>API: OnServerFileChunk 回调（静态方法）
+            API->>FS: 累积分块到 MemoryStream
         end
-        Razor->>API: POST /api/app/client-log/save-cached (文件内容)
-        API->>FS: 写入 ClientLogs/{ClientId}/{Date}/{FileName}
-        API-->>Razor: 保存成功
+        API->>FS: 写入 ClientLogs/{ClientId}/{Date}/
     end
+    API-->>Razor: PullLogsByDateResult (JSON)
+    Razor-->>Admin: 显示拉取结果
 
-    Note over Admin,Hub: 阶段3: 下载文件
+    Note over Admin,Client: 方式B: 查询后选择性拉取
+
+    Admin->>Razor: 点击"查询日志"
+    Razor->>API: POST /api/app/client-log/request-log-list
+    API-->>Razor: ClientLogListResultDto (JSON)
+    Admin->>Razor: 勾选文件, 点击"拉取并缓存"
+    Razor->>API: POST /api/app/client-log/pull-and-cache
+    Note over API,FS: 服务端直接拉取，同方式A
+
+    Note over Admin,Client: 下载已缓存文件
 
     Admin->>Razor: 点击下载按钮
-    Razor->>Razor: window.open("/api/client-log/download/{id}")
-    Razor->>FS: [浏览器直接请求 Controller]
+    Razor->>FS: 浏览器请求 GET /api/client-log/download/{id}
     FS-->>Razor: FileStreamResult (文件流下载)
 ```
 
@@ -212,24 +207,30 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[管理员选择文件] --> B[点击拉取并缓存]
-    B --> C{API: PullAndCache}
-    C --> D[通过 IHubContext 调用 RequestFileContent]
-    D --> E[客户端接收请求]
-    E --> F[客户端读取文件流]
-    F --> G[客户端 64KB 分块发送]
-    G --> H{Hub: ReceiveFileChunk}
-    H --> I[转发到 LogRequesters 组]
-    I --> J[Blazor 页面接收分块]
-    J --> K[写入 MemoryStream]
-    K --> L{所有分块接收完毕?}
-    L -- 否 --> I
-    L -- 是 --> M[Blazor POST 文件内容到 API]
-    M --> N[API 写入磁盘 ClientLogs/]
-    N --> O{还有更多文件?}
-    O -- 是 --> D
-    O -- 否 --> P[显示拉取完成提示]
-    P --> Q[刷新已缓存列表]
+    A[管理员选择客户端+日期] --> B{操作类型}
+    B -- 一键拉取 --> C[点击"拉取到服务器"]
+    C --> D[API: PullLogsByDateAsync]
+    D --> E[查询日志列表]
+    E --> F[服务端逐文件拉取]
+    B -- 选择性拉取 --> G[点击"查询日志"]
+    G --> H[API: RequestLogListAsync]
+    H --> I[显示文件列表]
+    I --> J[勾选文件, 点击"拉取并缓存"]
+    J --> F
+    F --> K[API: PullAndCacheAsync]
+    K --> L[通过 IHubContext 调用 RequestFileContent]
+    L --> M[客户端接收请求]
+    M --> N[客户端 64KB 分块发送]
+    N --> O{Hub: ReceiveFileChunk}
+    O --> P[OnServerFileChunk 静态回调]
+    P --> Q[写入 MemoryStream]
+    Q --> R{所有分块接收完毕?}
+    R -- 否 --> O
+    R -- 是 --> S[直接写入磁盘 ClientLogs/]
+    S --> T{还有更多文件?}
+    T -- 是 --> L
+    T -- 否 --> U[返回拉取结果]
+    U --> V[刷新已缓存列表]
 ```
 
 ## Detailed Code Change Map
@@ -248,26 +249,30 @@ flowchart TD
 
 ## Key Implementation Details
 
-### PullAndCacheAsync 完善方案
+### 服务端主动拉取方案（已实现）
 
-当前 `PullAndCacheAsync` 是占位实现。完善策略：
+`PullAndCacheAsync` 和 `PullLogsByDateAsync` 已完整实现服务端直接拉取：
 
-1. **不在此方法内处理 SignalR 分块接收**（AppService 生命周期不适合持有 Hub 连接状态）
-2. 新增 `SaveCachedFileAsync(SaveCachedFileDto dto)` 方法：接收客户端传来的完整文件内容（base64），写入 `ClientLogs/{ClientId}/{Date}/{FileName}`
-3. Blazor 页面负责 SignalR 分块收集 → 组装完整内容 → 调用 `SaveCachedFileAsync` 保存
+1. `PullAndCacheAsync` 通过 `IHubContext<DeviceStatusHub>` 向客户端发送 `ReceiveFileContentRequest`
+2. 客户端分块发送文件，`DeviceStatusHub.ReceiveFileChunk` 通过 `ClientLogAppService.OnServerFileChunk` 静态回调直接写入服务端 `MemoryStream`
+3. 最后一个分块到达后，直接写入 `ClientLogs/{ClientId}/{Date}/` 磁盘目录
+4. `PullLogsByDateAsync` 组合了 `RequestLogListAsync` + `PullAndCacheAsync` 为一键操作
 
 ```
-Blazor 页面          AppService           文件系统
-    │                    │                   │
-    │─ RequestFileContent ──▶│               │
-    │                    │── SignalR ──▶ Client
-    │◀─ ReceiveFileChunk ───│               │
-    │  (累积到 MemoryStream)  │               │
-    │                    │                   │
-    │─ SaveCachedFile ──▶│                   │
-    │                    │── Write ──▶ disk   │
-    │◀─ OK ─────────────│                   │
+Blazor 页面          AppService           DeviceStatusHub      客户端         文件系统
+    │                    │                    │                │              │
+    │─ PullLogsByDate ──▶│                    │                │              │
+    │  (HTTP API)        │─ RequestLogList ──▶│                │              │
+    │                    │                    │── Scan ──▶     │              │
+    │                    │◀─ ReturnLogList ───│◀─ files[] ────│              │
+    │                    │─ RequestFileContent▶│                │              │
+    │                    │                    │── Request ──▶ │              │
+    │                    │◀─ OnServerFileChunk─│◀─ chunks[] ───│              │
+    │                    │─ Write ──────────────────────────────────────▶ disk│
+    │◀─ Result ─────────│                    │                │              │
 ```
+
+Blazor 页面仅通过 HTTP API 调用，不参与 SignalR 文件传输。
 
 ### GetOnlineClientsAsync 补全方案
 

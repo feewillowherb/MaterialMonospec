@@ -130,43 +130,69 @@
 - **THEN** 系统 SHALL 在表格区域显示空状态提示"该日期无日志文件"
 - **AND** 不显示表格和操作按钮
 
-### Requirement: 拉取并缓存日志文件
+### Requirement: 一键拉取到服务器
 
-页面必须提供将选中文件从客户端拉取到服务端缓存的功能。
+页面必须在查询条件面板中提供"拉取到服务器"按钮，允许管理员一键将指定客户端指定日期的全部日志文件拉取到服务端磁盘。
 
-#### Scenario: 单文件拉取
+#### Scenario: 一键拉取
 
-- **假设** 用户选中 1 个文件
-- **WHEN** 用户点击"拉取并缓存"按钮
-- **THEN** 系统 SHALL 对每个选中文件执行拉取流程：
-  1. 通过 SignalR 调用 `RequestFileContent(requestId, clientId, filePath, fileName)`
-  2. 订阅 `LogRequesters` SignalR 组接收 `ReceiveFileChunk` 回调
-  3. 将分块数据累积到 `MemoryStream`
-  4. 所有分块接收完毕后调用 `SaveCachedFileAsync` 保存到服务端磁盘
-- **AND** 显示拉取进度弹窗（当前文件名 + 进度指示）
-- **AND** 拉取完成后显示成功提示"成功拉取 1 个文件"
+- **假设** 用户已选择客户端和日期
+- **WHEN** 用户点击"拉取到服务器"按钮
+- **THEN** 系统 SHALL 调用 `PullLogsByDateAsync(clientId, dateFolder)` 服务端 API
+- **AND** 显示加载状态"正在拉取 {clientId} {date} 的日志..."
+- **AND** 服务端完成拉取后显示结果（"成功拉取 N 个文件"或"该日期无日志文件"）
 - **AND** 自动刷新已缓存日志列表
 
-#### Scenario: 批量文件拉取
+#### Scenario: 一键拉取时未选择客户端
 
-- **假设** 用户选中 3 个文件
+- **WHEN** 未选择客户端
+- **THEN** "拉取到服务器"按钮 SHALL 处于禁用状态
+
+#### Scenario: 一键拉取时未选择日期
+
+- **WHEN** 未选择日期
+- **THEN** "拉取到服务器"按钮 SHALL 处于禁用状态
+
+#### Scenario: 一键拉取期间按钮禁用
+
+- **WHEN** 正在拉取或查询中
+- **THEN** "拉取到服务器"按钮和"查询日志"按钮 SHALL 均处于禁用状态
+
+#### Scenario: 一键拉取失败
+
+- **假设** 客户端离线或拉取超时
+- **WHEN** `PullLogsByDateAsync` 抛出异常
+- **THEN** 系统 SHALL 显示错误提示（"拉取超时，客户端可能已离线"或异常消息）
+
+### Requirement: 选择性拉取并缓存日志文件
+
+页面必须提供将已查询的指定文件从客户端拉取到服务端磁盘的功能，通过服务端 API 执行拉取。
+
+#### Scenario: 选择性拉取
+
+- **假设** 用户已查询日志列表并选中文件
 - **WHEN** 用户点击"拉取并缓存"按钮
-- **THEN** 系统 SHALL 依次拉取每个文件（串行执行）
-- **AND** 拉取进度弹窗显示"正在拉取 2/3..."
-- **AND** 部分失败时 SHALL 显示"成功拉取 2 个，失败 1 个"
+- **THEN** 系统 SHALL 调用 `PullAndCacheAsync(PullLogDto)` 服务端 API，传递选中的文件列表
+- **AND** 服务端通过 SignalR 直接从客户端拉取文件并写入磁盘（无浏览器中转）
+- **AND** 显示加载状态"正在拉取 N 个文件到服务器..."
+- **AND** 拉取完成后显示结果提示"成功拉取 N 个文件"
 - **AND** 自动刷新已缓存日志列表
+- **AND** 清空文件选择状态
 
-#### Scenario: 拉取进度弹窗
+#### Scenario: 部分拉取失败
 
-- **WHEN** 文件拉取进行中
-- **THEN** 系统 SHALL 显示模态弹窗
-- **AND** 弹窗内容包含：当前文件名、分块进度（N/M）、正在传输的字节数
-- **AND** 提供"取消"按钮
-- **AND** 取消后 SHALL 停止后续文件拉取
+- **假设** 选中 3 个文件，其中 1 个拉取失败
+- **WHEN** `PullAndCacheAsync` 返回部分成功结果
+- **THEN** 系统 SHALL 显示"拉取完成：成功 N/M 个文件"
 
 #### Scenario: 未选择文件时禁用按钮
 
 - **WHEN** 未选择任何文件
+- **THEN** "拉取并缓存"按钮 SHALL 处于禁用状态
+
+#### Scenario: 拉取期间按钮禁用
+
+- **WHEN** 正在拉取中
 - **THEN** "拉取并缓存"按钮 SHALL 处于禁用状态
 
 ### Requirement: 已缓存日志列表
