@@ -21,6 +21,11 @@ The system SHALL define an abstract base class `AttendedWeighingDetailViewModelB
 - **WHEN** `AttendedWeighingViewModel.OpenDetail` receives an item with `WeighingMode.SolidWaste`
 - **THEN** it creates an instance of `SolidWasteWeighingDetailViewModel` via DI
 
+#### Scenario: Recycle mode creates SolidWaste subclass
+- **WHEN** `AttendedWeighingViewModel.OpenDetail` receives an item with `WeighingMode.Recycle`
+- **THEN** it creates an instance of `SolidWasteWeighingDetailViewModel` via DI
+- **AND** SHALL NOT create `StandardWeighingDetailViewModel`
+
 ### Requirement: Shared properties in base class
 The base class SHALL expose all properties shared between modes: `AllWeight`, `TruckWeight`, `GoodsWeight`, `PlateNumber`, `Remark`, `JoinTime`, `OutTime`, `Operator`, `WeighingRecordId`, `SelectedDeliveryType`, `DeliveryTypeOptions`, `IsWeighingRecord`, `IsMatchButtonVisible`, `IsCompleteButtonVisible`, `PlateNumberError`, `MaterialItems`, `ProviderLabelText`, `DeliveryTypeTitleText`, `CompleteButtonText`, `DeliveryTypeDisplayText`.
 

@@ -179,6 +179,7 @@
 - **AND** SHALL return `ProductCode.Standard` for `WeighingMode.Standard`
 - **AND** SHALL return `ProductCode.SolidWaste` for `WeighingMode.SolidWaste`
 - **AND** SHALL return `ProductCode.Urban` for `WeighingMode.UrbanMode`
+- **AND** SHALL return `ProductCode.Recycle` for `WeighingMode.Recycle`
 
 #### Scenario: Default ProductCode when no settings exist
 - **WHEN** `GetProductCodeAsync()` is called and no settings record exists
@@ -201,6 +202,11 @@
 #### Scenario: Save SolidWaste ProductCode
 - **WHEN** `SaveDefaultWeighingModeAsync(ProductCode.SolidWaste)` is called
 - **THEN** the system SHALL set `DefaultWeighingMode = WeighingMode.SolidWaste`
+
+#### Scenario: Save Recycle ProductCode
+- **WHEN** `SaveDefaultWeighingModeAsync(ProductCode.Recycle)` is called
+- **THEN** the system SHALL set `DefaultWeighingMode = WeighingMode.Recycle`
+- **AND** SHALL persist the settings
 
 ### 需求：高拍仪启用配置（DocumentCameraEnabled）
 
