@@ -5,16 +5,25 @@
 Provides the core API for urban weighing record management, supporting extended fields for vehicle information, sync state management, and attachment file associations. (TBD: expand with API design principles)
 ## Requirements
 ### Requirement: UrbanWeighingRecord extended fields
-The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the following fields beyond what is currently implemented: `VehicleColor` (string?), `PlateColor` (string?), `VehicleType` (string?), `DeviceId` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `SiteType` (string?), `ProId` (string?), `ProName` (string?), `IsAnomaly` (bool, default false), `ClientSyncType` (int?), `ClientSyncTime` (DateTime?), `ClientRetryCount` (int?), `ClientLastErrorTime` (DateTime?), `SyncTime` (DateTime?), `RetryCount` (int?), `LastErrorTime` (DateTime?). The `SnapImages` string field SHALL be removed.
+
+The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the following fields beyond what is currently implemented: `VehicleColor` (string?), `PlateColor` (string?), `VehicleType` (string?), `DeviceId` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `SiteType` (string?), `ProId` (string?), `ProName` (string?), `IsAnomaly` (bool, default false), `ClientSyncType` (int?), `ClientSyncTime` (DateTime?), `ClientRetryCount` (int?), `ClientLastErrorTime` (DateTime?), `SyncTime` (DateTime?), `RetryCount` (int?), `LastErrorTime` (DateTime?), `ServerApprovedAt` (DateTime?), `ClientApprovalAckAt` (DateTime?). The `SnapImages` string field SHALL be removed.
 
 #### Scenario: Full record creation with extended fields
+
 - **WHEN** a POST request creates an UrbanWeighingRecord with all extended fields including FdBuildLicenseNo
 - **THEN** all fields SHALL be persisted correctly to the database
 - **AND** FdBuildLicenseNo SHALL be stored in the FdBuildLicenseNo column
 
 #### Scenario: SnapImages removed
+
 - **WHEN** the entity is mapped to the database
 - **THEN** no `SnapImages` column SHALL exist on the `Urban_WeighingRecord` table
+
+#### Scenario: Server approval sync columns nullable
+
+- **WHEN** a new `UrbanWeighingRecord` is created via `ReceiveAsync`
+- **THEN** `ServerApprovedAt` and `ClientApprovalAckAt` MUST default to null
+- **AND** MUST NOT block record creation or government sync eligibility
 
 ### Requirement: ClientRecordId idempotency
 The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate, and SHALL apply upsert updates to the existing record's correctable fields from the incoming DTO.
@@ -167,4 +176,44 @@ When MaterialClient.Urban calls receive with `attachmentIds` produced by the upl
 - **THEN** the system SHALL insert the `UrbanWeighingRecord`
 - **AND** SHALL create one `UrbanWeighingRecordAttachment` per Guid
 - **AND** government sync worker SHALL later be able to read those files from `FilesPhysicalPath`-resolved storage
+
+### Requirement: Ack approval sync API
+
+UrbanManagement SHALL expose `IUrbanWeighingRecordAppService.AckApprovalSyncAsync` accepting `ClientRecordId` and setting `ClientApprovalAckAt` when `ServerApprovedAt` is set.
+
+#### Scenario: ACK via conventional API
+
+- **WHEN** MaterialClient sends a valid ACK request with `clientRecordId`
+- **THEN** the system SHALL invoke `AckApprovalSyncAsync`
+- **AND** SHALL persist `ClientApprovalAckAt`
+
+### Requirement: Pull pending server approval sync API
+
+UrbanManagement SHALL expose a query API returning records for a `ProId` where `ServerApprovedAt != null` and `ClientApprovalAckAt == null`.
+
+#### Scenario: Client fetches pending approvals
+
+- **WHEN** MaterialClient requests pending server-approval sync for its project
+- **THEN** the API SHALL return matching records with sync payload fields required for local application
+
+### Requirement: Approval API is Web-only
+
+`IUrbanWeighingRecordAppService.ApproveAsync` and the conventional route `POST /api/app/urban-weighing-record/approve` SHALL be used only by UrbanManagement Web administrators (`WeighingApproval.razor` / `/weighing-approval`). MaterialClient.Urban MUST NOT call this API or any client-specific variant (e.g. `ApproveWeighingRecordAsync` with `ClientRecordId`).
+
+#### Scenario: Web administrator approves via ApproveAsync
+
+- **WHEN** an authenticated administrator submits approval from the Web UI with server record `id`, `plateNumber`, `totalWeight`, and optional `LrpReplacementBase64`
+- **THEN** the system SHALL invoke `ApproveAsync` and update the server record in place
+
+#### Scenario: MaterialClient does not call Approve API
+
+- **WHEN** the operator completes client-side approval in MaterialClient.Urban
+- **THEN** the client MUST NOT send HTTP requests to the Approve endpoint
+- **AND** MUST sync corrected fields and attachments via `ReceiveWeighingRecordAsync` after `SyncStatus` becomes `Pending`
+
+#### Scenario: Client-specific Approve Refit method not used
+
+- **WHEN** `IUrbanManagementApi` (or equivalent Refit interface) is configured for MaterialClient.Urban
+- **THEN** it SHALL NOT expose `ApproveWeighingRecordAsync` or map to the Approve endpoint for client approval flows
+- **AND** client weighing sync SHALL continue to use `ReceiveWeighingRecordAsync` and attachment upload APIs only
 
