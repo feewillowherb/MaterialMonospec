@@ -98,3 +98,12 @@ git commit -m "fix: exclude repos/ from git tracking"
 1. 从备份恢复子仓库的 openspec/ 目录
 2. 恢复主仓库到迁移前的 Git 提交
 3. 检查所有 specs 完整性
+
+---
+
+## 相关调研文档
+
+| 主题 | 路径 |
+|------|------|
+| 称重列表重复数据（ILocalEventBus 线程） | [2026-07-13-weighing-list-duplicate-localevent/](./2026-07-13-weighing-list-duplicate-localevent/00-调研总览.md) |
+| 海康 LPR 车牌解析异常 | [HikLpr/](./HikLpr/00-调研总览.md) |
