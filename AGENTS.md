@@ -29,7 +29,8 @@ MaterialMonospec/
 ├── repos/                                # 子仓库（目录联接）
 │   ├── MaterialClient/                   # Avalonia 桌面应用
 │   └── UrbanManagement/                  # ABP Web 应用
-├── docs/                                 # 文档
+├── docs/                                 # 文档（产出约定见 docs/AGENTS.md）
+│   ├── AGENTS.md                         # 仅约束 docs/ 的调研产出格式
 │   ├── monospecs-yaml-template.md        # 配置模板
 │   ├── add-repo-guide.md                 # 添加子仓库指南
 │   ├── migration-guide.md                # 迁移指南
