@@ -22,7 +22,7 @@
 #### Scenario: 抓拍前应用延迟
 
 - **GIVEN** `EnableTriggerLprCapture == true` 且 `TriggerLprCaptureDelayMs == 500`
-- **WHEN** 系统进入任一主动抓拍阶段（WaitingForStability / WeightStabilized / OffScale）并准备触发 LPR
+- **WHEN** 系统在 WeightStabilized 阶段准备触发 LPR 主动抓拍
 - **THEN** 系统 MUST 在调用 `TriggerCaptureAsync` 之前等待约 500 毫秒
 
 #### Scenario: 零延迟不额外等待

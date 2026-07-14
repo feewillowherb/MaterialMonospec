@@ -48,12 +48,16 @@ public sealed record CycleLprCandidate(
 ### D3 — 主动抓拍延迟
 
 - `SystemSettings.TriggerLprCaptureDelayMs`：默认 `0`，保存 `Math.Max(0, value)`。
-- `WeighingCaptureService.TriggerLprCaptureForAllAsync`：开关通过后、`TriggerCaptureAsync` 前 Delay。
+- `WeighingCaptureService.TriggerLprCaptureForAllAsync`：开关通过后、`TriggerCaptureAsync` 前 Delay；**仅**由 WeightStabilized 调用。
 - UI：设置窗口「启用 LPR 主动抓拍」下一行延迟输入（建议 NumericUpDown 0–60000）。
 
 ### D4 — 可选时序微调（推荐）
 
 `OnWeightStabilizedAsync` 可先建单再 `CaptureOnWeightStabilized`；仍必须保留补绑，因 SDK 回调异步。
+
+### D5 — 主动抓拍阶段收敛
+
+移除 WaitingForStability / OffScale 的 LPR 主动抓拍入口，避免与稳定抓拍延迟并行叠拍。异常下磅仍可触发枪机 `CaptureAllCamerasAsync`（与 LPR 无关）。
 
 ## Risks / Trade-offs
 

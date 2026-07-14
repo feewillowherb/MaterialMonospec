@@ -9,6 +9,7 @@
 - 本周期 LPR 候选择优：有车牌结果的图片优先级高于无车牌；同级可被较新候选覆盖。
 - 设置中新增 `TriggerLprCaptureDelayMs`（主动抓拍延迟，毫秒），默认 `0`；启用主动抓拍时在调用 `TriggerCaptureAsync` 前等待该时长。
 - 设置窗口「车牌识别设置」区在「启用 LPR 主动抓拍」附近增加延迟输入并持久化。
+- **主动 LPR 抓拍仅在 WeightStabilized（建单后）触发**；移除 WaitingForStability / OffScale 阶段的主动抓拍。
 - 补绑成功后，若存在 Urban 扩展且曾因缺图异常，SHOULD 重算 `IsAnomaly` / `AnomalyReason`（仅 Urban）。
 
 ## Capabilities
@@ -20,7 +21,9 @@
 ### Modified Capabilities
 
 - `license-plate-recognition`：全模式 LPR 落盘与挂接；本周期候选择优；建单后补绑/Upsert；下磅重置后不得串绑。
-- `system-configuration`：新增 `TriggerLprCaptureDelayMs` 配置与设置 UI。
+- `system-configuration`：新增 `TriggerLprCaptureDelayMs` 配置与设置 UI；延迟仅作用于 WeightStabilized 主动抓拍。
+- `weighing-device-capture`：主动 LPR 抓拍阶段仅保留 WeightStabilized。
+- `attended-weighing`：状态转换 side-effect 不再在上磅/下磅触发 LPR。
 
 ## Impact
 
