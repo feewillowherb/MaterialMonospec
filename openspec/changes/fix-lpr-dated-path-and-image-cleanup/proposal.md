@@ -8,7 +8,7 @@ LPR 图片当前落在扁平的 `Lpr/` 目录，与枪机 Camera 照片的 `年/
 - **`AttachType.UrbanPhoto` 的本地根目录改为与 LPR 相同的 `Lpr`**（`GetBasePath(UrbanPhoto)` → `"Lpr"`），新落盘为 `Lpr/{yyyy}/{MM}/{dd}/`；`AttachType` 枚举值与业务语义不变，仅磁盘根合并。
 - Hikvision / Vzvision 的 `TrySave*LprAttachment` 写入日期路径；相对路径仍经 `PathManager.ToRelativePath` 写库。
 - 新增可配置的本地图片清理后台任务：**所有产品客户端均具备**（Standard / SolidWaste 所在的 `MaterialClient`、`MaterialClient.Urban`、`MaterialClient.Recycle`）；默认约每天执行一次，删除保留期（默认 3 个月）之前的 `PhotoJianKong`（非 Urban 枪机）、`Lpr`（含 UrbanPhoto + LPR），以及对历史 `PhotoUrban/` 的兼容清理。
-- 启用开关、执行频率、保留时长、首选执行时刻均可在各客户端 `appsettings.json` 中配置；**默认启用**。
+- 启用开关、执行频率、保留时长、启动后首次延迟均可在各客户端 `appsettings.json` 中配置；**默认启用**。
 - 清理仅删磁盘文件，不修改数据库中的 `AttachmentFile` 记录。
 - 不迁移历史扁平 `Lpr/` 或旧 `PhotoUrban/` 文件；清理任务可按目录日 / LastWriteTime 处理。
 

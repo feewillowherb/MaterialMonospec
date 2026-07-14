@@ -12,7 +12,7 @@ Camera（枪机）抓拍已通过 `AttachmentPathUtils.GetLocalStorageAbsolutePa
 - `UrbanPhoto` 与 `Lpr` 共用根目录 `Lpr`（日期目录同构）；`AttachType` 仍区分业务类型。
 - 可配置后台任务清理过期 `PhotoJianKong` + `Lpr`（及历史 `PhotoUrban`）。
 - **所有产品客户端**具备同一清理能力（Standard/SolidWaste、Urban、Recycle）；默认启用。
-- 配置：启用、保留天数、间隔、首选钟点。
+- 配置：启用、保留天数、间隔、启动后首次延迟。
 
 **Non-Goals:**
 
@@ -56,12 +56,21 @@ Camera（枪机）抓拍已通过 `AttachmentPathUtils.GetLocalStorageAbsolutePa
     "Enabled": true,
     "RetentionDays": 90,
     "IntervalHours": 24,
-    "PreferredStartHour": 3
+    "InitialDelayHours": 1
   }
 }
 ```
 
+| 字段 | 含义 | 默认 |
+|------|------|------|
+| `Enabled` | 是否注册并运行 Worker | `true` |
+| `RetentionDays` | 保留天数（3 个月 ≈ 90） | `90` |
+| `IntervalHours` | 执行间隔（小时） | `24` |
+| `InitialDelayHours` | **相对延迟**：Worker 首次 tick 后等待若干小时再清理；`0` 表示立即执行。不是日内固定钟点 | `1` |
+
 绑定 `ImageCleanupOptions`，section：`BackgroundServices:ImageCleanup`。
+
+首次执行：`Task.Delay(InitialDelayHours)` 后清理；之后按 `IntervalHours` 周期。适合白天短时开机场景（只需开机时长 ≥ `InitialDelayHours`）。
 
 ### D5 — Worker 放置与注册（全客户端统一）
 

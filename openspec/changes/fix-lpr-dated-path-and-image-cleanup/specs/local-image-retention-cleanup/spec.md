@@ -9,7 +9,7 @@
 | `Enabled` | bool | 是否注册并运行清理后台任务 | `true` |
 | `RetentionDays` | int | 保留天数；早于「今天 − RetentionDays」的图片可删 | `90` |
 | `IntervalHours` | int | 清理任务执行间隔（小时） | `24` |
-| `PreferredStartHour` | int | 首选本地执行钟点（0–23） | `3` |
+| `InitialDelayHours` | int | 首次执行前相对延迟（小时）；`0` 表示立即清理。不是日内固定钟点 | `1` |
 
 #### Scenario: 默认配置加载
 
@@ -23,13 +23,26 @@
 
 ### Requirement: 定期清理过期 Camera 与 Lpr 磁盘文件
 
-系统 MUST 提供基于 ABP `AsyncPeriodicBackgroundWorkerBase`（或等价周期性后台 Worker）的图片清理任务，按 `IntervalHours` 周期执行（可结合 `PreferredStartHour` 对齐钟点）。每次执行 MUST 扫描并删除应用程序目录下以下根目录中超过保留期的图片文件：
+系统 MUST 提供基于 ABP `AsyncPeriodicBackgroundWorkerBase`（或等价周期性后台 Worker）的图片清理任务。Worker 首次 tick 后 MUST 先等待 `InitialDelayHours`（相对延迟，非固定钟点；`<= 0` 则不等待）再执行清理，之后按 `IntervalHours` 周期执行。每次执行 MUST 扫描并删除应用程序目录下以下根目录中超过保留期的图片文件：
 
 - `PhotoJianKong`（非 Urban 枪机）
 - `Lpr`（LPR 与新写入的 UrbanPhoto）
 - `PhotoUrban`（仅历史兼容；新写入已改用 `Lpr`）
 
 保留截止时间 MUST 为本地日期的「今天 − RetentionDays」对应日的开始（或等价：目录日期 / 文件时间严格早于 cutoff）。对可识别的 `{root}/{yyyy}/{MM}/{dd}` 目录 MUST 按目录日期判定；对无法解析日期的历史扁平文件（如旧版 `Lpr/*.jpg`）MUST 按文件 `LastWriteTime`（本地或 UTC，实现统一）判定。删除失败 MUST 记录 Warning 并继续，MUST NOT 抛出未处理异常中断整个 Worker。`RetentionDays < 1` 时 MUST 跳过删除并记录 Warning。
+
+#### Scenario: 启动后延迟再清理
+
+- **GIVEN** `InitialDelayHours` 为 `1`
+- **WHEN** Worker 首次 tick
+- **THEN** 系统 MUST 等待约 1 小时后再执行删除逻辑
+- **AND** 后续周期仍按 `IntervalHours` 执行
+
+#### Scenario: 零延迟立即清理
+
+- **GIVEN** `InitialDelayHours` 为 `0`
+- **WHEN** Worker 首次 tick
+- **THEN** 系统 MUST 立即执行清理（无需等待钟点）
 
 #### Scenario: 删除超过保留期的日期目录文件
 
