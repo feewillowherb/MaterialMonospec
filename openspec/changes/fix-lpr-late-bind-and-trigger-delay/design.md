@@ -45,6 +45,8 @@ public sealed record CycleLprCandidate(
 
 `UpsertLprAttachmentAsync(long weighingRecordId, CycleLprCandidate candidate)`：无则 Insert；有则替换路径；无 `CameraConfigs` 时同步维护 `UnmatchedEntryPhoto`；**仅当**存在 `UrbanWeighingExtension` 时重算 `IsAnomaly`。仅对本周期 `LastCreatedWeighingRecordId` 操作；`ResetCycle` 后不再补绑。
 
+**Urban 异常时序**：因 `OnWeightStabilizedAsync` 先建单后触发主动 LPR，建单创建扩展时 MUST 推迟异常判定（`evaluateAnomaly: false`），不得因当时缺图写入 `CaptureFailure`。重算时机：（1）LPR Upsert 成功后（先同步识别缓存车牌再检测）；（2）周期重置（下磅）对上笔做最终重算（仍无 LPR → `CaptureFailure`）。
+
 ### D3 — 主动抓拍延迟
 
 - `SystemSettings.TriggerLprCaptureDelayMs`：默认 `0`，保存 `Math.Max(0, value)`。

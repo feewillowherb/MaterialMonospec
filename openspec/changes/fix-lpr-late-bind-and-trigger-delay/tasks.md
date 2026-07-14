@@ -29,3 +29,4 @@
 - [x] 5.4 延迟配置：>0 时触发前等待；0 时行为与现网一致
 - [x] 5.5 补绑后 Urban `IsAnomaly` 因缺图变为有图时被刷新（如适用）
 - [x] 5.6 Standard/Recycle 在有 `CameraConfigs` 时仍落盘并挂接 Lpr；UI 可不展示
+- [x] 5.7 建单推迟 Urban 异常判定；LPR Upsert 同步车牌后重算；周期重置最终重算；Urban 列表订阅 `UpdatePlateNumberMessage` 刷新

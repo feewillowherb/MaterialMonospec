@@ -60,13 +60,20 @@ Hikvision/Vzvision 等 LPR 服务在回调中收到有效图片缓冲时，SHALL
 
 ### Requirement: 晚到补绑后刷新 Urban 异常
 
-当对已有 Urban 称重记录补绑或升级 LPR 附件成功后，若该记录存在 `UrbanWeighingExtension`，系统 SHALL 使用与记录编辑后相同的异常检测路径重算并持久化 `IsAnomaly` 与 `AnomalyReason`。无 Urban 扩展的记录 MUST NOT 因此路径创建 Urban 扩展。
+Urban 建单时 MUST NOT 因尚未到达的 LPR 立即写入 `CaptureFailure`；系统 SHALL 在创建扩展时推迟异常判定（`IsAnomaly=false`），并在以下时机之一使用与记录编辑后相同的异常检测路径重算并持久化 `IsAnomaly` 与 `AnomalyReason`：（1）本周期 LPR 附件 Upsert/补绑成功后（重算前 SHOULD 将识别缓存中的车牌同步到记录）；（2）称重周期重置（下磅）时对上笔记录做最终重算（仍无 LPR 附件则可为 `CaptureFailure`）。无 Urban 扩展的记录 MUST NOT 因此路径创建 Urban 扩展。
+
+#### Scenario: 建单时不因缺图立即标抓拍异常
+
+- **GIVEN** 称重稳定后先创建记录再触发主动 LPR 抓拍
+- **WHEN** 创建 `UrbanWeighingExtension` 且本周期尚无 LPR 附件
+- **THEN** 系统 MUST NOT 将 `AnomalyReason` 设为 `CaptureFailure`
+- **AND** MUST 将异常判定推迟到 LPR 补绑或周期重置
 
 #### Scenario: 缺图异常因补绑清除
 
-- **GIVEN** 记录创建时因无 LPR 附件被标为异常，且其它条件未触发异常
+- **GIVEN** 记录创建时已推迟异常判定，且其它条件未触发异常
 - **WHEN** 本周期晚到 LPR 补绑成功
-- **THEN** 系统 MUST 重算异常标志
+- **THEN** 系统 MUST 重算异常标志（可先同步车牌）
 - **AND** 若检测结果为非异常，MUST 将 `IsAnomaly` 更新为 `false` 并清除相应原因
 
 ## MODIFIED Requirements
