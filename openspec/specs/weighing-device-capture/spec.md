@@ -33,30 +33,36 @@ WeighingCaptureService SHALL save captured photos using `AttachmentPathUtils.Get
 #### Scenario: UrbanMode uses UrbanPhoto storage path
 - **WHEN** `GetWeighingModeAsync` returns UrbanMode (201) and batch capture runs
 - **THEN** SHALL call `GetLocalStorageAbsolutePath(AttachType.UrbanPhoto, ...)`
-- **AND** saved files SHALL reside under the `PhotoUrban` dated directory tree
+- **AND** saved files SHALL reside under the `Lpr` dated directory tree (`Lpr/{yyyy}/{MM}/{dd}/`)
 
 ### Requirement: Trigger Vzvision LPR capture at specified phases
 
-WeighingCaptureService SHALL trigger Vzvision LPR capture (TriggerCaptureAsync) for all configured LPR devices at specified flow phases (WaitingForStability, WeightStabilized, OffScale), only when:
+WeighingCaptureService SHALL trigger LPR capture (`TriggerCaptureAsync` via `ILprDevice`) for all configured LPR devices **only** at the WeightStabilized flow phase (after weighing record creation), when:
 - SystemSettings.EnableTriggerLprCapture is true
-- SystemSettings.LprDeviceType is Vzvision
-- IVzvisionLprService is injected (not null)
+- The configured `LprDeviceType` resolves to a device that supports active capture
 
-#### Scenario: Vzvision trigger enabled
-- **WHEN** EnableTriggerLprCapture=true, LprDeviceType=Vzvision, and 2 LPR devices configured
-- **THEN** SHALL call TriggerCaptureAsync for both devices
+The service MUST NOT trigger active LPR capture on WaitingForStability or OffScale transitions.
 
-#### Scenario: Vzvision trigger disabled
+#### Scenario: WeightStabilized trigger enabled
+
+- **WHEN** EnableTriggerLprCapture=true and LPR devices are configured
+- **AND** the weighing flow enters WeightStabilized capture (`CaptureOnWeightStabilized`)
+- **THEN** SHALL call TriggerCaptureAsync for each valid LPR device (after optional delay)
+
+#### Scenario: WaitingForStability does not trigger LPR
+
+- **WHEN** status transitions from OffScale to WaitingForStability
+- **THEN** SHALL NOT call LPR `TriggerCaptureAsync` for that transition
+
+#### Scenario: OffScale does not trigger LPR
+
+- **WHEN** status transitions to OffScale (normal or abnormal departure)
+- **THEN** SHALL NOT call LPR `TriggerCaptureAsync` for that transition
+
+#### Scenario: LPR trigger disabled
+
 - **WHEN** EnableTriggerLprCapture=false
 - **THEN** SHALL skip LPR trigger and log info
-
-#### Scenario: Non-Vzvision LPR device type
-- **WHEN** LprDeviceType is Hikvision
-- **THEN** SHALL skip Vzvision trigger (return early)
-
-#### Scenario: IVzvisionLprService not injected
-- **WHEN** IVzvisionLprService is null
-- **THEN** SHALL log warning and skip trigger
 
 ### Requirement: Handle individual device capture failures gracefully
 
