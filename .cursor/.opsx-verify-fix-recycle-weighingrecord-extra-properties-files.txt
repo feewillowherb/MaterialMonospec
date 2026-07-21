@@ -1,0 +1,13 @@
+openspec/changes/fix-recycle-weighingrecord-extra-properties/proposal.md
+openspec/changes/fix-recycle-weighingrecord-extra-properties/design.md
+openspec/changes/fix-recycle-weighingrecord-extra-properties/tasks.md
+openspec/changes/fix-recycle-weighingrecord-extra-properties/specs/recycle-info-extra-properties/spec.md
+openspec/changes/fix-recycle-weighingrecord-extra-properties/specs/recycle-weighing-form/spec.md
+openspec/changes/fix-recycle-weighingrecord-extra-properties/specs/recycle-weighing-service/spec.md
+repos/MaterialClient/src/MaterialClient.Common/Entities/RecycleInfoExtensions.cs
+repos/MaterialClient/src/MaterialClient.Common/Services/RecycleWeighingService.cs
+repos/MaterialClient/src/MaterialClient.Common/Services/WeighingMatchingService.cs
+repos/MaterialClient/src/MaterialClient.AttendedWeighing/ViewModels/RecycleWeighingDetailViewModel.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/RecycleInfoExtensionsTests.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/RecycleWeighingServiceUpsertTests.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/WeighingMatchingServiceRecycleInfoTransferTests.cs
