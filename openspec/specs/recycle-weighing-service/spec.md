@@ -29,13 +29,23 @@
 
 #### Scenario: 单价与合同号持久化到 Waybill
 - **WHEN** `ItemType=Waybill` 且 `UnitPrice=120`、`SaleContractNo="HT-001"`
-- **THEN** `UpdateRecycleModeAsync` SHALL 将 `UnitPrice`、`SaleContractNo` 写入 `Waybill` 对应列
-- **AND** WHEN 两者为 null SHALL 将对应列置空
+- **THEN** `UpdateRecycleModeAsync` SHALL 按 `WaybillId` upsert `RecycleWaybillExtension`，写入 `UnitPrice`、`SaleContractNo`
+- **AND** WHEN 两者为 null SHALL 将扩展表对应列置空
 
-#### Scenario: 录入字段触发待上报
-- **WHEN** `UpdateRecycleModeAsync` 写入 `UnitPrice`/`SaleContractNo` 后
+#### Scenario: 单价与合同号持久化到 WeighingRecord ExtraProperties
+- **WHEN** `ItemType=WeighingRecord` 且 `UnitPrice=120`、`SaleContractNo="HT-001"`
+- **THEN** `UpdateRecycleModeAsync` SHALL 经 `RecycleInfoExtensions` 将两值写入该记录的 ExtraProperties（键 `RecycleInfo.UnitPrice` / `RecycleInfo.SaleContractNo`）
+- **AND** WHEN 两者为 null SHALL 将对应 ExtraProperties 键置空
+- **AND** SHALL NOT 在此分支写入 `RecycleWaybillExtension`
+
+#### Scenario: 录入字段触发待上报（仅 Waybill）
+- **WHEN** `ItemType=Waybill` 且 `UpdateRecycleModeAsync` 写入 `UnitPrice`/`SaleContractNo` 后
 - **THEN** SHALL 维持既有 `SetPendingSync()` 行为
-- **AND** 后台同步 SHALL 能在后续轮次读取这些列
+- **AND** 后台同步 SHALL 能在后续轮次读取扩展表这些列
+
+#### Scenario: WeighingRecord 保存不触发 Waybill 待上报
+- **WHEN** `ItemType=WeighingRecord` 且写入 ExtraProperties
+- **THEN** SHALL NOT 因本保存调用 `Waybill.SetPendingSync()`
 
 ### Requirement: 数据变更方法使用 UnitOfWork
 `IRecycleWeighingService` 中涉及数据库写入的方法 SHALL 使用 `[UnitOfWork]` 特性修饰。

@@ -46,8 +46,14 @@
 
 #### Scenario: 打开既有 Waybill 回填单价与合同号
 - **WHEN** Recycle 详情打开已保存的 Waybill
-- **THEN** `UnitPrice` SHALL 回填自 `Waybill.UnitPrice`
-- **AND** `SaleContractNo` SHALL 回填自 `Waybill.SaleContractNo`
+- **THEN** `UnitPrice` SHALL 回填自该 Waybill 关联的 `RecycleWaybillExtension.UnitPrice`
+- **AND** `SaleContractNo` SHALL 回填自 `RecycleWaybillExtension.SaleContractNo`
+
+#### Scenario: 打开 WeighingRecord 回填单价与合同号
+- **WHEN** Recycle 详情打开 `ItemType=WeighingRecord` 的条目
+- **THEN** `UnitPrice` SHALL 回填自该记录 ExtraProperties 的 `RecycleInfo.UnitPrice`（经 `RecycleInfoExtensions`）
+- **AND** `SaleContractNo` SHALL 回填自 `RecycleInfo.SaleContractNo`
+- **AND** WHEN 键不存在或为 null SHALL 将 UI 属性置为 null
 
 #### Scenario: 单价与合同号随保存透传
 - **WHEN** 用户填写单价 `120`、合同号 `HT-001` 并保存
@@ -57,4 +63,4 @@
 #### Scenario: 单价与合同号为可选
 - **WHEN** 用户未填写单价或合同号即保存
 - **THEN** 保存 SHALL 成功（两字段可选）
-- **AND** 对应 Waybill 列 SHALL 为 null
+- **AND** 对应持久化目标（WeighingRecord ExtraProperties 或 `RecycleWaybillExtension`）SHALL 为 null
