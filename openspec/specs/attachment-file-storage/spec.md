@@ -87,12 +87,12 @@ UrbanManagement SHALL resolve `StorageOptions.FilesPhysicalPath` relative to the
 
 ### Requirement: MaterialClient.Urban attachment upload API
 
-UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that accepts Base64-encoded images and `attachType` as the `AttachType` enum integer (`5` for Lrp, `6` for UrbanPhoto), persists files under `{FilesPhysicalPath}/{buildLicenseNo}/`, applies compression per existing rules, creates `AttachmentFile` entities with enum `AttachType`, and returns the created Guid identifiers.
+UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that accepts Base64-encoded images and `attachType` as the `AttachType` enum integer (`5` for Lrp, `6` for UrbanPhoto), persists files under `{FilesPhysicalPath}/{buildLicenseNo}/`, applies compression per existing rules, creates `AttachmentFile` entities with enum `AttachType`, and returns the created Guid identifiers. This Base64 JSON API remains supported for backward compatibility alongside the multipart binary upload API; it is the legacy path and MUST NOT be removed in this change.
 
 #### Scenario: Successful batch upload with Lrp enum
 
 - **WHEN** MaterialClient.Urban sends a valid request with `buildLicenseNo`, `attachType: 5` (Lrp), and one or more Base64 JPEG images
-- **THEN** the server SHALL invoke `IFileService.SaveAndCompressImagesAsync` with `AttachType.Lrp`
+- **THEN** the server SHALL invoke `IFileService.SaveAndCompressImagesAsync` (or the shared byte-array save path it delegates to) with `AttachType.Lrp`
 - **AND** SHALL return HTTP 200 with a list of created `AttachmentFile` Guid values
 - **AND** persisted `AttachmentFile.AttachType` SHALL be `5`
 
@@ -131,4 +131,110 @@ When loading weighing record attachments for Web display (`GetApprovalAttachment
 - **WHEN** linked attachments include types other than `Lrp` or `UrbanPhoto`
 - **THEN** those attachments SHALL be excluded from the Web display DTO
 - **AND** SHALL NOT cause an error response
+
+### Requirement: Multipart binary attachment upload API
+
+UrbanManagement SHALL expose an HTTP API callable by MaterialClient.Urban that accepts `multipart/form-data` with form fields `buildLicenseNo`, `attachType` (`AttachType` enum integer `5` for Lrp or `6` for UrbanPhoto), and one or more binary image file parts, persists files under `{FilesPhysicalPath}/{buildLicenseNo}/`, applies compression per existing rules, creates `AttachmentFile` entities with enum `AttachType`, and returns the created Guid identifiers in the same response shape as the Base64 upload API (`attachmentIds`).
+
+#### Scenario: Successful multipart batch with Lrp
+
+- **WHEN** MaterialClient.Urban sends a valid multipart request with `buildLicenseNo`, `attachType: 5` (Lrp), and one or more JPEG (or other supported image) file parts
+- **THEN** the server SHALL persist attachments via the shared file-save path used by Base64 upload (byte-array save and compress)
+- **AND** SHALL return HTTP 200 with a list of created `AttachmentFile` Guid values
+- **AND** persisted `AttachmentFile.AttachType` SHALL be `5`
+
+#### Scenario: Successful multipart batch with UrbanPhoto
+
+- **WHEN** MaterialClient.Urban sends `attachType: 6` (UrbanPhoto) with binary file parts
+- **THEN** the server SHALL persist attachments with `AttachType.UrbanPhoto` (6)
+
+#### Scenario: Multipart invalid attach type rejected
+
+- **WHEN** the multipart request specifies an attach type other than `5` or `6`
+- **THEN** the server SHALL return HTTP 400 and SHALL NOT create `AttachmentFile` records
+
+#### Scenario: Multipart missing buildLicenseNo rejected
+
+- **WHEN** `buildLicenseNo` is missing or whitespace-only
+- **THEN** the server SHALL return HTTP 400 and SHALL NOT create `AttachmentFile` records
+
+### Requirement: Base64 upload API retained during multipart rollout
+
+UrbanManagement SHALL continue to expose the existing Base64 JSON attachment upload API (`IUrbanAttachmentAppService.UploadAsync` / conventional `POST` under `urban-attachment/upload`) with unchanged request and response contracts while multipart is the preferred client path. Removal of the Base64 upload API SHALL require a separate explicit change after all clients have migrated.
+
+#### Scenario: Legacy Base64 client still uploads
+
+- **WHEN** an older MaterialClient.Urban (or other caller) posts a valid Base64 JSON upload request to the legacy endpoint
+- **THEN** the server SHALL save and compress images and return `attachmentIds` as today
+- **AND** SHALL NOT require multipart
+
+#### Scenario: Both APIs share persistence rules
+
+- **WHEN** the same image bytes are uploaded once via Base64 and once via multipart with the same `buildLicenseNo` and `attachType`
+- **THEN** both paths SHALL apply the same compression threshold and JPEG quality rules
+- **AND** both SHALL create `AttachmentFile` rows with relative `LocalPath` under the resolved storage root
+
+### Requirement: tusdotnet resumable attachment upload endpoint
+
+UrbanManagement SHALL host a tus 1.0 resumable upload endpoint (via tusdotnet) under a dedicated path (recommended `/api/urban-attachment/tus`) that accepts Lrp/UrbanPhoto image uploads. Upload metadata SHALL include `buildlicenseno` and `attachtype` (`5` or `6`). When a tus upload completes, the server SHALL persist the assembled file bytes through the shared save-and-compress path used by multipart/Base64 upload and SHALL make the resulting `AttachmentFile` Guid available to the client through a thin HTTP API (because the tus protocol completion response does not carry business `attachmentIds`).
+
+#### Scenario: Create tus upload with valid metadata
+
+- **WHEN** the client creates a tus upload with `Upload-Length` within the configured maximum and metadata containing a non-empty `buildlicenseno` and `attachtype` of `5` or `6`
+- **THEN** the server SHALL accept the creation and return a tus file URL/location
+- **AND** SHALL NOT yet require multipart or Base64 APIs
+
+#### Scenario: Reject invalid attach type at create
+
+- **WHEN** the client creates a tus upload with `attachtype` other than `5` or `6`
+- **THEN** the server SHALL reject the creation
+- **AND** SHALL NOT create `AttachmentFile` records
+
+#### Scenario: Patch chunks until complete then persist
+
+- **WHEN** the client PATCHes consecutive chunks with definite offsets until the upload is complete
+- **THEN** the server SHALL assemble the file via tusdotnet storage
+- **AND** SHALL invoke the shared save-and-compress byte path with the metadata `buildlicenseno` and `attachtype`
+- **AND** SHALL record a mapping from the tus file id to the created `AttachmentFile` Guid
+
+#### Scenario: Client obtains attachment id after tus complete
+
+- **WHEN** a tus upload has completed and been persisted
+- **AND** the client calls the thin attachment-id API for that tus file id (or a batch commit of file ids)
+- **THEN** the server SHALL return the corresponding `AttachmentFile` Guid value(s)
+- **AND** the response shape for batch commit SHALL expose `attachmentIds` compatible with subsequent Receive usage
+
+#### Scenario: Terminate cleans incomplete upload
+
+- **WHEN** the client terminates an incomplete tus upload
+- **THEN** the server SHALL remove temporary tus store data for that file
+- **AND** SHALL NOT create `AttachmentFile` records for the terminated upload
+
+### Requirement: tus upload expiry and size limits
+
+UrbanManagement SHALL configure tusdotnet with a maximum upload size consistent with the existing approximately 16MB attachment ceiling and an expiration TTL for incomplete uploads (default 60 minutes), after which incomplete temporary data SHALL be removed and SHALL NOT produce `AttachmentFile` records.
+
+#### Scenario: Oversized upload rejected
+
+- **WHEN** a client creates a tus upload whose `Upload-Length` exceeds the configured maximum
+- **THEN** the server SHALL reject the creation
+
+#### Scenario: Expired incomplete upload not persisting
+
+- **WHEN** an incomplete tus upload exceeds the configured expiration
+- **THEN** the server SHALL not create `AttachmentFile` records from that expired upload
+
+### Requirement: Multipart and Base64 APIs retained alongside tus upload
+
+UrbanManagement SHALL continue to expose the existing multipart binary upload API and Base64 JSON upload API with unchanged contracts while tusdotnet upload is available as an optional path. Removal of either legacy path SHALL require a separate explicit change.
+
+#### Scenario: Multipart still works
+
+- **WHEN** a client posts a valid multipart upload while the tus endpoint is deployed
+- **THEN** the server SHALL persist attachments and return `attachmentIds` as today
+
+#### Scenario: Base64 still works
+
+- **WHEN** a client posts a valid Base64 JSON upload while the tus endpoint is deployed
+- **THEN** the server SHALL persist attachments and return `attachmentIds` as today
 
