@@ -26,14 +26,14 @@ The weight in kilograms MUST be the integer parsed from the **first six** digit 
 #### Scenario: H610 frame yields 610 kg
 
 - **GIVEN** scale type is `DingSongAddr4` and HEX receive is active
-- **WHEN** a frame `02 2A 30 20 30 30 30 36 31 30 30 30 30 30 30 30 0D` is received (as in `_temp/H610.txt`)
+- **WHEN** a frame `02 2A 30 20 30 30 30 36 31 30 30 30 30 30 30 30 0D` is received (Hex **610 kg**, as in `_temp/H610.txt`)
 - **THEN** the service MUST publish / store weight **610** (before unit conversion if unit is already kg)
 
-#### Scenario: H1320 frame yields 1330 kg
+#### Scenario: H1320 frame yields 1320 kg
 
 - **GIVEN** scale type is `DingSongAddr4` and HEX receive is active
-- **WHEN** a frame `02 2A 30 20 30 30 31 33 33 30 30 30 30 30 30 30 0D` is received (as in `_temp/H1320.txt`)
-- **THEN** the service MUST publish / store weight **1330** (before unit conversion if unit is already kg)
+- **WHEN** a frame `02 2A 30 20 30 30 31 33 32 30 30 30 30 30 30 30 0D` is received (Hex **1320 kg**, same layout as `_temp/H1320.txt`)
+- **THEN** the service MUST publish / store weight **1320** (before unit conversion if unit is already kg)
 
 #### Scenario: DingSong still rejects the same frames
 

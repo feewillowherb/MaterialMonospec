@@ -7,7 +7,7 @@
 - 在 `ScaleType` 枚举新增 **`DingSongAddr4 = 4`**，显示名 **「顶松Addr4」**（`Description`）
 - `TruckScaleWeightService`：当 `ScaleType == DingSongAddr4` 且通信方式为 HEX（如 `TF0`）时，按 H610/H1320 帧格式解析重量
 - 设置页秤类型列表经 `GetDescription()` 自动出现「顶松Addr4」，无需单独硬编码列表（若有显式枚举列表则补上 `DingSongAddr4`）
-- 单元测试：H610（约 610）、H1320（约 1330）在 `DingSongAddr4` 下可解析；在 `DingSong` 下仍拒绝（沿用现有 `DingSongScaleRejectTests`）
+- 单元测试：H610（**610 kg**）、H1320（**1320 kg**）在 `DingSongAddr4` 下可解析；在 `DingSong` 下仍拒绝（沿用现有 `DingSongScaleRejectTests`）
 - **非 BREAKING**：旧配置仍使用 `0–3`；缺省不会自动切到 `DingSongAddr4`
 
 ## Capabilities

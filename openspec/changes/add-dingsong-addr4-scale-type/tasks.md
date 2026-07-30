@@ -11,8 +11,8 @@
 
 ## 3. Tests
 
-- [ ] 3.1 H610 单帧：`DingSongAddr4` 解析得 610（kg）
-- [ ] 3.2 H1320 单帧：`DingSongAddr4` 解析得 1330（kg）
+- [ ] 3.1 H610 单帧：`DingSongAddr4` 解析得 **610**（kg）
+- [ ] 3.2 H1320 单帧：`DingSongAddr4` 解析得 **1320**（kg）
 - [ ] 3.3 确认 `DingSongScaleRejectTests` 仍通过（顶松拒绝同帧）
 - [ ] 3.4 （可选）双帧粘包缓冲仍能解析出重量
 
