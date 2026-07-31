@@ -1,0 +1,1117 @@
+# MaterialMonospec 标准用语（standard_words）
+# 项目业务领域术语表，供 IDE 助手作为项目上下文使用。
+# 术语均取自实际代码与 OpenSpec 文档：枚举 Description、DTO/服务命名、spec.md、proposal/design。
+# submittedText 为提交给助手的规范措辞（中文术语 + 代码标识），label 为下拉显示名。
+schemaVersion: 1.0
+groups:
+- id: weighing-business
+  label: "称重业务"
+  enabled: true
+  order: 0
+  tags:
+  - weighing
+  language: C#
+  children:
+  - id: scale-type
+    label: "地磅秤型"
+    enabled: true
+    order: 0
+    tags:
+    - ScaleType
+    language: C#
+    phrases:
+    - key: scale-yaohua
+      label: "耀华"
+      submittedText: "耀华（ScaleType.Yaohua = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "耀华品牌地磅，默认秤型"
+    - key: scale-dingsong
+      label: "顶松"
+      submittedText: "顶松（ScaleType.DingSong = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "顶松协议，12 字节帧 02 2B/2D … 03"
+    - key: scale-testmode
+      label: "测试模式"
+      submittedText: "测试模式（ScaleType.TestMode = 2）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "测试用地磅类型"
+    - key: scale-portable-xpsy
+      label: "便携式XP-SY"
+      submittedText: "便携式XP-SY（ScaleType.PortableXPSY = 3）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "便携式地磅设备"
+    - key: scale-dingsong-addr4
+      label: "顶松Addr4"
+      submittedText: "顶松Addr4（ScaleType.DingSongAddr4 = 4）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "顶松Addr4 协议，17 字节帧 02 2A … 0D（H610/H1320）"
+  - id: weighing-mode
+    label: "称重模式"
+    enabled: true
+    order: 1
+    tags:
+    - WeighingMode
+    language: C#
+    phrases:
+    - key: mode-standard
+      label: "标准模式"
+      submittedText: "标准模式（WeighingMode.Standard = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "凡东智能物料验收系统 V2.0"
+    - key: mode-solidwaste
+      label: "固废模式"
+      submittedText: "固废模式（WeighingMode.SolidWaste = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "城管固废称重验收系统客户端软件"
+    - key: mode-urban
+      label: "城管专用模式"
+      submittedText: "城管专用模式（WeighingMode.UrbanMode = 201）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "Urban 桌面端，固废称重验收"
+    - key: mode-recycle
+      label: "资源化利用厂模式"
+      submittedText: "资源化利用厂模式（WeighingMode.Recycle = 301）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "Recycle 桌面端，上报直连外部接口"
+  - id: scale-unit
+    label: "称重单位"
+    enabled: true
+    order: 2
+    tags:
+    - ScaleUnit
+    language: C#
+    phrases:
+    - key: unit-kg
+      label: "千克"
+      submittedText: "千克（ScaleUnit.Kg = 0，kg）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "千克"
+    - key: unit-ton
+      label: "吨"
+      submittedText: "吨（ScaleUnit.Ton = 1，t）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "吨"
+    - key: unit-ten-gram
+      label: "十克"
+      submittedText: "十克（ScaleUnit.TenGram = 2，10g）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "十克"
+    - key: unit-hundred-gram
+      label: "百克"
+      submittedText: "百克（ScaleUnit.HundredGram = 3，100g）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "百克"
+    - key: unit-gram
+      label: "克"
+      submittedText: "克（ScaleUnit.Gram = 4，1g）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "克"
+  - id: weight-concepts
+    label: "重量与过磅概念"
+    enabled: true
+    order: 3
+    tags:
+    - weighing
+    language: C#
+    phrases:
+    - key: gross-weight
+      label: "毛重"
+      submittedText: "毛重（GrossWeight，车辆上磅总重）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "车辆上磅时的总重量"
+    - key: tare-weight
+      label: "皮重"
+      submittedText: "皮重（TareWeight，车辆空载重量）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "车辆空载时的重量"
+    - key: net-weight
+      label: "净重"
+      submittedText: "净重（NetWeight，毛重减皮重）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "毛重减去皮重得到的货物重量"
+    - key: truck-scale
+      label: "地磅"
+      submittedText: "地磅（TruckScale，工业称重设备）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "工业称重设备"
+    - key: weighing-action
+      label: "过磅"
+      submittedText: "过磅（车辆通过地磅进行称重）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "车辆通过地磅称重的过程"
+    - key: first-weighing
+      label: "一次称重"
+      submittedText: "一次称重（首磅，进场称重）"
+      enabled: true
+      order: 5
+      metadata:
+        desc: "首次称重，进场"
+    - key: second-weighing
+      label: "二次称重"
+      submittedText: "二次称重（二磅，出场称重）"
+      enabled: true
+      order: 6
+      metadata:
+        desc: "第二次称重，出场"
+    - key: weigher
+      label: "司磅员"
+      submittedText: "司磅员（操作地磅的工作人员）"
+      enabled: true
+      order: 7
+      metadata:
+        desc: "操作地磅的人员"
+  - id: vehicle-weight-status
+    label: "车辆称重状态"
+    enabled: true
+    order: 4
+    tags:
+    - VehicleWeightStatus
+    language: C#
+    phrases:
+    - key: status-off-scale
+      label: "已下称"
+      submittedText: "已下称（VehicleWeightStatus.OffScale = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "车辆已驶离地磅"
+    - key: status-on-scale
+      label: "已上称"
+      submittedText: "已上称（VehicleWeightStatus.OnScale = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "车辆已驶上地磅"
+    - key: status-weighing
+      label: "称重完成"
+      submittedText: "称重完成（VehicleWeightStatus.Weighing = 2）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "重量已稳定、称重结束"
+  - id: delivery-type
+    label: "收发料类型"
+    enabled: true
+    order: 5
+    tags:
+    - DeliveryType
+    language: C#
+    phrases:
+    - key: delivery-receiving
+      label: "收料"
+      submittedText: "收料（DeliveryType.Receiving = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "接收物料"
+    - key: delivery-sending
+      label: "发料"
+      submittedText: "发料（DeliveryType.Sending = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "发出物料"
+- id: waybill-recycle
+  label: "运单与固废回收"
+  enabled: true
+  order: 10
+  tags:
+  - waybill
+  - recycle
+  - solidwaste
+  language: C#
+  children:
+  - id: waybill
+    label: "运单"
+    enabled: true
+    order: 0
+    tags:
+    - Waybill
+    language: C#
+    phrases:
+    - key: waybill
+      label: "运单"
+      submittedText: "运单（Waybill，运输订单核心实体）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "运输订单的核心实体"
+    - key: record-join
+      label: "进场"
+      submittedText: "进场（WeighingRecordMatchType.Join = 0）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "进场称重记录"
+    - key: record-out
+      label: "出场"
+      submittedText: "出场（WeighingRecordMatchType.Out = 1）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "出场称重记录"
+    - key: waybill-void-join
+      label: "仅作废进场"
+      submittedText: "仅作废进场（WaybillVoidScope.JoinOnly = 0）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "仅作废进场（join）称重记录"
+    - key: waybill-void-out
+      label: "仅作废出场"
+      submittedText: "仅作废出场（WaybillVoidScope.OutOnly = 1）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "仅作废出场（out）称重记录"
+    - key: waybill-void-both
+      label: "进出场均作废"
+      submittedText: "进出场均作废（WaybillVoidScope.Both = 2）"
+      enabled: true
+      order: 5
+      metadata:
+        desc: "进场与出场称重记录均作废"
+  - id: solid-waste
+    label: "固废"
+    enabled: true
+    order: 1
+    tags:
+    - solidwaste
+    language: C#
+    phrases:
+    - key: solid-waste
+      label: "固废"
+      submittedText: "固废（固体废弃物）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "固体废弃物"
+    - key: solid-waste-order-sync
+      label: "固废订单同步"
+      submittedText: "固废订单同步（SolidWasteOrderSync）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "与政务平台的固废订单数据同步"
+    - key: solid-waste-excel-export
+      label: "固废Excel导出"
+      submittedText: "固废Excel导出（SolidWasteExcelExport）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "固废数据 Excel 导出功能"
+  - id: recycle
+    label: "回收"
+    enabled: true
+    order: 2
+    tags:
+    - recycle
+    language: C#
+    phrases:
+    - key: recycle-plant
+      label: "资源化利用厂"
+      submittedText: "资源化利用厂（WeighingMode.Recycle 桌面端）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "进行资源回收处理的工厂"
+    - key: recycle-receiving-confirm
+      label: "收货确认"
+      submittedText: "收货确认（RecycleReceivingConfirmation）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "资源化利用厂收货确认"
+    - key: recycle-transport-record
+      label: "回收运输记录"
+      submittedText: "回收运输记录（RecycleTransportRecordDto）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "回收运输记录数据传输对象"
+    - key: recycle-weighing-service
+      label: "回收称重服务"
+      submittedText: "回收称重服务（RecycleWeighingService）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "回收称重业务逻辑服务"
+- id: vehicle-lpr
+  label: "车辆与车牌识别"
+  enabled: true
+  order: 20
+  tags:
+  - lpr
+  - vehicle
+  language: C#
+  children:
+  - id: lpr-device
+    label: "车牌识别设备"
+    enabled: true
+    order: 0
+    tags:
+    - LprDeviceType
+    language: C#
+    phrases:
+    - key: lpr-hikvision
+      label: "海康威视"
+      submittedText: "海康威视（LprDeviceType.Hikvision = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "海康威视品牌车牌识别设备，HCNetSDK"
+    - key: lpr-vzvision
+      label: "臻识车牌识别"
+      submittedText: "臻识车牌识别（LprDeviceType.Vzvision = 1，Vz SDK，原 LprAllInOne）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "臻识一体机，持久化数值仍为 1"
+    - key: lpr-huaxiazhixin
+      label: "华夏智信"
+      submittedText: "华夏智信（LprDeviceType.Huaxiazhixin = 2）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "华夏智信品牌车牌识别设备"
+  - id: plate-concepts
+    label: "车牌概念"
+    enabled: true
+    order: 1
+    tags:
+    - plate
+    language: C#
+    phrases:
+    - key: lpr
+      label: "车牌识别"
+      submittedText: "车牌识别（LicensePlateRecognition，LPR）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "车牌号识别技术"
+    - key: plate-number
+      label: "车牌号"
+      submittedText: "车牌号（PlateNumber）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "车辆牌照号码"
+    - key: plate-locking
+      label: "车牌锁定"
+      submittedText: "车牌锁定（PlateNumberLocking，锁定识别到的车牌号）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "锁定识别到的车牌号"
+    - key: plate-color
+      label: "车牌颜色"
+      submittedText: "车牌颜色（蓝牌、黄牌等底色）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "车牌底色，蓝牌/黄牌等"
+    - key: plate-priority
+      label: "车牌优先级"
+      submittedText: "车牌优先级（基于颜色的选择优先级）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "基于车牌颜色的选择优先级"
+    - key: plate-rewrite
+      label: "车牌重写"
+      submittedText: "车牌重写（EnablePlateRewrite，下磅时修改车牌号）"
+      enabled: true
+      order: 5
+      metadata:
+        desc: "允许在下磅时修改车牌号"
+  - id: plate-direction
+    label: "车牌方向"
+    enabled: true
+    order: 2
+    tags:
+    - LicensePlateDirection
+    language: C#
+    phrases:
+    - key: direction-entry
+      label: "入口"
+      submittedText: "入口（LicensePlateDirection.A = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "物理侧别 A，入口位置"
+    - key: direction-exit
+      label: "出口"
+      submittedText: "出口（LicensePlateDirection.B = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "物理侧别 B，出口位置"
+- id: device-capture
+  label: "设备与采集"
+  enabled: true
+  order: 30
+  tags:
+  - device
+  - capture
+  language: C#
+  children:
+  - id: capture
+    label: "抓拍"
+    enabled: true
+    order: 0
+    tags:
+    - capture
+    language: C#
+    phrases:
+    - key: capture
+      label: "抓拍"
+      submittedText: "抓拍（Capture，拍摄照片）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "拍摄照片的动作"
+    - key: active-capture
+      label: "主动抓拍"
+      submittedText: "主动抓拍（系统主动触发的抓拍）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "系统主动触发的抓拍"
+    - key: capture-callback
+      label: "抓拍回调"
+      submittedText: "抓拍回调（设备主动上报的抓拍事件）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "设备主动上报的抓拍事件"
+    - key: capture-fallback
+      label: "抓拍fallback"
+      submittedText: "抓拍 fallback（MainstreamCaptureFallback，抓拍失败备用方案）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "抓拍失败时的备用方案"
+    - key: scene-image
+      label: "场景图"
+      submittedText: "场景图（车牌识别全景照片）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "车牌识别的全景照片"
+  - id: attach-type
+    label: "附件类型"
+    enabled: true
+    order: 1
+    tags:
+    - AttachType
+    language: C#
+    phrases:
+    - key: attach-unmatched-entry
+      label: "未匹配榜单照片"
+      submittedText: "未匹配榜单照片（AttachType.UnmatchedEntryPhoto = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "车辆未匹配时的入场照片"
+    - key: attach-entry
+      label: "进场照片"
+      submittedText: "进场照片（AttachType.EntryPhoto = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "车辆进场照片"
+    - key: attach-exit
+      label: "出场照片"
+      submittedText: "出场照片（AttachType.ExitPhoto = 2）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "车辆出场照片"
+    - key: attach-ticket
+      label: "票据照片"
+      submittedText: "票据照片（AttachType.TicketPhoto = 3）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "票据照片"
+    - key: attach-lpr
+      label: "车牌识别图片"
+      submittedText: "车牌识别图片（AttachType.Lpr = 5，仅 UrbanMode = 201）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "车牌识别图片，仅城管专用模式保存"
+    - key: attach-urban
+      label: "城管相机抓拍"
+      submittedText: "城管相机抓拍（AttachType.UrbanPhoto = 6，仅 UrbanMode = 201）"
+      enabled: true
+      order: 5
+      metadata:
+        desc: "城管海康称重抓拍图片，仅城管专用模式保存"
+  - id: gate-io
+    label: "道闸I/O"
+    enabled: true
+    order: 2
+    tags:
+    - GateIo
+    language: C#
+    phrases:
+    - key: gate-io
+      label: "道闸I/O"
+      submittedText: "道闸I/O（GateIo，道闸输入输出控制）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "道闸输入输出控制"
+    - key: gate-io-lpr-sdk
+      label: "Lpr SDK控制"
+      submittedText: "通过 Lpr SDK 控制道闸（GateIoControlMode.LprSdk = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "通过 Lpr SDK 控制道闸 I/O，当前实现默认"
+    - key: gate-io-direct-com
+      label: "COM直控"
+      submittedText: "通过 COM 直接控制道闸（GateIoControlMode.DirectCom = 2，预留）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "直接通过 COM 控制道闸 I/O，预留暂不支持"
+  - id: device-status
+    label: "设备状态"
+    enabled: true
+    order: 3
+    tags:
+    - DeviceStatus
+    language: C#
+    phrases:
+    - key: device-online
+      label: "在线"
+      submittedText: "在线（设备连接正常）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "设备连接正常"
+    - key: device-offline
+      label: "离线"
+      submittedText: "离线（设备断开连接）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "设备断开连接"
+    - key: device-status-upload
+      label: "设备状态上报"
+      submittedText: "设备状态上报（SignalRDeviceStatusUpload）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "通过 SignalR 上报设备状态"
+  - id: anomaly-reason
+    label: "异常原因"
+    enabled: true
+    order: 4
+    tags:
+    - AnomalyReason
+    language: C#
+    phrases:
+    - key: anomaly-capture-failure
+      label: "抓拍异常"
+      submittedText: "抓拍异常（AnomalyReason.CaptureFailure = 1）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "城管称重记录异常原因：抓拍失败"
+    - key: anomaly-empty-plate
+      label: "车牌为空"
+      submittedText: "车牌为空（AnomalyReason.EmptyPlate = 2）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "城管称重记录异常原因：车牌号为空"
+    - key: anomaly-over-limit
+      label: "超上限"
+      submittedText: "超上限（AnomalyReason.OverUpperLimit = 3）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "城管称重记录异常原因：重量超过上限"
+    - key: anomaly-under-limit
+      label: "低下限"
+      submittedText: "低下限（AnomalyReason.UnderLowerLimit = 4）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "城管称重记录异常原因：重量低于下限"
+- id: approval-sync
+  label: "审批与同步"
+  enabled: true
+  order: 40
+  tags:
+  - approval
+  - sync
+  language: C#
+  children:
+  - id: approval
+    label: "审批"
+    enabled: true
+    order: 0
+    tags:
+    - Approval
+    language: C#
+    phrases:
+    - key: approval
+      label: "审批"
+      submittedText: "审批（Approval，称重记录审批流程）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "称重记录的审批流程"
+    - key: approval-image-replacement
+      label: "审批图片替换"
+      submittedText: "审批图片替换（ApprovalImageReplacement）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "审批时替换图片的功能"
+    - key: approval-pending
+      label: "待审核"
+      submittedText: "待审核（approveStatus = 1）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "等待审核的状态"
+  - id: sync
+    label: "同步"
+    enabled: true
+    order: 1
+    tags:
+    - Sync
+    language: C#
+    phrases:
+    - key: sync
+      label: "同步"
+      submittedText: "同步（Sync，数据同步）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "数据同步操作"
+    - key: gov-platform-sync
+      label: "政务平台同步"
+      submittedText: "政务平台同步（GovProjectSync）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "与政务平台的数据同步"
+    - key: baseplatform-pull-sync
+      label: "政务平台拉取同步"
+      submittedText: "政务平台拉取同步（BasePlatformPullSync）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "从政务/基础平台拉取数据"
+    - key: material-provider-sync
+      label: "供应商同步"
+      submittedText: "供应商同步（MaterialProviderSync）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "供应商数据同步"
+    - key: manual-sync-trigger
+      label: "手动同步触发"
+      submittedText: "手动同步触发（ManualDataSyncTrigger）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "手动触发数据同步"
+  - id: sync-status
+    label: "同步状态"
+    enabled: true
+    order: 2
+    tags:
+    - SyncStatus
+    language: C#
+    phrases:
+    - key: sync-pending
+      label: "待上传"
+      submittedText: "待上传（SyncStatus.Pending = 0）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "等待上传到服务端"
+    - key: sync-synced
+      label: "已同步"
+      submittedText: "已同步（SyncStatus.Synced = 1）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "已成功同步"
+    - key: sync-failed
+      label: "上传失败"
+      submittedText: "上传失败（SyncStatus.Failed = 2）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "上传失败的记录"
+  - id: order-source
+    label: "订单来源"
+    enabled: true
+    order: 3
+    tags:
+    - OrderSource
+    language: C#
+    phrases:
+    - key: source-manned
+      label: "有人值守"
+      submittedText: "有人值守（OrderSource.MannedStation = 1）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "有人值守站点产生"
+    - key: source-manual-entry
+      label: "补录"
+      submittedText: "补录（OrderSource.ManualEntry = 2）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "事后补录"
+    - key: source-mobile
+      label: "移动验收"
+      submittedText: "移动验收（OrderSource.MobileAcceptance = 3）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "移动端验收产生"
+    - key: source-unmanned
+      label: "无人值守"
+      submittedText: "无人值守（OrderSource.UnmannedStation = 4）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "无人值守站点产生"
+  - id: auth
+    label: "认证授权"
+    enabled: true
+    order: 4
+    tags:
+    - auth
+    - license
+    language: C#
+    phrases:
+    - key: hmac-auth
+      label: "HMAC认证"
+      submittedText: "HMAC 认证（HMAC-SHA256，X-AKZTJG-HMAC-SIGNATURE）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "基于哈希的消息认证码，外部接口签名"
+    - key: jwt-license
+      label: "JWT授权"
+      submittedText: "JWT 授权（JsonWebToken License）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "JSON Web Token 授权文件"
+    - key: auth-code-activation
+      label: "授权码激活"
+      submittedText: "授权码激活（AuthCodeWindow）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "通过授权码激活软件"
+    - key: license-validation
+      label: "License校验"
+      submittedText: "License 校验（IsLicenseValidAsync）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "校验授权有效性"
+- id: tech-stack
+  label: "平台架构与技术栈"
+  enabled: true
+  order: 50
+  tags:
+  - framework
+  - stack
+  language: C#
+  phrases:
+  - key: tech-abp
+    label: "ABP Framework"
+    submittedText: "ABP Framework（ASP.NET Boilerplate，UrbanManagement 后端框架）"
+    enabled: true
+    order: 0
+    metadata:
+      desc: "UrbanManagement 后端应用框架"
+  - key: tech-blazor
+    label: "Blazor"
+    submittedText: "Blazor（Web UI 框架，UrbanManagement 管理端）"
+    enabled: true
+    order: 1
+    metadata:
+      desc: "Web UI 框架"
+  - key: tech-avalonia
+    label: "Avalonia"
+    submittedText: "Avalonia（跨平台桌面 UI 框架，MaterialClient）"
+    enabled: true
+    order: 2
+    metadata:
+      desc: "MaterialClient 桌面 UI 框架"
+  - key: tech-reactiveui
+    label: "ReactiveUI"
+    submittedText: "ReactiveUI（响应式 MVVM 框架）"
+    enabled: true
+    order: 3
+    metadata:
+      desc: "响应式 MVVM 框架"
+  - key: tech-signalr
+    label: "SignalR"
+    submittedText: "SignalR（实时通信，设备状态/日志推送）"
+    enabled: true
+    order: 4
+    metadata:
+      desc: "实时通信库"
+  - key: tech-dotnet
+    label: ".NET 10.0 / C# 13"
+    submittedText: ".NET 10.0 / C# 13（运行时与语言）"
+    enabled: true
+    order: 5
+    metadata:
+      desc: "核心运行时与编程语言"
+  - key: tech-zafiro
+    label: "Zafiro.Avalonia"
+    submittedText: "Zafiro.Avalonia（Avalonia UI 组件库）"
+    enabled: true
+    order: 6
+    metadata:
+      desc: "Avalonia 共享样式与组件库"
+  - key: tech-ursa
+    label: "Ursa"
+    submittedText: "Ursa（Avalonia UI 组件库）"
+    enabled: true
+    order: 7
+    metadata:
+      desc: "Avalonia UI 组件库"
+  - key: tech-layui
+    label: "Layui"
+    submittedText: "Layui（前端 UI 框架）"
+    enabled: true
+    order: 8
+    metadata:
+      desc: "前端 UI 框架"
+  - key: tech-ef-core
+    label: "Entity Framework Core"
+    submittedText: "Entity Framework Core（ORM）"
+    enabled: true
+    order: 9
+    metadata:
+      desc: "ORM 框架"
+  - key: tech-sqlite
+    label: "SQLite"
+    submittedText: "SQLite（MaterialClient 本地数据库）"
+    enabled: true
+    order: 10
+    metadata:
+      desc: "MaterialClient 本地数据库"
+  - key: tech-refit
+    label: "Refit"
+    submittedText: "Refit（REST API 客户端）"
+    enabled: true
+    order: 11
+    metadata:
+      desc: "REST API 客户端库"
+  - key: tech-polly
+    label: "Polly"
+    submittedText: "Polly（弹性瞬态故障处理）"
+    enabled: true
+    order: 12
+    metadata:
+      desc: "弹性瞬态故障处理库"
+  - key: tech-messagebus
+    label: "MessageBus"
+    submittedText: "MessageBus / ILocalEventBus（本地事件总线）"
+    enabled: true
+    order: 13
+    metadata:
+      desc: "本地事件总线，模块间通信"
+  - key: tech-serialport
+    label: "串口通信"
+    submittedText: "串口通信（与地磅设备的 HEX 协议通信，如 TF0）"
+    enabled: true
+    order: 14
+    metadata:
+      desc: "与地磅设备的串口 HEX 协议通信"
+- id: project-structure
+  label: "项目结构与工作流"
+  enabled: true
+  order: 60
+  tags:
+  - openspec
+  - monospec
+  language: Markdown
+  children:
+  - id: openspec-artifacts
+    label: "OpenSpec制品"
+    enabled: true
+    order: 0
+    tags:
+    - openspec
+    language: Markdown
+    phrases:
+    - key: artifact-capability
+      label: "能力"
+      submittedText: "能力（capability，系统能力描述）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "OpenSpec 系统能力描述单元"
+    - key: artifact-proposal
+      label: "提案"
+      submittedText: "提案（proposal.md，变更提案）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "说明 Why/What Changes/Capabilities/Impact"
+    - key: artifact-design
+      label: "设计"
+      submittedText: "设计（design.md，技术设计文档）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "技术决策、组件架构、数据流、风险权衡"
+    - key: artifact-tasks
+      label: "任务"
+      submittedText: "任务（tasks.md，实施任务清单）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "实施任务检查清单"
+    - key: artifact-specs
+      label: "规范"
+      submittedText: "规范（specs/，能力规范定义）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "能力规范 delta（ADDED/MODIFIED/REMOVED）"
+    - key: artifact-archive
+      label: "归档"
+      submittedText: "归档（archive/，已完成变更存档）"
+      enabled: true
+      order: 5
+      metadata:
+        desc: "已完成变更的历史存档"
+  - id: repos
+    label: "仓库"
+    enabled: true
+    order: 1
+    tags:
+    - monospec
+    language: Markdown
+    phrases:
+    - key: repo-monorepo
+      label: "主仓库"
+      submittedText: "主仓库（MaterialMonospec，OpenSpec 规范管理）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "统一管理 OpenSpec 文档的主仓库"
+    - key: repo-subrepo
+      label: "子仓库"
+      submittedText: "子仓库（repos/，代码实现）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "代码实现的子项目目录"
+    - key: repo-materialclient
+      label: "MaterialClient"
+      submittedText: "MaterialClient（工业材料称重桌面应用，Avalonia）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "工业材料称重桌面应用"
+    - key: repo-urbanmanagement
+      label: "UrbanManagement"
+      submittedText: "UrbanManagement（城市管理 Web 应用，ABP）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "城市管理 Web 应用"
+  - id: change-types
+    label: "变更类型"
+    enabled: true
+    order: 2
+    tags:
+    - openspec
+    language: Markdown
+    phrases:
+    - key: change-add
+      label: "新增"
+      submittedText: "新增（add-*，新功能变更）"
+      enabled: true
+      order: 0
+      metadata:
+        desc: "新功能变更命名前缀"
+    - key: change-update
+      label: "更新"
+      submittedText: "更新（update-*，功能更新变更）"
+      enabled: true
+      order: 1
+      metadata:
+        desc: "功能更新变更命名前缀"
+    - key: change-remove
+      label: "移除"
+      submittedText: "移除（remove-*，功能移除变更）"
+      enabled: true
+      order: 2
+      metadata:
+        desc: "功能移除变更命名前缀"
+    - key: change-refactor
+      label: "重构"
+      submittedText: "重构（refactor-*，代码重构变更）"
+      enabled: true
+      order: 3
+      metadata:
+        desc: "代码重构变更命名前缀"
+    - key: change-fix
+      label: "修复"
+      submittedText: "修复（fix-*，问题修复变更）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "问题修复变更命名前缀"
