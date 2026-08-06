@@ -53,3 +53,18 @@ docs/2026-01-01-topic-name/
 - 按产品域长期维护的目录（如 `UrbanManagement/`、`HikLpr/`、`SyncDoc/`）
 
 **新建调研**仍应使用上文的日期文件夹格式。
+
+## 落地评估口径（Effort）
+
+> **Required trait：** 涉及工作量 / 可落地 / effort 评估时，必须阅读并遵循仓库根目录 `traits/effort-token-estimate-trait.md`（由根 `AGENTS.md`「Required traits」默认 require）。
+
+调研与可行性评估**不要用「人天 / 人力资源」**。默认按 **AI Agent token / 上下文规模**（S/M/L/XL）估算，仅作参考。
+
+| 档位 | 约略 token 量级 | 典型含义 |
+|------|-----------------|----------|
+| S | ~5万–15万 | 单仓、局部，单会话 |
+| M | ~15万–40万 | 多文件或跨模块 |
+| L | ~40万–100万 | 跨仓或鉴权/数据模型主路径，多会话 |
+| XL | ~100万+ | 多仓联动 + 联调，需分仓/分阶段会话 |
+
+开 OpenSpec change 后：effort **只**写入该 change 的 `.openspec.yaml`，**不得**写入 `proposal.md`。

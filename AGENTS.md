@@ -40,6 +40,7 @@ MaterialMonospec/
 │   └── validate-migration.ps1            # 迁移验证
 ├── monospecs.yaml                        # Monospec 配置
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
+├── traits/                               # Agent 行为 traits（可被本文件 require）
 ├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
 ├── _bmad-output/                         # BMAD 规划/实现产出
 ├── .agents/skills/                       # Cursor BMAD skills
@@ -379,6 +380,23 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | 管理规范定义 | `MaterialMonospec/openspec/specs/` | `repos/*/openspec/specs/` |
 | 编写实施任务 | `MaterialMonospec/openspec/changes/add-xxx/tasks.md` | `repos/*/openspec/changes/add-xxx/tasks.md` |
 
+## Required traits
+
+以下 trait **默认生效**。涉及对应场景时，Agent **必须先阅读**该文件并按其中 Prompt / guardrails 执行；与本文件冲突时以**更严格**者为准。
+
+| Trait | 路径 | 何时强制 |
+|-------|------|----------|
+| effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
+
+### effort-token-estimate（硬约束摘要）
+
+- 工作量用 **S/M/L/XL + token 量级**，**禁止**以人天 / 人周作为主指标。
+- 用途仅作**调研与开 change 前的估算参考**；不强制记录实耗 token。
+- OpenSpec 中 effort **只写** `openspec/changes/<name>/.openspec.yaml` 的 `effort:` 块。
+- **禁止**把 effort / 工期 / token 估算写进 `proposal.md`（以及 design / specs / tasks）。
+
+完整规则、档位表与 yaml 示例见 `traits/effort-token-estimate-trait.md`。
+
 ## OpenSpec 与技术债务
 
 > **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
@@ -416,3 +434,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **无明确要求时，OpenSpec 不处理技术债务**（参见「OpenSpec 与技术债务」）
 - **ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据**（参见「代码架构约束」）
 - **禁止使用 tuple 作为 API/字段类型；多值组合使用命名 `record`**（参见「跨子仓库 C# 编码约定」）
+- **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
