@@ -1,5 +1,11 @@
 repos/
 _temp/
 
+# AI pipelines — secrets and immutable run evidence
+pipelines/**/secrets.local.yaml
+pipelines/**/secrets.local.*
+pipelines/**/runs/
+!pipelines/**/runs/.gitkeep
+
 # BMAD — 个人作用域配置（安装器按用户再生，不入库）
 _bmad/**/config.user.toml

@@ -1,0 +1,23 @@
+id: "{{slug}}"
+family: observe # observe | ingest | probe | reconcile | transform
+goal: "{{goal}}"
+status: active # active | retired
+environment: local # local | shared | production
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: "{{socket_start}}"
+  end: "{{socket_end}}"
+cook: new-object # in-place | new-object
+
+target: {}
+steps: []
+capture: {}
+expect: []
+
+humanGates:
+  - missing-secrets
+  - acceptance
+failurePolicy:
+  retries: 2
+  stopOnError: false

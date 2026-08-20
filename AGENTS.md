@@ -41,6 +41,7 @@ MaterialMonospec/
 ├── monospecs.yaml                        # Monospec 配置
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
+├── pipelines/                            # AI Pipeline Graph（现行如何再验；非 OpenSpec）
 ├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
 ├── _bmad-output/                         # BMAD 规划/实现产出
 ├── .agents/skills/                       # Cursor BMAD skills
@@ -379,6 +380,18 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | 编写设计文档 | `MaterialMonospec/openspec/changes/add-xxx/design.md` | `repos/UrbanManagement/openspec/changes/add-xxx/design.md` |
 | 管理规范定义 | `MaterialMonospec/openspec/specs/` | `repos/*/openspec/specs/` |
 | 编写实施任务 | `MaterialMonospec/openspec/changes/add-xxx/tasks.md` | `repos/*/openspec/changes/add-xxx/tasks.md` |
+
+## AI Pipeline（生成 / 执行）
+
+与 OpenSpec 同构、**不是** OpenSpec：`/gen-pipeline` 对 propose，`/run-pipeline` 对 apply。
+
+- 哲学与协议：`docs/2026-08-13-ai-pipeline-design-philosophy/`
+- 现行 Graph：`pipelines/<slug>/`（模板 `pipelines/_template/`）
+- 命令：`.cursor/commands/gen-pipeline.md`、`run-pipeline.md`，以及 `/gen-<family>-pipeline`、`/run-<family>-pipeline`
+- Family：`observe` | `ingest` | `probe` | `reconcile` | `transform`
+- **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 宣布 L3 通过
+
+生成默认只写工件。用户确认后才执行。Agent 不得宣布 L3 验收通过。
 
 ## Required traits
 
