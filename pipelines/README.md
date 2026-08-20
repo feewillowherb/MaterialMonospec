@@ -9,7 +9,7 @@
 
 | Goal（互斥槽） | Family | Graph slug | Status |
 |----------------|--------|------------|--------|
-| （尚无实例） | | | |
+| gov-inout-record-save | probe | govsync-postweight | active |
 
 Retired：无。
 
