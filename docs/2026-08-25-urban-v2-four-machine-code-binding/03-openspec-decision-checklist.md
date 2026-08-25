@@ -13,7 +13,7 @@
 | D2 | 槽位与发码 | 发码必选槽 **1…4**；激活写入对应槽 | Redis 载荷含 `Slot` |
 | D3 | 换机策略 | 同槽覆盖；其它槽不动 | 验收：覆盖槽 N 不踢其它槽 |
 | D4 | AccessCode / AuthEndTime | 项目级单值，四槽共享 | 不按槽拆有效期 |
-| D5 | 解绑 / 清空 | **本期不做** | Impact / Out of Scope 写明 |
+| D5 | 解绑 / 清空 | **本期不做** UI/API；换机靠发码覆盖；**后期必做槽位解绑**；本期须**预留扩展空间**（见 D37） | Out of Scope 写「本期不交付」；design 写「后期能力 + 预留约束」 |
 | D6 | 产品形态 | **新 ProductCode（Urban V2）**；5001 行为不变 | 禁止「顺手改 5001 成四槽」 |
 | D7 | 绑定上限 | 每项目最多 **4** 机器码 / **4** 场地（槽 1:1） | 发码 UI 无第 5 槽 |
 
@@ -22,7 +22,7 @@
 | ID | Decision | 选项 | 建议默认 | 若不定则会卡在 |
 |----|----------|------|----------|----------------|
 | D8 | V2 `ProductCode` **数值** | 如 `5002` / 其它空号 | **待与 BP `JC_Product` 锁定**（候选 `5002`） | 枚举、Catalog 过滤、Activate 校验、客户端 |
-| D9 | 四槽**存储形态**（BP 权威） | (a) `MachineCode`…`MachineCode4` 列 (b) 子表/多行 (c) 复用 `Material_MachineCode`+隔离 | **(b) 子表/多行**（UI/覆盖更清晰；须与物料 AuthType 隔离若选 c） | 迁移、Activate SQL、Catalog 契约 |
+| D9 | 四槽**存储形态**（BP 权威） | (a) `MachineCode`…`MachineCode4` 列 (b) 子表/多行 (c) 复用 `Material_MachineCode`+隔离 | **(b) 子表/多行**（利后期按 Slot 解绑/清空；须与物料 AuthType 隔离若选 c） | 迁移、Activate SQL、Catalog 契约、**D37 预留** |
 | D10 | **Catalog** 契约 | (a) 同端点扩展 `ProductCode ∈ {5001,V2}` (b) 新端点/参数 (c) 对外暴露四槽字段 vs 仅「有绑定即可」 | **(a)**；对外至少保证「任一槽非空可入目录」；四槽明细是否对外 **二期可定** | `GovProjectPullManager`、目录过滤丢项目 |
 | D11 | 激活 API 形态 | (a) 扩展现有 `ActivateUrban` 支持 V2+Slot (b) 新 `ActivateUrbanV2` | **(a)** 若载荷可兼容；否则 (b) 避免污染 5001 | PublicApi / UM 代理 / 客户端 URL |
 
@@ -68,10 +68,26 @@
 |----|----------|------|----------|
 | D31 | 5001→V2 数据迁移 | (a) 工具迁移单码→槽1 (b) 不迁移，商务重开 V2 | **(b)**（调研默认）；若要 (a) 单独立项 |
 | D32 | 场地显示名 `SiteName` | 本期挂槽 vs 二期 | **二期** |
-| D33 | 独立解绑/清空 API | 做 vs 不做 | **不做**（D5） |
+| D33 | 独立解绑/清空 API（**本期**） | 做 vs 不做 | **本期不做**（D5）；**禁止**在 design 写成「永不解绑」 |
 | D34 | 逗号拼接单字段多码 | 做 vs 不做 | **不做** |
 | D35 | 仅改 UM/Client | — | **禁止**；BP 为阻塞依赖 |
 | D36 | tuple 多返回值 | — | **禁止**；跨仓 C# 用命名 `record`（AGENTS） |
+| D37 | **后期解绑预留** | 本期是否预留可扩展点 | **必须预留**（见下方「预留清单」）；另开 change 实现解绑 |
+
+## D37 预留清单（本期须满足，后期解绑另开 change）
+
+本期**不**交付解绑按钮 / Unbind API / 清空权限流，但实现时须满足：
+
+| 层 | 预留要求 | 避免 |
+|----|----------|------|
+| **数据模型** | 槽以稳定 `Slot`（1–4）寻址；机器码允许 **null/空 = 未绑定**；F4/签发只认**非空槽**集合 | 把「有行就必须有码」写死；无法表示空槽 |
+| **存储选型（D9）** | 优先子表/多行或「可空列」；若四列，每列必须可单独置空 | 逗号拼接；解绑只能整行删授权 |
+| **BP API 契约** | 激活/查询按 Slot；design 预留后期 `UnbindSlot(proId, slot)`（或等价）扩展点，**本期可不实现** | 对外只暴露「整项目一个 MachineCode」且无法演进 |
+| **UM / Catalog** | 同步四槽时可空；目录「任一非空即可」与后期「解绑后槽空」兼容 | 假设四槽永远占满或永远非空 |
+| **换机 vs 解绑** | 本期换机 = 同槽覆盖；后期解绑 = 槽置空且旧机 DeviceChanged | 用覆盖冒充解绑写进「最终语义」 |
+| **OpenSpec** | `design` / `proposal` Out of Scope：**本期不交付解绑**；**Future work**：槽位解绑；specs 可加非规范性「后期」备注，或另开 `add-urban-v2-slot-unbind` | 把解绑写进本期 tasks 却不做；或写死永不做 |
+
+后期解绑验收（预告，非本期）：指定槽清空后，该槽旧机吊销；其它槽仍可用；空槽可再次发码激活；Catalog/F4 与空槽一致。
 
 ## D. 写入 OpenSpec 时的建议结构
 
@@ -80,10 +96,10 @@
 ```text
 ## Decisions
 ### Product (D1–D7, D8, D20, D31)
-### Storage & API (D9–D11, D15–D16)
+### Storage & API (D9–D11, D15–D16, D37)
 ### Token & F4 (D12–D14, D22–D23)
 ### Client (D26–D30)
-### Out of Scope (D5, D32–D35)
+### Out of Scope / Future (D5, D33 本期不交付解绑; D32; D37 预留; 后期 add-*-slot-unbind)
 ```
 
 `proposal.md` Impact 至少点名：
@@ -103,5 +119,6 @@
 - [ ] D11 激活 API 扩展 vs 新建已定  
 - [ ] D20 同项目 5001/V2 并存或互斥已定  
 - [ ] D12–D14 签发/刷新用请求机 ∈ 四槽已写进 specs 场景  
-- [ ] D5/D33 无解绑写进 Out of Scope  
+- [ ] D5/D33：**本期不交付**解绑写进 Out of Scope；**D37 预留**写进 design（非「永不解绑」）  
+- [ ] D9 选型已考虑后期按 Slot 置空  
 - [ ] `.openspec.yaml` `effort.tier: XL`（或按拆分后的 change 调整）
