@@ -11,6 +11,7 @@
 |----------|------|
 | `repos/MaterialClient/src/MaterialClient.Common/...` | MaterialClient 子仓库 |
 | `repos/UrbanManagement/...` | UrbanManagement 子仓库 |
+| `repos/FdSoft.BasePlatform/...` | FdSoft.BasePlatform 子仓库 |
 | `openspec/changes/<name>/` | 本仓库 OpenSpec 变更 |
 
 历史文档中若写 `MaterialClient.Common/Services/...`（无 `repos/` 前缀），亦指上述 MaterialClient 路径。

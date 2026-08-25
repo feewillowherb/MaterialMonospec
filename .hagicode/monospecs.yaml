@@ -20,3 +20,13 @@ repositories:
     tags:
       - abp
       - web
+  - path: repos/FdSoft.BasePlatform
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_BasePlatform/FdSoft.BasePlatform.git
+    displayName: FdSoft.BasePlatform
+    type: WebServer
+    icon: 🏗️
+    optional: false
+    tags:
+      - aspnet
+      - mvc
+      - sqlsugar

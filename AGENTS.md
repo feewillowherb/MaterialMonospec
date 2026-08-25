@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（工业材料称重桌面应用）和 UrbanManagement（城市管理 Web 应用）两个子仓库的 OpenSpec 文档。所有变更的 proposal、design、specs、tasks 在主仓库中创建和管理，代码实现仍在各自的子仓库中进行。
+MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（工业材料称重桌面应用）、UrbanManagement（城市管理 Web 应用）和 FdSoft.BasePlatform（企业级基础平台 Web 应用）等子仓库的 OpenSpec 文档。所有变更的 proposal、design、specs、tasks 在主仓库中创建和管理，代码实现仍在各自的子仓库中进行。
 
 ## 子仓库 AGENTS
 
@@ -10,6 +10,7 @@ MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（�
 
 - `repos/MaterialClient/AGENTS.md`
 - `repos/UrbanManagement/AGENTS.md`
+- `repos/FdSoft.BasePlatform/AGENTS.md`
 
 跨子仓库 C# 约定（含 Record 替代 Tuple）见下文「跨子仓库 C# 编码约定」；实现前仍须阅读对应子仓库 `AGENTS.md`，冲突时以**更严格**者为准。
 
@@ -28,7 +29,8 @@ MaterialMonospec/
 │   └── specs/                            # 规范定义（51个）
 ├── repos/                                # 子仓库（目录联接）
 │   ├── MaterialClient/                   # Avalonia 桌面应用
-│   └── UrbanManagement/                  # ABP Web 应用
+│   ├── UrbanManagement/                  # ABP Web 应用
+│   └── FdSoft.BasePlatform/              # ASP.NET Core MVC 基础平台
 ├── docs/                                 # 文档（产出约定见 docs/AGENTS.md）
 │   ├── AGENTS.md                         # 仅约束 docs/ 的调研产出格式
 │   ├── monospecs-yaml-template.md        # 配置模板
@@ -38,7 +40,9 @@ MaterialMonospec/
 ├── scripts/                              # 工具脚本
 │   ├── validate-config.ps1               # 配置验证
 │   └── validate-migration.ps1            # 迁移验证
-├── monospecs.yaml                        # Monospec 配置
+├── .hagicode/                            # HagiCode 配置
+│   ├── monospecs.yaml                    # 子仓库映射（目录联接）
+│   └── standard_words.yaml               # 标准用语
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
 ├── pipelines/                            # AI Pipeline Graph（现行如何再验；非 OpenSpec）
@@ -124,6 +128,16 @@ openspec list --specs    # 查看所有 specs
    - Web 应用
 4. 代码提交和推送需在 UrbanManagement 仓库中单独操作
 
+### 涉及 FdSoft.BasePlatform 的变更
+
+1. 在主仓库创建变更提案
+2. 在 `repos/FdSoft.BasePlatform/` 中实现代码变更
+3. FdSoft.BasePlatform 技术栈：
+   - C# 10 / .NET 6.0 / ASP.NET Core MVC
+   - SqlSugar / SQL Server
+   - 分层架构：Controller → Service → Repository
+4. 代码提交和推送需在 FdSoft.BasePlatform 仓库中单独操作
+
 ### 跨仓库变更
 
 如果变更涉及多个子仓库：
@@ -169,7 +183,7 @@ openspec archive <change-name>
 
 ## 配置说明
 
-主仓库使用 `monospecs.yaml` 配置子仓库信息：
+主仓库使用 `.hagicode/monospecs.yaml` 配置子仓库信息（HagiCode 读取此文件）：
 
 ```yaml
 version: "1.0"              # 配置版本（字符串）
@@ -201,6 +215,14 @@ repositories:                # 子仓库列表
 - **类型**：Web 应用（ABP Framework）
 - **技术栈**：ABP Framework / .NET
 - **用途**：城市管理 Web 应用
+
+### FdSoft.BasePlatform
+
+- **类型**：Web 应用（ASP.NET Core MVC）
+- **技术栈**：C# 10 / .NET 6.0 / SqlSugar / SQL Server
+- **用途**：建筑行业劳务实名制、项目管理、设备监控、考勤等企业级基础平台
+- **架构**：Controller → Service → Repository 分层
+- **详情**：参见 `repos/FdSoft.BasePlatform/AGENTS.md`
 
 ## 跨子仓库 C# 编码约定
 

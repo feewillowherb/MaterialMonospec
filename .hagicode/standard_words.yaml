@@ -1072,6 +1072,13 @@ groups:
       order: 3
       metadata:
         desc: "城市管理 Web 应用"
+    - key: repo-baseplatform
+      label: "FdSoft.BasePlatform"
+      submittedText: "FdSoft.BasePlatform（企业级基础平台 Web 应用，ASP.NET Core MVC）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "建筑行业劳务实名制与项目管理基础平台"
   - id: change-types
     label: "变更类型"
     enabled: true
