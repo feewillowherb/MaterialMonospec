@@ -1,7 +1,60 @@
 # MaterialMonospec / docs — Agent 约定
 
-本文件**仅约束** `MaterialMonospec/docs/` 下的调研笔记、说明与 walkthrough 产出。  
+本文件**仅约束** `docs/` 下的调研笔记、说明与 walkthrough 产出。  
 不约束 `openspec/`、`repos/` 中的 OpenSpec 规范与业务代码（那些仍遵守仓库根目录 `AGENTS.md`）。
+
+BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSPEC-HANDOFF.md)；本仓约定 `project_knowledge` 指向 `docs/`（BMAD 读知识），规划产物默认落 `_bmad-output/`。
+
+## 与 BMAD 的结合（优先用对工具）
+
+### 原则
+
+1. **场景适合 BMAD 时，MUST 尽量用 BMAD skill 生成**，不要在 `docs/` 里手写一套平行的 PRD / 架构 / 产品简报 / 决策级调研仪式。
+2. **`docs/` 是仓库知识与代码考古落点**；`_bmad-output/` 是 BMAD 工作流正式产物落点。二者用**单向指针**衔接，避免全文双写。
+3. **实现仍走 OpenSpec**（勿用 BMAD 的 build / dev / sprint / QA / retrospective 替代 OpenSpec apply）。规划收束后：`/opsx:propose` → apply → archive。
+
+### 场景路由（先判再写）
+
+| 场景 | 优先 | 默认落点 | 何时才写进 `docs/` |
+|------|------|----------|-------------------|
+| 产品想法不明、brief / PRFAQ、头脑风暴 | BMAD（`bmad-product-brief` / `bmad-prfaq` / `bmad-brainstorming`） | `_bmad-output/planning-artifacts/` 等 | 用户要「长期可读摘要」时：日期夹里 1 页摘要 + 链到 BMAD 产物 |
+| 需求成文 / 改 PRD / 校验 PRD | BMAD（`bmad-prd`） | `_bmad-output/.../prd` | 同上；**MUST NOT** 在 `docs/` 另起完整 PRD |
+| 架构不变量 / 技术怎么拆才一致 | BMAD（`bmad-create-architecture`） | `_bmad-output/.../architecture` | 需要给 OpenSpec/实现对照时：短摘录或链接 |
+| UX 方案（有 UI 且是主交付） | BMAD（`bmad-create-ux-design`） | planning UX 产物 | 可选链到既有产品权威文档 |
+| 决策级外向调研（市场 / 领域 / 竞品 / 技术选型） | BMAD（`bmad-market-research` / `bmad-domain-research` / `bmad-technical-research`） | `_bmad-output/.../research` | 结论要进仓库知识时：蒸馏 cited 摘要进 `docs/YYYY-MM-DD-*`，原材料仍以 BMAD run 为准 |
+| 子仓/本仓**代码考古**、接口摸底、既有行为 walkthrough、运维手册、管线设计笔记 | **直接 `docs/`**（不必强行套 BMAD） | `docs/YYYY-MM-DD-主题/` | — |
+| 已够清楚、只要 OpenSpec change | OpenSpec（`/opsx:propose`） | `openspec/changes/` | 调研夹可作输入链接；不必先空跑 PRD |
+| 不确定下一步 | `bmad-help` | — | 按推荐 skill 走，勿先堆长文到 `docs/` |
+
+不确定时：**Ask 一句**「走 BMAD 规划，还是只做代码调研进 docs？」——默认偏 BMAD（若问题像产品/架构/决策），偏 docs（若问题像「这段代码怎么工作」）。
+
+### 优雅衔接（推荐流水线）
+
+```text
+代码/现场证据 ──► docs/YYYY-MM-DD-*（考古、证据、walkthrough）
+                         │
+                         ▼  （作 project_knowledge / 输入）
+              BMAD brief → PRD → architecture →（可选 UX）
+                         │
+                         ▼
+              _bmad-output/planning-artifacts/...
+                         │
+                         ▼  浓缩，不整份粘贴
+              /opsx:propose → openspec/changes/<id>/
+```
+
+反向也成立：BMAD research / PRD 定稿后，若 Agent 日常会反复引用，**蒸馏**进 `docs/<YYYY-MM-DD>-<主题>/`：
+
+- `00-调研总览.md`：决策、范围、**链接** `_bmad-output/...`（路径相对仓库根）
+- 后续编号文件：仅放 docs 侧独有内容（代码路径表、复现步骤、与 pipelines 的对照）
+- **MUST NOT** 把整份 PRD/架构无字复制进 docs
+
+### 约束（Agent）
+
+- 用户说「调研 / 想清楚 / 写 PRD / 做架构 / 竞品或技术选型研究」且未指定「只要 docs 笔记」时：**MUST** 先按上表选 BMAD skill（可用 `bmad-help`），再落盘。
+- 在 `docs/` 新建日期调研夹前：快速自检是否其实该开 BMAD；若是，说明并改走 BMAD，而不是先写长文再补救。
+- **MUST NOT** 用 `docs/` 替代 `_bmad-output` 的规划权威；**MUST NOT** 用 BMAD 实现类技能替代 OpenSpec apply。
+- docs 调研可以**指向** `pipelines/`、`openspec/`、`_bmad-output/`；不得把仍在用的管线/协议只写在 docs（管线权威见 `pipelines/` 与 `docs/2026-08-13-ai-pipeline-design-philosophy/`）。
 
 ## 源码引用
 
@@ -13,13 +66,15 @@
 | `repos/UrbanManagement/...` | UrbanManagement 子仓库 |
 | `repos/FdSoft.BasePlatform/...` | FdSoft.BasePlatform 子仓库 |
 | `openspec/changes/<name>/` | 本仓库 OpenSpec 变更 |
+| `_bmad-output/planning-artifacts/...` | BMAD 规划 / 决策级调研产物 |
 
 历史文档中若写 `MaterialClient.Common/Services/...`（无 `repos/` 前缀），亦指上述 MaterialClient 路径。
 
 ## Output Language
 
 - 默认输出语言为中文。
-- 专用名词（函数名、命名空间、NuGet 包名、API 名称、类型名等）保留原文，不翻译。
+- **专用名词**：非必要不要译成中文；函数名、命名空间、NuGet 包名、API 名称、类型名、Controller/Action、表名、产品模块名等保留原文。
+- **技术标识符**：保持英文（接口路径、字段名、文件路径）。
 
 ## Research Output Format
 
@@ -45,6 +100,7 @@ docs/2026-01-01-topic-name/
 - 文件夹名称由日期和提案/主题名称组成，使用连字符分隔。
 - 文件夹内的文档按编号排序，编号从 `00` 开始。
 - 每个调研文件夹应包含一个 `00-调研总览.md` 作为入口索引。
+- 若本夹是 BMAD 产物的蒸馏：总览 MUST 含指向 `_bmad-output/...` 的链接与蒸馏日期。
 
 ### 例外（既有文档）
 
@@ -54,6 +110,59 @@ docs/2026-01-01-topic-name/
 - 按产品域长期维护的目录（如 `UrbanManagement/`、`HikLpr/`、`SyncDoc/`）
 
 **新建调研**仍应使用上文的日期文件夹格式。
+
+## 衍生提案待办（Proposal Backlog）
+
+### 是什么
+
+实施一个 OpenSpec change 时，常会发现相关问题（安全、一致性、技术债、可观测性缺口……），但把它们塞进当前 change 会违反 OpenSpec 的**单一职责**与**最小范围**原则，造成 scope creep。直接丢弃则丢失改进机会。
+
+`docs/proposal-backlog/` 目录是这类**衍生提案想法**的登记缓冲：先记录、不阻塞当前变更、未来各自孵化为独立的 `openspec/changes/` 变更。**每条目一文件**，便于单独编辑、精确链接、git diff 清晰。
+
+### 目录结构
+
+```
+docs/proposal-backlog/
+├── README.md            ← 索引（所有条目的可扫描表格）+ 维护规则
+├── _template.md         ← 新条目模板（复制后填写）
+├── PBL-001-<slug>.md    ← 每个条目一个文件
+└── ...
+```
+
+### 何时登记
+
+在 `apply` 阶段（或调研/探索阶段）出现以下情形时，Agent **应该**登记一个 backlog 条目，而非扩大当前 change：
+
+- 发现既有代码有安全风险（如 SQL 注入、敏感信息泄露），但修复涉及多处既有逻辑、超出当前 change 范围
+- 发现一致性缺口（多个同类方法、但当前只动其一），需全族统一才合理
+- 发现可观测性 / 日志 / 测试覆盖的既有短板，但不属于当前变更的产品目标
+- 发现一个可独立验证的技术债项（重构、命名、死代码清理）
+- 用户明确说"先记下，以后再做"的任何改进想法
+
+**登记而非立即做的判断准则**：如果把它做进当前 change，需要修改**当前 change 的 `proposal.md` 未列出的文件/模块**，就登记 backlog。
+
+### 如何登记
+
+1. 复制 `docs/proposal-backlog/_template.md` → 改名为 `PBL-<下一序号>-<slug>.md`
+   - 序号升序分配（`PBL-001`、`PBL-002`……），**不复用、不重排**
+   - slug 用英文 kebab-case，与未来 OpenSpec change 名对齐（change 名通常为 `<前缀>-<slug>`）
+2. 填写条目字段；建议名称遵循 kebab-case + 字母开头（OpenSpec change 命名要求）
+3. 在 `docs/proposal-backlog/README.md` 的索引表追加一行
+4. 在源 change 的 `proposal.md` / `design.md` 的「替代方案」「开放问题」处，附一句"衍生提案见 `docs/proposal-backlog/PBL-XXX-<slug>.md`"以建立追溯
+
+### 状态流转与维护
+
+- 条目状态：`open`（已登记）→ `proposed`（已落 `openspec/changes/<name>/`）→ `closed`（已归档/否决）
+- 升级为正式 change 时：在该条目文件的"状态"字段改为 `proposed`，并在"孵化记录"追加 `→ change: <change-name>` + 日期；**保留该条目文件**（不删除，作索引与历史）
+- 否决时：状态改为 `closed`，在"孵化记录"追加否决理由与日期
+- 状态变更后，同步更新 `README.md` 索引表的"状态"列
+- 该目录为顶层长期维护，**不**进 `YYYY-MM-DD-主题/` 日期文件夹
+
+### 约束
+
+- **不**用本目录替代正式 OpenSpec change——它只是"想法池"，最终落地仍走 `/opsx-propose` 创建 `openspec/changes/` 工件
+- **不**在条目里写完整 proposal/design——保持种子粒度（1-3 句现状 + 草案要点），详细内容留到正式 change
+- Agent **不应**自行把条目升级为正式 change，除非用户明确要求 `/opsx-propose`
 
 ## 落地评估口径（Effort）
 
