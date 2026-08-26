@@ -30,3 +30,13 @@ repositories:
       - aspnet
       - mvc
       - sqlsugar
+  - path: repos/Fdsoft.Weight.GovClient
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_Material/Fdsoft.Weight.GovClient.git
+    displayName: Fdsoft.Weight.GovClient
+    type: Desktop
+    icon: ⚖️
+    optional: false
+    tags:
+      - weight
+      - gov
+      - desktop
