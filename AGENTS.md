@@ -422,6 +422,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | Trait | 路径 | 何时强制 |
 |-------|------|----------|
 | effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
+| intake-parking | `traits/intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · `/intake-register` · `/intake-promote`；超出当前 change 范围先收件 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -431,6 +432,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **禁止**把 effort / 工期 / token 估算写进 `proposal.md`（以及 design / specs / tasks）。
 
 完整规则、档位表与 yaml 示例见 `traits/effort-token-estimate-trait.md`。
+
+### intake-parking（硬约束摘要）
+
+- Draft（草稿纸）**不占**全局 INT 序号；正式种子用 `docs/intake/<YYYY-MM>/INT-00N-*.md`，序号**全局**递增。
+- 业务 theme / park / 仓库列表只读 **`docs/intake/themes.md`**、**`docs/intake/parks.md`**（项目绑定）；**禁止**写进可迁移的 trait 文件。
+- 晋升后源 draft：**archive** 或 **delete**（默认 archive）。
+- 消化按 **theme**；挂起月勿空占 Epic / 勿为记账而 propose。
+
+完整机制、迁移清单见 `traits/intake-parking-trait.md`。本地设计决策记录见 `docs/2026-08-27-intake-parking/`。
 
 ## OpenSpec 与技术债务
 
@@ -470,3 +480,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据**（参见「代码架构约束」）
 - **禁止使用 tuple 作为 API/字段类型；多值组合使用命名 `record`**（参见「跨子仓库 C# 编码约定」）
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
+- **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）

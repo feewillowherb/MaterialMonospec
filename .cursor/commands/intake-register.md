@@ -7,9 +7,9 @@ description: 登记正式 Intake INT（全局序号）— 已够 1–3 句种子
 
 将已够格的需求种子写入 `docs/intake/<YYYY-MM>/INT-<NextID>-<slug>.md`，占用全局序号。
 
-设计权威：`docs/2026-08-27-intake-parking/`  
-模板：`docs/intake/_template.md`  
-Theme 表：`docs/2026-08-27-intake-parking/04-theme-注册表.md`
+设计权威（机制）：`traits/intake-parking-trait.md`（**必读**）  
+项目绑定：`docs/intake/themes.md`、`docs/intake/parks.md`  
+模板：`docs/intake/_template.md`
 
 **Input**：`/intake-register` 后可为标题/摘要/slug，或留空（从对话提取）。若内容仍是半句碎聊，应改走 `/intake-draft`。
 
@@ -28,8 +28,8 @@ Theme 表：`docs/2026-08-27-intake-parking/04-theme-注册表.md`
 ## Steps
 
 1. **读取约定与 Next ID**
-   - 必读：`docs/AGENTS.md` Intake、`docs/intake/README.md`（**Next ID**）、`_template.md`
-   - 可选：`04-theme-注册表.md`（优先选用已批准 theme）
+   - **必读**：`traits/intake-parking-trait.md`
+   - 必读：`docs/intake/README.md`（**Next ID**）、`_template.md`、`themes.md`、`parks.md`
 
 2. **校验是否够种子**
    - 至少能填：`title`、`theme`、`summary`（1–3 句）、`source`、`created`

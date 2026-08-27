@@ -14,6 +14,8 @@ docs/intake/
 ├── README.md
 ├── _template.md              ← 正式 INT
 ├── _draft-template.md        ← 草稿纸（不占序号）
+├── themes.md                 ← 项目绑定（业务）
+├── parks.md                  ← 项目绑定（业务）
 └── YYYY-MM/
     ├── README.md
     ├── drafts/               ← 活跃 scratch
@@ -22,15 +24,17 @@ docs/intake/
     └── INT-xxx-<slug>.md
 ```
 
+**机制 trait**：`traits/intake-parking-trait.md`（可迁移）。  
 **INT 路径**：`docs/intake/<YYYY-MM>/INT-<NextID>-<slug>.md`  
 **Draft 路径**：`docs/intake/<YYYY-MM>/drafts/<YYYY-MM-DD>-<slug>.md`（**不**动 Next ID）  
-**月文件夹**：由 `created` 取 `YYYY-MM`。详见 [07-按月聚合](../2026-08-27-intake-parking/07-按月聚合.md)、[08-draft](../2026-08-27-intake-parking/08-draft.md)。
 
 ## 活跃挂起（park）
 
+权威表：[`parks.md`](./parks.md)（项目绑定）。Theme 表：[`themes.md`](./themes.md)。
+
 | park | 说明 | parked_until | 主 theme |
 |------|------|--------------|----------|
-| `park/xiaoshan-serve` | 萧山监管上报（地磅/卡口/成品）挂起 | 2026-09 | `xiaoshan-upload` |
+| `park/xiaoshan-serve` | 见 parks.md | 2026-09 | `xiaoshan-upload` |
 
 > 挂起月：碎聊 → draft；够种子 → INT。不开半成品 Epic / 不为记账而 propose。  
 > Cursor：`/intake-draft` · `/intake-register` · `/intake-promote`

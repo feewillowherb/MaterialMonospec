@@ -114,70 +114,44 @@ docs/2026-01-01-topic-name/
 
 ## Intake 需求收件（Parking）
 
-> 机制 topic：`intake-parking`。扩展设计见 [`docs/2026-08-27-intake-parking/`](2026-08-27-intake-parking/00-调研总览.md)。  
-> **不用** `proposal-backlog` / `PBL`——避免与 OpenSpec `proposal.md` 及 Scrum Product Backlog 混淆。
+> **Required trait：** `traits/intake-parking-trait.md`（机制；可迁移）。  
+> **项目绑定（业务敏感，勿随 trait 拷走）：** [`docs/intake/themes.md`](intake/themes.md)、[`docs/intake/parks.md`](intake/parks.md)。  
+> 本仓设计决策记录：[`docs/2026-08-27-intake-parking/`](2026-08-27-intake-parking/00-调研总览.md)。  
+> **不用** `proposal-backlog` / `PBL`。
 
 ### 是什么
 
-OpenSpec / BMAD **之前**的需求种子池：挂起项目的日常碎片、以及 apply/调研中发现的超出当前 change 范围的改进。先记录、不阻塞当前变更；消化窗口可按 **theme** 收成 BMAD Epic，再切 OpenSpec change。
+OpenSpec / BMAD **之前**的需求种子池。运行时根目录：`docs/intake/`。正式种子 `INT-00N`（全局序号）；碎聊先 `drafts/`（不占号）。消化按 **theme**。
 
-`docs/intake/`：正式种子为 `docs/intake/<YYYY-MM>/INT-001-<slug>.md`（登记月 + **全局序号**）；与 Agent 碎聊、尚未够格时先写 `…/<YYYY-MM>/drafts/<YYYY-MM-DD>-<slug>.md`（**不占** Next ID）。详见 [`08-draft.md`](2026-08-27-intake-parking/08-draft.md)。
+Agent 涉及挂起/碎片/`/intake-*` 时：**必须先读 trait**，再读 `themes.md` / `parks.md` 赋业务标签。
 
 ### 目录结构
 
 ```
 docs/intake/
-├── README.md            ← 按 theme + 按月索引；Next ID
-├── _template.md         ← 正式 INT
-├── _draft-template.md   ← 草稿纸
+├── README.md
+├── _template.md / _draft-template.md
+├── themes.md / parks.md     ← 本仓业务绑定
 ├── YYYY-MM/
-│   ├── README.md
-│   ├── drafts/          ← 活跃 scratch
-│   │   ├── YYYY-MM-DD-<slug>.md
-│   │   └── archive/     ← 已 promote / discarded
-│   └── INT-001-<slug>.md
+│   ├── drafts/ (+ archive/)
+│   └── INT-00N-<slug>.md
 └── ...
 ```
 
-### 何时写 Draft vs INT
+### Draft vs INT（摘要）
 
 | 落点 | 时机 |
 |------|------|
-| **draft** | 「先记一下 / 还没想清楚 / 帮我理理」；theme 未定；半句碎片。**禁止**占用 INT 序号 |
-| **INT** | 已够 1–3 句种子（theme + summary）；用户明确「收件 / 落成 INT」；apply 超出 scope 的可独立改进 |
+| **draft** | 未想清 / 半句碎片。**禁止**占 INT |
+| **INT** | 够种子；或 draft promote |
 
-**登记准则（INT）**：若做进当前 change 需动**当前 `proposal.md` 未列出的模块**，则登记 INT（或先 draft 再 promote）。
-
-### 如何登记 Draft
-
-1. 取当天日期与年月 → 确保 `docs/intake/<YYYY-MM>/drafts/`
-2. 复制 `_draft-template.md` → `drafts/<YYYY-MM-DD>-<slug>.md`
-3. **不**改 Next ID；可选在根 README「活跃 drafts」提及
-4. 够种子后 promote：拆 1–N 条 INT → 源 draft **archive**（移入 `drafts/archive/`）或 **delete**（默认未指定时 archive）
-
-### 如何登记 INT
-
-1. 由 `created` 取年月 `YYYY-MM`；若无则创建 `docs/intake/<YYYY-MM>/`
-2. 复制 `docs/intake/_template.md` → `<YYYY-MM>/INT-<下一序号>-<slug>.md`（序号升序，不复用）
-3. 必填：`theme`、`intake_month`（与文件夹名一致）、`kind`、`summary`、`source`、`created`；挂起类填 `parked_until`（`YYYY-MM`）
-4. 更新 `docs/intake/README.md` 索引、Next ID 及该月 `README.md`（若有）
-5. 衍生类：在源 change 的 proposal/design 附一句「衍生见 `docs/intake/<YYYY-MM>/INT-XXX-<slug>.md`」
-6. 可选 GitHub Issue：标题 `[INT-00N] …`，body 链到 INT 文件；INT 填 `github`
-
-### 状态流转
-
-- `open` → `triaged` → `absorbed`（已进 BMAD Epic）→ `proposed`（已有 `openspec/changes/`）→ `closed`
-- **挂起月**：仅 `open` / `triaged`；禁止空占 Epic 或仅为记账 propose
-- 升级时更新条目「孵化记录」与 README；**保留** INT 文件作历史
-- 顶层长期维护，**不**进 `YYYY-MM-DD-主题/` 日期文件夹
+Promote 后源 draft：**archive** 或 **delete**（默认 archive）。细则与迁移清单见 trait。
 
 ### 约束
 
-- **不**替代 BMAD / OpenSpec——种子粒度（1–3 句 + 证据链接），详细内容留给 Epic / change
-- **不**在 INT / draft 写完整 PRD/design/tasks
-- **不**用半截聊天占用 `INT-00N`（应先 draft）
-- Agent **不应**自行升到 `absorbed` / `proposed`，除非用户明确要求消化 / `/opsx:propose`
-- Agent **不应**自行把 draft promote 为 INT，除非用户明确要求收件 / 落成 INT（或用户确认「已够种子」）
+- **不**替代 BMAD / OpenSpec；**不**在 INT/draft 写完整 PRD
+- **不**把萧山/Urban 等业务名写进可迁移 trait
+- Agent **不**自行 promote / 升 `absorbed`/`proposed`，除非用户明确要求
 
 ## 落地评估口径（Effort）
 

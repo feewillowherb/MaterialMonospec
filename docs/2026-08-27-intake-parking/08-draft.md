@@ -2,6 +2,8 @@
 
 与 Agent **边聊边碎**、尚未够格写成正式 INT 时，先落 **draft**，**不占**全局 `INT-00N` 序号。
 
+> **机制权威**：`traits/intake-parking-trait.md`。本文为设计夹补充说明。
+
 ## 定位
 
 ```text
