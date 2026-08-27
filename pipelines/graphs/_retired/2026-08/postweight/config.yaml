@@ -5,7 +5,7 @@ graph:
   domain: govsync
   family: probe
   goal: gov-inout-record-save
-  status: active
+  status: retired
 environment: shared # 非 local：政府内网地址；run 前须人闸确认
 stopOnError: true
 secretsRef: secrets.local.yaml

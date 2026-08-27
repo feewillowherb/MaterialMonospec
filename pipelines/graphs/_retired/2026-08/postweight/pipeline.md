@@ -1,14 +1,16 @@
-# postweight（govsync）
+# postweight（govsync）— **retired**
 
-## 目的 / Goal
+继任：`graphs/govsync/xiaoshan-weighbridge/`、`xiaoshan-gate/`、`xiaoshan-product/`（萧山三路上报 demo）。
 
-向政府平台 `inoutRecord/save` 用固定夹具发起可重复 POST，采证请求/响应，证明出站契约可达且业务 `code` 可判。
+本目录已迁至 `pipelines/graphs/_retired/2026-08/postweight/`。
 
-Goal 槽：`gov-inout-record-save`
+## 目的 / Goal（历史）
 
-Status: **active**
+向政府平台 `inoutRecord/save` 用固定夹具发起可重复 POST。Goal 槽 `gov-inout-record-save` **不再占用**。
 
-路径：`pipelines/graphs/govsync/postweight/`（见 [`pipelines/AGENTS.md`](../../../AGENTS.md)）
+Status: **retired**
+
+路径：`pipelines/graphs/_retired/2026-08/postweight/`（见 [`pipelines/AGENTS.md`](../../../../AGENTS.md)）
 
 若替换旧验法：retired ← （无）
 

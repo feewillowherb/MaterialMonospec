@@ -1,0 +1,81 @@
+id: xiaoshan-gate
+created: "2026-08-27"
+graph:
+  product: urban
+  domain: govsync
+  family: probe
+  goal: gov-xiaoshan-gate-save
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: endpoint-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  method: POST
+  url: http://191.12.15.58:8899/sapi/v1/inoutRecord/save
+  contentType: application/json; charset=utf-8
+  contractRef: docs/SyncDoc/杭州市工程渣土监管服务平台场地数据接口（萧山）V1.0.md
+  designRef: docs/2026-08-27-xiaoshan-weighbridge-gate-product-upload-design/01-设计稿.md
+
+scenario:
+  channel: gate
+  buildLicenseNo: XNXS20250819001 # 原值 L
+  carNo: 浙A12345
+  carNoColor: 黄
+  carType: 大车
+  deviceID: "01"
+  siteType: "1"
+  areaCode: "330109"
+  goodsWeight: "20000"
+  snapTimeMode: run-now
+  snapImages:
+    source: fixtures/test_pic.jpg
+    encoding: base64-array # [大图, 小图]；demo 用同一夹具两帧
+
+steps:
+  - id: bind-endpoint
+    name: Bind 卡口 save 端点、夹具与场景参数
+  - id: cook-post
+    name: 组装卡口 payload（无 dataSource；buildLicenseNo 原值）并 POST
+  - id: validate-response
+    name: 记录 HTTP 状态与业务 code/msg
+
+expect:
+  - id: http-reachable
+    level: L0
+    description: 对 target.url 的 POST 得到可解析的 HTTP 响应
+  - id: json-body
+    level: L1
+    description: 响应体可解析为含 code/msg 的 JSON
+  - id: business-success
+    level: L2
+    description: 业务 code == 200
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: [authorization, cookie, snapImages]
+  summary:
+    required: true
+    sink: summary.json
+
+humanGates:
+  - missing-secrets
+  - environment-shared-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-XiaoshanUpload.ps1
+    experimental: true

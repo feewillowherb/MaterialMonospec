@@ -45,7 +45,7 @@ pipelines/graphs/
 | `materialclient` | MaterialClient（Avalonia 称重桌面） | `attended-list-observe` |
 | `urban` | UrbanManagement（城管 Web） | `weighing-list-observe` |
 | `baseplatform` | FdSoft.BasePlatform | `login-smoke` |
-| `govsync` | 政府平台出站/对接探测与采证 | `postweight` |
+| `govsync` | 政府平台出站/对接探测与采证 | `xiaoshan-gate` |
 | `platform` | 跨产品运维：表导入导出、库同步、冒烟等 | `sqlite-reconcile` |
 
 新增 domain **MUST** 先改本文件词表，再落盘。
@@ -114,7 +114,7 @@ Invoke 路径示例（分层后）：
 
 ```powershell
 # 相对仓库根
-powershell -ExecutionPolicy Bypass -File pipelines/graphs/govsync/postweight/scripts/Invoke-GovSyncPostWeight.ps1
+powershell -ExecutionPolicy Bypass -File pipelines/graphs/govsync/xiaoshan-gate/scripts/Invoke-XiaoshanUpload.ps1
 
 # 若日后启用 TS observe（可选）
 cd pipelines
@@ -166,8 +166,8 @@ pnpm observe -- ./graphs/<domain>/<slug>
 
 | 遗留路径 | 目标 `graphs/<domain>/<slug>/` |
 |----------|--------------------------------|
-| `pipelines/govsync-postweight/` | `graphs/govsync/postweight/` |
-| `graphs/govsync-postweight/`（若出现） | `graphs/govsync/postweight/` |
+| `pipelines/govsync-postweight/` | 遗留平铺；现行继任为 `xiaoshan-*` 三图；历史实现见 `_retired/2026-08/postweight/` |
+| `graphs/govsync-postweight/`（若出现） | `_retired/2026-08/postweight/` |
 
 未列入的平铺 slug：按前缀归入 §2.1 domain；不确定则 Ask。
 
@@ -175,11 +175,13 @@ pnpm observe -- ./graphs/<domain>/<slug>
 
 | Goal | Family | 路径 | Status |
 |------|--------|------|--------|
-| gov-inout-record-save | probe | `graphs/govsync/postweight/` | active |
+| gov-xiaoshan-weighbridge-save | probe | `graphs/govsync/xiaoshan-weighbridge/` | active |
+| gov-xiaoshan-gate-save | probe | `graphs/govsync/xiaoshan-gate/` | active |
+| gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 
-Retired：无。
+Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）。
 
 ---
 

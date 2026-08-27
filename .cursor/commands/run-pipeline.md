@@ -9,7 +9,7 @@ Run an **existing** Graph at `pipelines/graphs/<domain>/<slug>/`（或遗留平�
 
 **必读**：`pipelines/AGENTS.md`（选型算法 §3）。
 
-**Input**: `domain/slug` 或 slug。Example: `/run-pipeline govsync/postweight`  
+**Input**: `domain/slug` 或 slug。Example: `/run-pipeline govsync/xiaoshan-gate`  
 If omitted: 按 AGENTS.md 选型；仍歧义则列出 `graphs/<domain>/*`（及遗留平铺）并 Ask。
 
 Announce: `Running pipeline: <domain>/<slug>`（或遗留路径）。
