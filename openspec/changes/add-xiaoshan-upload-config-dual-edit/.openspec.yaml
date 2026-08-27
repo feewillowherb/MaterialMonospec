@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-27
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "跨 MaterialClient + UrbanManagement；配置模型与双端编辑底座；不含 version/三模式/旧端"
