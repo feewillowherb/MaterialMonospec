@@ -26,4 +26,4 @@
 
 - [ ] 5.1 双端联调：服务端改 → 客户端刷新；客户端改 → 服务端可见
 - [x] 5.2 确认未实现 INT-002/003/004 范围（version 裁决、三模式映射、旧端矩阵）
-- [ ] 5.3 子仓变更合入各自 `epic/xiaoshan-platform-upload`；主仓 OpenSpec 状态留在 Epic 集成分支
+- [x] 5.3 子仓变更合入各自 `epic/xiaoshan-platform-upload`；主仓 OpenSpec 状态留在 Epic 集成分支
