@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-27
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "在 INT-001 底座上加 configVersion + 变更日志；跨 MaterialClient + UrbanManagement"

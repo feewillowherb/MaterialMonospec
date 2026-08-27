@@ -5,7 +5,7 @@
 | id | INT-002 |
 | slug | xiaoshan-upload-config-sync-version |
 | title | 上报配置同步、version 与变更日志 |
-| status | absorbed |
+| status | proposed |
 | kind | product |
 | theme | xiaoshan-upload |
 | intake_month | 2026-08 |
@@ -33,10 +33,11 @@
 
 - 2026-08-27 登记（open），由 draft promote；决策 D2/D3/D5（原临时号 INT-005，同日重排为 INT-002）
 - 2026-08-27 absorbed → `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/`（脚手架 S）
+- 2026-08-27 proposed → `openspec/changes/add-xiaoshan-upload-config-sync-version`
 
 ## 消化后回填
 
 | 字段 | 值 |
 |------|-----|
 | absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
-| change | |
+| change | `openspec/changes/add-xiaoshan-upload-config-sync-version` |

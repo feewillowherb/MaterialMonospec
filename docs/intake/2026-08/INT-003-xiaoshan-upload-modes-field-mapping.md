@@ -5,7 +5,7 @@
 | id | INT-003 |
 | slug | xiaoshan-upload-modes-field-mapping |
 | title | 萧山三模式多选与字段映射 |
-| status | absorbed |
+| status | proposed |
 | kind | product |
 | theme | xiaoshan-upload |
 | intake_month | 2026-08 |
@@ -39,4 +39,4 @@ Urban 支持设计稿三种上报模式 Weighbridge / Gate / Product：**可多�
 | 字段 | 值 |
 |------|-----|
 | absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
-| change | |
+| change | `openspec/changes/add-xiaoshan-upload-modes-field-mapping` |

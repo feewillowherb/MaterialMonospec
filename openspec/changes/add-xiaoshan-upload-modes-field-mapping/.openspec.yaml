@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-27
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "跨 MaterialClient + UrbanManagement；三模式 schema、双端 UI、字段映射与 D4 skip；不含 GovSync HTTP 全量与 INT-004"
