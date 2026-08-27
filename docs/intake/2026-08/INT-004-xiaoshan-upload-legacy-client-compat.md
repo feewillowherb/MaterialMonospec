@@ -5,7 +5,7 @@
 | id | INT-004 |
 | slug | xiaoshan-upload-legacy-client-compat |
 | title | 萧山上报配置旧客户端兼容 |
-| status | absorbed |
+| status | proposed |
 | kind | product |
 | theme | xiaoshan-upload |
 | intake_month | 2026-08 |
@@ -39,4 +39,4 @@
 | 字段 | 值 |
 |------|-----|
 | absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
-| change | |
+| change | `openspec/changes/add-xiaoshan-upload-legacy-client-compat` |
