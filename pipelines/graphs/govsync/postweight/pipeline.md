@@ -1,4 +1,4 @@
-# govsync-postweight
+# postweight（govsync）
 
 ## 目的 / Goal
 
@@ -7,6 +7,8 @@
 Goal 槽：`gov-inout-record-save`
 
 Status: **active**
+
+路径：`pipelines/graphs/govsync/postweight/`（见 [`pipelines/AGENTS.md`](../../../AGENTS.md)）
 
 若替换旧验法：retired ← （无）
 
@@ -97,11 +99,11 @@ flowchart LR
 
 ## Invoke
 
-- 命令：`/run-pipeline govsync-postweight`
+- 命令：`/run-pipeline govsync/postweight`（或 `/run-probe-pipeline postweight`）
 - 脚本（**experimental**）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File pipelines/govsync-postweight/scripts/Invoke-GovSyncPostWeight.ps1
+powershell -ExecutionPolicy Bypass -File pipelines/graphs/govsync/postweight/scripts/Invoke-GovSyncPostWeight.ps1
 ```
 
 可选：`-RunDir <绝对路径>` 指定已建好的 run 目录；默认在 `runs/` 下新建时间戳目录。

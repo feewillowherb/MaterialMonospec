@@ -21,6 +21,8 @@ Status: **active**
 - `./secrets.local.yaml`（gitignore）
 - `./secrets.example.yaml`
 
+路径约定见 [`pipelines/AGENTS.md`](../../AGENTS.md)：`graphs/<domain>/<slug>/`。
+
 ## Sockets
 
 | | |
@@ -62,7 +64,7 @@ flowchart LR
 
 ## Invoke
 
-- 命令：`/run-pipeline {{slug}}`
+- 命令：`/run-pipeline {{domain}}/{{slug}}`（或 slug；选型见 AGENTS.md）
 - 脚本：`./scripts/`（experimental；无则省略）
 
 ## 人闸 / Gate

@@ -1,4 +1,9 @@
 **/secrets.local.yaml
+**/secrets.local.yml
 **/secrets.local.*
 **/runs/
 !**/runs/.gitkeep
+**/node_modules/
+**/dist/
+package-lock.json
+npm-shrinkwrap.json

@@ -55,7 +55,7 @@ BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSP
 - 用户说「调研 / 想清楚 / 写 PRD / 做架构 / 竞品或技术选型研究」且未指定「只要 docs 笔记」时：**MUST** 先按上表选 BMAD skill（可用 `bmad-help`），再落盘。
 - 在 `docs/` 新建日期调研夹前：快速自检是否其实该开 BMAD；若是，说明并改走 BMAD，而不是先写长文再补救。
 - **MUST NOT** 用 `docs/` 替代 `_bmad-output` 的规划权威；**MUST NOT** 用 BMAD 实现类技能替代 OpenSpec apply。
-- docs 调研可以**指向** `pipelines/`、`openspec/`、`_bmad-output/`；不得把仍在用的管线/协议只写在 docs（管线权威见 `pipelines/` 与 `docs/2026-08-13-ai-pipeline-design-philosophy/`）。
+- docs 调研可以**指向** `pipelines/`、`openspec/`、`_bmad-output/`；不得把仍在用的管线/协议只写在 docs（管线权威见 `pipelines/AGENTS.md`；哲学深潜见 `docs/2026-08-13-ai-pipeline-design-philosophy/`）。
 
 ## 源码引用
 

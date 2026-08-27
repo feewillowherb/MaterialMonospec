@@ -45,7 +45,7 @@ MaterialMonospec/
 │   └── standard_words.yaml               # 标准用语
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
-├── pipelines/                            # AI Pipeline Graph（现行如何再验；非 OpenSpec）
+├── pipelines/                            # 可 cook 验收 Graph（框架 + graphs/）；约定见 pipelines/AGENTS.md
 ├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
 ├── _bmad-output/                         # BMAD 规划/实现产出
 ├── .agents/skills/                       # Cursor BMAD skills
@@ -407,8 +407,9 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 与 OpenSpec 同构、**不是** OpenSpec：`/gen-pipeline` 对 propose，`/run-pipeline` 对 apply。
 
-- 哲学与协议：`docs/2026-08-13-ai-pipeline-design-philosophy/`
-- 现行 Graph：`pipelines/<slug>/`（模板 `pipelines/_template/`）
+- **约定入口**：`pipelines/AGENTS.md`（分层 `graphs/<domain>/<slug>/`、选型、新建/退役）
+- 哲学深潜：`docs/2026-08-13-ai-pipeline-design-philosophy/`（cook 协议以 Graph + AGENTS.md 为准）
+- 现行 Graph：`pipelines/graphs/<domain>/<slug>/`（模板 `pipelines/_template/`）
 - 命令：`.cursor/commands/gen-pipeline.md`、`run-pipeline.md`，以及 `/gen-<family>-pipeline`、`/run-<family>-pipeline`
 - Family：`observe` | `ingest` | `probe` | `reconcile` | `transform`
 - **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 宣布 L3 通过

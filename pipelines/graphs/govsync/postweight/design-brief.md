@@ -1,10 +1,14 @@
-# design-brief — govsync-postweight
+# design-brief — govsync/postweight
 
 ```yaml
-id: govsync-postweight
-family: probe
-goal: gov-inout-record-save
-status: active
+id: postweight
+created: "2026-08-20"
+graph:
+  product: urban
+  domain: govsync
+  family: probe
+  goal: gov-inout-record-save
+  status: active
 purpose: 用固定夹具向政府平台 inoutRecord/save 发起可重复 POST，采证请求/响应并停在人闸验收
 sockets:
   start: endpoint-idle

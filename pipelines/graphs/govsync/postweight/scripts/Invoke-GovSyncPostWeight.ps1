@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Experimental cook script for pipelines/govsync-postweight.
+  Experimental cook script for pipelines/graphs/govsync/postweight.
 .DESCRIPTION
   POST GovSyncWeightPayload-shaped JSON to government inoutRecord/save.
   Marked experimental — not production code; do not copy into repos/.
