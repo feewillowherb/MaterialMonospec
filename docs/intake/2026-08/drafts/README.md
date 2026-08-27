@@ -4,7 +4,6 @@
 
 | 文件 | status | theme_guess | 说明 |
 |------|--------|-------------|------|
-| [2026-08-27-urban-xiaoshan-upload-config.md](./2026-08-27-urban-xiaoshan-upload-config.md) | scratch | xiaoshan-upload | Urban 上传配置双端同步 + 萧山三模式多选 |
 | [2026-08-27-urban-v2-multi-machine-auth.md](./2026-08-27-urban-v2-multi-machine-auth.md) | scratch | urban-weighing | Urban V2 一项目多机授权（四槽） |
 
 ## 晋升后（二选一）

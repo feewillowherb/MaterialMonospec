@@ -6,6 +6,7 @@
 
 | ID | theme | title | 文件 |
 |----|-------|-------|------|
-| INT-001 | xiaoshan-upload | 萧山地磅称重结果上报 | [INT-001-xiaoshan-weighbridge-upload.md](./INT-001-xiaoshan-weighbridge-upload.md) |
-| INT-002 | xiaoshan-upload | 萧山卡口车辆进出记录上报 | [INT-002-xiaoshan-gate-inout-record.md](./INT-002-xiaoshan-gate-inout-record.md) |
-| INT-003 | xiaoshan-upload | 萧山成品进出记录上报 | [INT-003-xiaoshan-product-inout-record.md](./INT-003-xiaoshan-product-inout-record.md) |
+| INT-001 | xiaoshan-upload | 萧山上报配置模型与双端编辑 | [INT-001-xiaoshan-upload-config-dual-edit.md](./INT-001-xiaoshan-upload-config-dual-edit.md) |
+| INT-002 | xiaoshan-upload | 上报配置同步、version 与变更日志 | [INT-002-xiaoshan-upload-config-sync-version.md](./INT-002-xiaoshan-upload-config-sync-version.md) |
+| INT-003 | xiaoshan-upload | 萧山三模式多选与字段映射 | [INT-003-xiaoshan-upload-modes-field-mapping.md](./INT-003-xiaoshan-upload-modes-field-mapping.md) |
+| INT-004 | xiaoshan-upload | 萧山上报配置旧客户端兼容 | [INT-004-xiaoshan-upload-legacy-client-compat.md](./INT-004-xiaoshan-upload-legacy-client-compat.md) |
