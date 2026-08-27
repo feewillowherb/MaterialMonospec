@@ -23,6 +23,7 @@ BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSP
 | UX 方案（有 UI 且是主交付） | BMAD（`bmad-create-ux-design`） | planning UX 产物 | 可选链到既有产品权威文档 |
 | 决策级外向调研（市场 / 领域 / 竞品 / 技术选型） | BMAD（`bmad-market-research` / `bmad-domain-research` / `bmad-technical-research`） | `_bmad-output/.../research` | 结论要进仓库知识时：蒸馏 cited 摘要进 `docs/YYYY-MM-DD-*`，原材料仍以 BMAD run 为准 |
 | 子仓/本仓**代码考古**、接口摸底、既有行为 walkthrough、运维手册、管线设计笔记 | **直接 `docs/`**（不必强行套 BMAD） | `docs/YYYY-MM-DD-主题/` | — |
+| 挂起项目碎片、衍生改进、先记下 / pending | **Intake** | `docs/intake/<YYYY-MM>/INT-xxx` | 证据仍链 `docs/YYYY-MM-DD-*` / `SyncDoc/` |
 | 已够清楚、只要 OpenSpec change | OpenSpec（`/opsx:propose`） | `openspec/changes/` | 调研夹可作输入链接；不必先空跑 PRD |
 | 不确定下一步 | `bmad-help` | — | 按推荐 skill 走，勿先堆长文到 `docs/` |
 
@@ -107,7 +108,7 @@ docs/2026-01-01-topic-name/
 以下类型**不强制**迁入 `YYYY-MM-DD-主题/` 结构，可保持现有布局：
 
 - 运维/迁移类固定手册（如 `troubleshooting.md`、`migration-guide.md`、`monospecs-yaml-template.md`）
-- 按产品域长期维护的目录（如 `UrbanManagement/`、`HikLpr/`、`SyncDoc/`）
+- 按产品域长期维护的目录（如 `UrbanManagement/`、`HikLpr/`、`SyncDoc/`、`intake/`）
 
 **新建调研**仍应使用上文的日期文件夹格式。
 
@@ -120,15 +121,17 @@ docs/2026-01-01-topic-name/
 
 OpenSpec / BMAD **之前**的需求种子池：挂起项目的日常碎片、以及 apply/调研中发现的超出当前 change 范围的改进。先记录、不阻塞当前变更；消化窗口可按 **theme** 收成 BMAD Epic，再切 OpenSpec change。
 
-`docs/intake/`：**每条目一文件** `INT-001-<slug>.md`，便于链接、git diff 与按 theme 批量消化。
+`docs/intake/`：**每条目一文件** `docs/intake/<YYYY-MM>/INT-001-<slug>.md`（登记月文件夹 + 全局序号），便于按月收件、按 theme 消化。
 
 ### 目录结构
 
 ```
 docs/intake/
-├── README.md            ← 索引 + 活跃挂起（park）+ Next ID
-├── _template.md         ← 复制后填写
-├── INT-001-<slug>.md
+├── README.md            ← 按 theme + 按月索引；Next ID
+├── _template.md
+├── YYYY-MM/             ← 登记月（由 created 推导）
+│   ├── README.md        ← 可选；该月条目
+│   └── INT-001-<slug>.md
 └── ...
 ```
 
@@ -143,11 +146,12 @@ Agent **应该**登记 INT，而非扩大当前 change / 不为记账而 `/opsx:
 
 ### 如何登记
 
-1. 复制 `docs/intake/_template.md` → `INT-<下一序号>-<slug>.md`（序号升序，不复用）
-2. 必填：`theme`（kebab-case 业务主题）、`kind`、`summary`、`source`、`created`；挂起类填 `parked_until`（`YYYY-MM`）
-3. 更新 `docs/intake/README.md` 索引与 Next ID
-4. 衍生类：在源 change 的 proposal/design 附一句「衍生见 `docs/intake/INT-XXX-<slug>.md`」
-5. 可选 GitHub Issue：标题 `[INT-00N] …`，body 链到 INT 文件；INT 填 `github`
+1. 由 `created` 取年月 `YYYY-MM`；若无则创建 `docs/intake/<YYYY-MM>/`
+2. 复制 `docs/intake/_template.md` → `<YYYY-MM>/INT-<下一序号>-<slug>.md`（序号升序，不复用）
+3. 必填：`theme`、`intake_month`（与文件夹名一致）、`kind`、`summary`、`source`、`created`；挂起类填 `parked_until`（`YYYY-MM`）
+4. 更新 `docs/intake/README.md` 索引、Next ID 及该月 `README.md`（若有）
+5. 衍生类：在源 change 的 proposal/design 附一句「衍生见 `docs/intake/<YYYY-MM>/INT-XXX-<slug>.md`」
+6. 可选 GitHub Issue：标题 `[INT-00N] …`，body 链到 INT 文件；INT 填 `github`
 
 ### 状态流转
 
