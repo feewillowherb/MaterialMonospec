@@ -5,7 +5,7 @@
 | id | INT-004 |
 | slug | xiaoshan-upload-legacy-client-compat |
 | title | 萧山上报配置旧客户端兼容 |
-| status | open |
+| status | absorbed |
 | kind | product |
 | theme | xiaoshan-upload |
 | intake_month | 2026-08 |
@@ -32,10 +32,11 @@
 ## 孵化记录
 
 - 2026-08-27 登记（open），由 draft promote；决策 D6（原临时号 INT-007，同日重排为 INT-004）
+- 2026-08-27 absorbed → `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/`（脚手架 S）
 
 ## 消化后回填
 
 | 字段 | 值 |
 |------|-----|
-| absorbed_into | |
+| absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
 | change | |

@@ -69,10 +69,10 @@ docs/intake/
 
 | ID | 月 | 状态 | kind | priority | 一句话 | parked_until | 文件 |
 |----|-----|------|------|----------|--------|--------------|------|
-| INT-001 | 08 | open | product | P1 | 上报配置双端编辑 | 2026-09 | [2026-08/INT-001-…](./2026-08/INT-001-xiaoshan-upload-config-dual-edit.md) |
-| INT-002 | 08 | open | product | P1 | 配置 sync/version/变更日志 | 2026-09 | [2026-08/INT-002-…](./2026-08/INT-002-xiaoshan-upload-config-sync-version.md) |
-| INT-003 | 08 | open | product | P1 | 三模式多选与字段映射 | 2026-09 | [2026-08/INT-003-…](./2026-08/INT-003-xiaoshan-upload-modes-field-mapping.md) |
-| INT-004 | 08 | open | product | P1 | 旧客户端兼容 | 2026-09 | [2026-08/INT-004-…](./2026-08/INT-004-xiaoshan-upload-legacy-client-compat.md) |
+| INT-001 | 08 | absorbed | product | P1 | 上报配置双端编辑 | 2026-09 | [2026-08/INT-001-…](./2026-08/INT-001-xiaoshan-upload-config-dual-edit.md) |
+| INT-002 | 08 | absorbed | product | P1 | 配置 sync/version/变更日志 | 2026-09 | [2026-08/INT-002-…](./2026-08/INT-002-xiaoshan-upload-config-sync-version.md) |
+| INT-003 | 08 | absorbed | product | P1 | 三模式多选与字段映射 | 2026-09 | [2026-08/INT-003-…](./2026-08/INT-003-xiaoshan-upload-modes-field-mapping.md) |
+| INT-004 | 08 | absorbed | product | P1 | 旧客户端兼容 | 2026-09 | [2026-08/INT-004-…](./2026-08/INT-004-xiaoshan-upload-legacy-client-compat.md) |
 
 ## 索引（按登记月）
 
@@ -84,10 +84,10 @@ docs/intake/
 
 | ID | month | theme | status | title |
 |----|-------|-------|--------|-------|
-| INT-001 | 2026-08 | xiaoshan-upload | open | 萧山上报配置模型与双端编辑 |
-| INT-002 | 2026-08 | xiaoshan-upload | open | 上报配置同步、version 与变更日志 |
-| INT-003 | 2026-08 | xiaoshan-upload | open | 萧山三模式多选与字段映射 |
-| INT-004 | 2026-08 | xiaoshan-upload | open | 萧山上报配置旧客户端兼容 |
+| INT-001 | 2026-08 | xiaoshan-upload | absorbed | 萧山上报配置模型与双端编辑 |
+| INT-002 | 2026-08 | xiaoshan-upload | absorbed | 上报配置同步、version 与变更日志 |
+| INT-003 | 2026-08 | xiaoshan-upload | absorbed | 萧山三模式多选与字段映射 |
+| INT-004 | 2026-08 | xiaoshan-upload | absorbed | 萧山上报配置旧客户端兼容 |
 
 ## 消化 Checklist
 

@@ -5,7 +5,7 @@
 | id | INT-003 |
 | slug | xiaoshan-upload-modes-field-mapping |
 | title | 萧山三模式多选与字段映射 |
-| status | open |
+| status | absorbed |
 | kind | product |
 | theme | xiaoshan-upload |
 | intake_month | 2026-08 |
@@ -32,10 +32,11 @@ Urban 支持设计稿三种上报模式 Weighbridge / Gate / Product：**可多�
 ## 孵化记录
 
 - 2026-08-27 登记（open），由 draft promote；决策 D4（原临时号 INT-006，同日重排为 INT-003）
+- 2026-08-27 absorbed → `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/`（脚手架 S）
 
 ## 消化后回填
 
 | 字段 | 值 |
 |------|-----|
-| absorbed_into | |
+| absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
 | change | |
