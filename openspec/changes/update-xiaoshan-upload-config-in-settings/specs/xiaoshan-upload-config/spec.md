@@ -1,14 +1,15 @@
 ## ADDED Requirements
 
-### Requirement: Urban settings expose 城管配置 as first nav item
+### Requirement: Urban settings expose 城管配置 as last nav item
 
-MaterialClient 系统设置（`SettingsWindow`）SHALL include a navigation item labeled「城管配置」. When the host is MaterialClient.Urban, that item SHALL be visible and SHALL appear as the **first** item in the settings navigation list. Non-Urban clients (including the main MaterialClient and Recycle hosts) MUST NOT show「城管配置」.
+MaterialClient 系统设置（`SettingsWindow`）SHALL include a navigation item labeled「城管配置」. When the host is MaterialClient.Urban, that item SHALL be visible and SHALL appear as the **last** item in the settings navigation list. Non-Urban clients (including the main MaterialClient and Recycle hosts) MUST NOT show「城管配置」.
 
-#### Scenario: Urban client shows 城管配置 first
+#### Scenario: Urban client shows 城管配置 last
 
 - **WHEN** an operator opens 系统设置 from MaterialClient.Urban
-- **THEN** the left navigation SHALL list「城管配置」as the first item
+- **THEN** the left navigation SHALL list「城管配置」as the last item
 - **AND** the item SHALL be visible and selectable
+- **AND** the default selected section SHALL remain the host’s existing default (e.g. 地磅设置)
 
 #### Scenario: Non-Urban client hides 城管配置
 
@@ -62,15 +63,22 @@ Server configuration is authoritative. If the push succeeds, the UI SHALL reflec
 - **AND** 城管配置 has no pending changes
 - **THEN** the client MUST NOT publish a Xiaoshan upload config save-requested local event
 
-### Requirement: Client does not use XiaoshanUploadConfigCaches
+### Requirement: Client persists Urban settings in UrbanSettingsJson
 
-MaterialClient.Urban SHALL NOT read or write `XiaoshanUploadConfigCaches` (or the `XiaoshanUploadConfigCache` entity) for Xiaoshan upload configuration. This change MUST NOT add or modify EF Core migrations for that table.
+MaterialClient SHALL persist Urban aggregated settings in `SettingsEntity.UrbanSettingsJson` (deserialized as `UrbanSettings`). Xiaoshan upload local mirror SHALL live under `UrbanSettings.XiaoshanUpload`. Opening 城管配置 SHALL load the local mirror first, then refresh from the server when available. Successful or failed server sync SHALL update the local mirror to match the server outcome (discard draft on failure).
 
-#### Scenario: Service path without cache repository
+#### Scenario: Save writes UrbanSettingsJson then pushes
 
-- **WHEN** the Urban client loads, refreshes, or pushes Xiaoshan upload configuration
-- **THEN** persistence of that configuration’s client-side state MUST NOT use `XiaoshanUploadConfigCache` / `XiaoshanUploadConfigCaches`
-- **AND** no new or modified EF migration SHALL be introduced for this table in this change
+- **WHEN** the operator saves 系统设置 with Urban config changes
+- **THEN** the client SHALL persist `UrbanSettingsJson` with the current Xiaoshan upload form values
+- **AND** SHALL publish the LocalEvent push to the server
+
+#### Scenario: Failed push overwrites local UrbanSettingsJson from server
+
+- **WHEN** the Xiaoshan upload push fails
+- **THEN** the client SHALL discard local edits
+- **AND** SHALL reload server configuration into the UI and `UrbanSettingsJson`
+
 
 ### Requirement: Standalone 上报配置 menu is not the primary entry
 

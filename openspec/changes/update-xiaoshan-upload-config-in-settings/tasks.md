@@ -1,6 +1,6 @@
 ## 1. Settings UI — 城管配置
 
-- [x] 1.1 `SettingsWindow` 导航插入「城管配置」为第一项；仅 Urban 可见；默认选中
+- [x] 1.1 `SettingsWindow` 导航插入「城管配置」为最后一项；仅 Urban 可见；默认仍选中地磅设置
 - [x] 1.2 「城管配置」面板：三模式/静态字段；**无** `configVersion` UI；打开/刷新走服务端 Get
 - [x] 1.3 确认主程序 / Recycle 无「城管配置」（`ShowUrbanConfigSettings` 依赖 UrbanMode + Facade，主程序无 Facade）
 
@@ -20,4 +20,5 @@
 ## 4. 收尾
 
 - [x] 4.1 Epic 冒烟：编译 Urban/Main 通过；联调需现场验证推送成功/失败舍弃路径
-- [x] 4.2 确认无新 migration；变更留在 `epic/xiaoshan-platform-upload`
+- [x] 4.2 `Settings.UrbanSettingsJson` + `UrbanSettings` 聚合萧山本地镜像；变更留在 `epic/xiaoshan-platform-upload`
+- [x] 4.3 迁移 `AddSettingsUrbanSettingsJson` 已添加

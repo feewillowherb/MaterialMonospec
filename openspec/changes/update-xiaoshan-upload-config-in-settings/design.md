@@ -12,7 +12,7 @@ Epic 分支上已有独立窗 + `XiaoshanUploadConfigCache` 表 + `configVersion
 
 **Goals:**
 
-- 「城管配置」置顶、仅 Urban
+- 「城管配置」置底、仅 Urban
 - 保存经 LocalEvent 推送到服务端，并打应用日志
 - 推送失败 → 舍弃本地编辑 → Get 服务端覆盖 UI
 - 移除客户端 `configVersion` 行为与 `XiaoshanUploadConfigCaches` 用法
@@ -27,9 +27,9 @@ Epic 分支上已有独立窗 + `XiaoshanUploadConfigCache` 表 + `configVersion
 
 ## Decisions
 
-### D1：导航 —「城管配置」第一、Urban 专属
+### D1：导航 —「城管配置」末位、Urban 专属
 
-同前：`SettingsWindow` 导航第一项；仅 Urban `IsVisible`；Urban 打开默认选中该项。
+`SettingsWindow` 导航末项；仅 Urban `IsVisible`；打开设置默认仍选中地磅设置。
 
 ### D2：面板字段 — 无 version UI
 
@@ -55,9 +55,12 @@ Epic 分支上已有独立窗 + `XiaoshanUploadConfigCache` 表 + `configVersion
 - UI / EventData / 本地 mirror **不**依赖 version
 - Write 若 API 仍有 `ExpectedConfigVersion`：传服务端可接受的占位（如 0 或省略策略按现 API），客户端**不做**冲突分支 UI；任意非成功 → 走 D3 失败舍弃 + Get 服务端
 
-### D6：本地暂存介质（零迁移）
+### D6：本地持久化 — `Settings.UrbanSettingsJson`
 
-编辑中草稿仅内存；若需随设置窗短暂保留，可写入既有 `SystemSettings` JSON 嵌套对象（**不**新建列）。推送成功后以服务端为准刷新；失败则清除草稿并 Get。
+**决策**：`SettingsEntity` 新增列 `UrbanSettingsJson`，反序列化为 `UrbanSettings`（聚合 Urban 相关配置；当前含 `XiaoshanUpload` 本地镜像）。打开设置先读本地再 Get 服务端覆盖；保存写入该列后再 LocalEvent 推送；推送成功/失败后均以服务端结果回写该列。
+
+**备选**：仅塞进 `SystemSettingsJson` → 与硬件杂项耦合；拒绝作为主路径。  
+**备选**：仅内存 → 无法离线回看上次对齐配置；拒绝。
 
 ### D7：移除独立菜单窗
 
