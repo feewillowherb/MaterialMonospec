@@ -2,18 +2,18 @@
 
 ## Purpose
 
-定义 MaterialClient.UI 中共享 `SettingsWindow` 设置界面（与 MaterialClient main 分支一致），包括八个设置分区（含高拍仪）、ViewModel 持久化与辅助对话框，供主应用和 Urban 应用通过 DI 打开。
+定义 MaterialClient.UI 中共享 `SettingsWindow` 设置界面（与 MaterialClient main 分支一致），包括地磅、称重、摄像头、车牌识别、系统、音频、打印机、高拍仪等分区，Urban 宿主另含异常设置与城管配置；ViewModel 持久化与辅助对话框供主应用和 Urban 应用通过 DI 打开。导航模型见 `settings-window-section-navigation`。
 ## Requirements
 ### Requirement: Shared SettingsWindow in MaterialClient.UI
 
-MaterialClient.UI MUST provide a `SettingsWindow` Avalonia `Window` equivalent to MaterialClient `main` branch implementation, including settings areas for scale, weighing, camera, license plate recognition, system, sound device, printer, and document camera (高拍仪), and a shared `ProjectInfoWindow` for authorization info display.
+MaterialClient.UI MUST provide a `SettingsWindow` Avalonia `Window` equivalent to MaterialClient `main` branch implementation, including settings areas for scale, weighing, camera, license plate recognition, system, sound device, printer, and document camera (高拍仪), and a shared `ProjectInfoWindow` for authorization info display. Urban-only sections (异常设置、城管配置) MAY appear when the host is MaterialClient.Urban.
 
 #### Scenario: Window layout and navigation
 
 - **WHEN** SettingsWindow is opened
 - **THEN** it SHALL display a custom title bar with title "系统设置" and a close control
 - **AND** SHALL display a left navigation list with items for all settings areas including document camera (高拍仪)
-- **AND** SHALL display a scrollable right content area with section-specific controls bound to `SettingsWindowViewModel`
+- **AND** SHALL display a right content area that shows **only the selected section’s** controls bound to `SettingsWindowViewModel`, with scrolling confined to that section when content overflows
 - **AND** SHALL provide Save and Cancel actions consistent with main branch behavior
 
 #### Scenario: Close without persisting
