@@ -176,6 +176,8 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | Goal | Family | 路径 | Status |
 |------|--------|------|--------|
 | gov-inout-record-save | probe | `graphs/govsync/postweight/` | active |
+| login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
+| login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 
 Retired：无。
 
