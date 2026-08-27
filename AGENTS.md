@@ -424,6 +424,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 |-------|------|----------|
 | effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
 | intake-parking | `traits/intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · `/intake-register` · `/intake-promote`；超出当前 change 范围先收件 |
+| avalonia-docs | `traits/avalonia-docs-trait.md` | Avalonia UI / AXAML / 绑定 / 样式 / DevTools / WPF 迁移；涉及 `repos/MaterialClient` 界面实现 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -442,6 +443,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 消化按 **theme**；挂起月勿空占 Epic / 勿为记账而 propose。
 
 完整机制、迁移清单见 `traits/intake-parking-trait.md`。本地设计决策记录见 `docs/2026-08-27-intake-parking/`。
+
+### avalonia-docs（硬约束摘要）
+
+- Avalonia **不是** WPF：禁止用 WPF 习惯（Triggers、`DependencyProperty`、`pack://`、`Visibility` 枚举等）凭记忆硬套。
+- 涉及 AXAML / 控件 / 样式 / 绑定时：先读 MCP `avalonia-docs`（`get_avalonia_expert_rules` / `search_avalonia_docs` / `lookup_avalonia_api`）。
+- **文档查证**用 avalonia-docs；**运行时检视**用 `avalonia_devtools`——二者勿混用。
+- 与子仓库 `AGENTS.md` 冲突时以**更具体**者为准（如 MaterialClient 继续用 ReactiveUI / Semi·Ursa，不因 MCP 默认 CommunityToolkit 而擅自换栈）。
+
+完整工具路由与优先级见 `traits/avalonia-docs-trait.md`。
 
 ## OpenSpec 与技术债务
 
@@ -482,3 +492,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **禁止使用 tuple 作为 API/字段类型；多值组合使用命名 `record`**（参见「跨子仓库 C# 编码约定」）
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
 - **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）
+- **Avalonia UI 工作遵循 avalonia-docs；先查 MCP 文档，再实现；与子仓库 AGENTS 冲突时以更具体者为准**（参见「Required traits」）
