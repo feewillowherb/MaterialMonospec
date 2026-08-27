@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Build (unless -NoBuild) and start MaterialClient.Urban.exe from .build-verify
+  Build (unless -NoBuild) and start MaterialClient.Urban.exe from .build-verify/Urban
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialClient.Urban.ps1
@@ -12,6 +12,10 @@ param(
 
     [switch] $NoBuild,
 
+    [switch] $StopRunning,
+
+    [switch] $ShowNuGetAudit,
+
     [switch] $Wait
 )
 
@@ -19,7 +23,11 @@ param(
 
 Start-MaterialClientApp `
     -ProjectRelativePath 'src\MaterialClient.Urban\MaterialClient.Urban.csproj' `
+    -App 'Urban' `
     -ExeName 'MaterialClient.Urban.exe' `
     -Configuration $Configuration `
     -NoBuild:$NoBuild `
+    -StopRunning:$StopRunning `
+    -ShowNuGetAudit:$ShowNuGetAudit `
     -Wait:$Wait | Out-Null
+
