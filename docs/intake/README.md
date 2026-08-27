@@ -11,15 +11,20 @@ OpenSpec / BMAD **之前**的种子池。设计权威：`docs/2026-08-27-intake-
 
 ```text
 docs/intake/
-├── README.md                 ← 本文件（按 theme + 按月索引）
-├── _template.md
-└── YYYY-MM/                  ← 登记月文件夹（由 created 推导）
-    ├── README.md             ← 可选；该月条目列表
+├── README.md
+├── _template.md              ← 正式 INT
+├── _draft-template.md        ← 草稿纸（不占序号）
+└── YYYY-MM/
+    ├── README.md
+    ├── drafts/               ← 活跃 scratch
+    │   ├── YYYY-MM-DD-<slug>.md
+    │   └── archive/          ← 已 promote / discarded
     └── INT-xxx-<slug>.md
 ```
 
-**登记路径**：`docs/intake/<YYYY-MM>/INT-<NextID>-<slug>.md`  
-**月文件夹名**：由 `created` 的年月推导，格式 `YYYY-MM`（例 `2026-08`）。`intake_month` 字段与文件夹名一致。
+**INT 路径**：`docs/intake/<YYYY-MM>/INT-<NextID>-<slug>.md`  
+**Draft 路径**：`docs/intake/<YYYY-MM>/drafts/<YYYY-MM-DD>-<slug>.md`（**不**动 Next ID）  
+**月文件夹**：由 `created` 取 `YYYY-MM`。详见 [07-按月聚合](../2026-08-27-intake-parking/07-按月聚合.md)、[08-draft](../2026-08-27-intake-parking/08-draft.md)。
 
 ## 活跃挂起（park）
 
@@ -27,17 +32,32 @@ docs/intake/
 |------|------|--------------|----------|
 | `park/xiaoshan-serve` | 萧山监管上报（地磅/卡口/成品）挂起 | 2026-09 | `xiaoshan-upload` |
 
-> 挂起月：只登记 INT，不开半成品 Epic / 不为记账而 propose。
+> 挂起月：碎聊 → draft；够种子 → INT。不开半成品 Epic / 不为记账而 propose。  
+> Cursor：`/intake-draft` · `/intake-register` · `/intake-promote`
 
 ## 维护规则
 
-1. 由 `created` 取年月 → 确保存在 `docs/intake/<YYYY-MM>/`（首条时可加该月 `README.md`）。  
+### Draft（草稿纸）
+
+1. 「先记一下 / 还没想清楚 / 帮我理理」→ 复制 `_draft-template.md` → `<YYYY-MM>/drafts/<YYYY-MM-DD>-<slug>.md`。  
+2. **不**占用 Next ID；**不**进下方 theme 消化索引。  
+3. 够种子后 promote：拆 1–N 条 INT → 源 draft **archive** 或 **delete**（未指定默认 archive）。
+
+### INT（正式收件）
+
+1. 由 `created` 取年月 → 确保 `docs/intake/<YYYY-MM>/`。  
 2. 复制 `_template.md` → `<YYYY-MM>/INT-<NextID>-<slug>.md`，Next ID +1。  
 3. 必填：`theme`、`intake_month`、`kind`、`summary`、`source`、`created`；挂起填 `parked_until`。  
 4. 状态：`open` → `triaged` → `absorbed` → `proposed` → `closed`。  
-5. 改状态后同步本 README 与对应月 `README.md`。  
-6. 可选 GitHub Issue：body 链到完整路径；INT 填 `github`。  
-7. **消化仍按 theme**（跨月合并），见 `docs/2026-08-27-intake-parking/05-消化手册.md`。
+5. 更新本 README 与月 README。  
+6. 可选 GitHub Issue。  
+7. **消化按 theme**（跨月合并）。
+
+## 活跃 drafts
+
+| 月 | 目录 |
+|----|------|
+| 2026-08 | [2026-08/drafts/](./2026-08/drafts/README.md) |
 
 ## 索引（按 theme）
 
@@ -51,7 +71,7 @@ docs/intake/
 
 ## 索引（按登记月）
 
-| 月 | 条目数 | 目录 |
+| 月 | INT 数 | 目录 |
 |----|--------|------|
 | 2026-08 | 3 | [2026-08/](./2026-08/README.md) |
 
@@ -65,7 +85,7 @@ docs/intake/
 
 ## 消化 Checklist
 
-- [ ] 选定 `park/*` 或 `theme`（扫描所有 `YYYY-MM/` 下条目）
+- [ ] 选定 `park/*` 或 `theme`（仅扫 INT，不含 drafts）
 - [ ] 列出该组全部 `open`/`triaged`
 - [ ] 开 BMAD Epic/PRD；追溯表写入 INT id
 - [ ] INT → `absorbed` + `absorbed_into`

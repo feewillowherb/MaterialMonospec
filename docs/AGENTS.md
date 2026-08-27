@@ -23,7 +23,7 @@ BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSP
 | UX 方案（有 UI 且是主交付） | BMAD（`bmad-create-ux-design`） | planning UX 产物 | 可选链到既有产品权威文档 |
 | 决策级外向调研（市场 / 领域 / 竞品 / 技术选型） | BMAD（`bmad-market-research` / `bmad-domain-research` / `bmad-technical-research`） | `_bmad-output/.../research` | 结论要进仓库知识时：蒸馏 cited 摘要进 `docs/YYYY-MM-DD-*`，原材料仍以 BMAD run 为准 |
 | 子仓/本仓**代码考古**、接口摸底、既有行为 walkthrough、运维手册、管线设计笔记 | **直接 `docs/`**（不必强行套 BMAD） | `docs/YYYY-MM-DD-主题/` | — |
-| 挂起项目碎片、衍生改进、先记下 / pending | **Intake** | `docs/intake/<YYYY-MM>/INT-xxx` | 证据仍链 `docs/YYYY-MM-DD-*` / `SyncDoc/` |
+| 挂起项目碎片、衍生改进、先记下 / pending | **Intake** | `docs/intake/<YYYY-MM>/INT-xxx` 或 `…/drafts/` | 够种子 → INT；未想清 → draft（不占序号） |
 | 已够清楚、只要 OpenSpec change | OpenSpec（`/opsx:propose`） | `openspec/changes/` | 调研夹可作输入链接；不必先空跑 PRD |
 | 不确定下一步 | `bmad-help` | — | 按推荐 skill 走，勿先堆长文到 `docs/` |
 
@@ -121,30 +121,41 @@ docs/2026-01-01-topic-name/
 
 OpenSpec / BMAD **之前**的需求种子池：挂起项目的日常碎片、以及 apply/调研中发现的超出当前 change 范围的改进。先记录、不阻塞当前变更；消化窗口可按 **theme** 收成 BMAD Epic，再切 OpenSpec change。
 
-`docs/intake/`：**每条目一文件** `docs/intake/<YYYY-MM>/INT-001-<slug>.md`（登记月文件夹 + 全局序号），便于按月收件、按 theme 消化。
+`docs/intake/`：正式种子为 `docs/intake/<YYYY-MM>/INT-001-<slug>.md`（登记月 + **全局序号**）；与 Agent 碎聊、尚未够格时先写 `…/<YYYY-MM>/drafts/<YYYY-MM-DD>-<slug>.md`（**不占** Next ID）。详见 [`08-draft.md`](2026-08-27-intake-parking/08-draft.md)。
 
 ### 目录结构
 
 ```
 docs/intake/
 ├── README.md            ← 按 theme + 按月索引；Next ID
-├── _template.md
-├── YYYY-MM/             ← 登记月（由 created 推导）
-│   ├── README.md        ← 可选；该月条目
+├── _template.md         ← 正式 INT
+├── _draft-template.md   ← 草稿纸
+├── YYYY-MM/
+│   ├── README.md
+│   ├── drafts/          ← 活跃 scratch
+│   │   ├── YYYY-MM-DD-<slug>.md
+│   │   └── archive/     ← 已 promote / discarded
 │   └── INT-001-<slug>.md
 └── ...
 ```
 
-### 何时登记
+### 何时写 Draft vs INT
 
-Agent **应该**登记 INT，而非扩大当前 change / 不为记账而 `/opsx:propose`：
+| 落点 | 时机 |
+|------|------|
+| **draft** | 「先记一下 / 还没想清楚 / 帮我理理」；theme 未定；半句碎片。**禁止**占用 INT 序号 |
+| **INT** | 已够 1–3 句种子（theme + summary）；用户明确「收件 / 落成 INT」；apply 超出 scope 的可独立改进 |
 
-- OpenSpec apply 或调研中发现安全、一致性、技术债、可观测性等**超出当前 proposal 范围**的问题
-- 挂起项目每日碎片；用户说「先记下 / pending / 挂起 / 下月再做」
+**登记准则（INT）**：若做进当前 change 需动**当前 `proposal.md` 未列出的模块**，则登记 INT（或先 draft 再 promote）。
 
-**登记准则**：若做进当前 change 需动**当前 `proposal.md` 未列出的模块**，则登记 INT。
+### 如何登记 Draft
 
-### 如何登记
+1. 取当天日期与年月 → 确保 `docs/intake/<YYYY-MM>/drafts/`
+2. 复制 `_draft-template.md` → `drafts/<YYYY-MM-DD>-<slug>.md`
+3. **不**改 Next ID；可选在根 README「活跃 drafts」提及
+4. 够种子后 promote：拆 1–N 条 INT → 源 draft **archive**（移入 `drafts/archive/`）或 **delete**（默认未指定时 archive）
+
+### 如何登记 INT
 
 1. 由 `created` 取年月 `YYYY-MM`；若无则创建 `docs/intake/<YYYY-MM>/`
 2. 复制 `docs/intake/_template.md` → `<YYYY-MM>/INT-<下一序号>-<slug>.md`（序号升序，不复用）
@@ -163,8 +174,10 @@ Agent **应该**登记 INT，而非扩大当前 change / 不为记账而 `/opsx:
 ### 约束
 
 - **不**替代 BMAD / OpenSpec——种子粒度（1–3 句 + 证据链接），详细内容留给 Epic / change
-- **不**在 INT 写完整 PRD/design/tasks
+- **不**在 INT / draft 写完整 PRD/design/tasks
+- **不**用半截聊天占用 `INT-00N`（应先 draft）
 - Agent **不应**自行升到 `absorbed` / `proposed`，除非用户明确要求消化 / `/opsx:propose`
+- Agent **不应**自行把 draft promote 为 INT，除非用户明确要求收件 / 落成 INT（或用户确认「已够种子」）
 
 ## 落地评估口径（Effort）
 

@@ -2,6 +2,8 @@
 
 登记月 **2026-08**（`created` 落在此月的 INT）。
 
+草稿纸：[drafts/](./drafts/README.md)（不占 INT 序号）。
+
 | ID | theme | title | 文件 |
 |----|-------|-------|------|
 | INT-001 | xiaoshan-upload | 萧山地磅称重结果上报 | [INT-001-xiaoshan-weighbridge-upload.md](./INT-001-xiaoshan-weighbridge-upload.md) |
