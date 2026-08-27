@@ -111,58 +111,56 @@ docs/2026-01-01-topic-name/
 
 **新建调研**仍应使用上文的日期文件夹格式。
 
-## 衍生提案待办（Proposal Backlog）
+## Intake 需求收件（Parking）
+
+> 机制 topic：`intake-parking`。扩展设计见 [`docs/2026-08-27-intake-parking/`](2026-08-27-intake-parking/00-调研总览.md)。  
+> **不用** `proposal-backlog` / `PBL`——避免与 OpenSpec `proposal.md` 及 Scrum Product Backlog 混淆。
 
 ### 是什么
 
-实施一个 OpenSpec change 时，常会发现相关问题（安全、一致性、技术债、可观测性缺口……），但把它们塞进当前 change 会违反 OpenSpec 的**单一职责**与**最小范围**原则，造成 scope creep。直接丢弃则丢失改进机会。
+OpenSpec / BMAD **之前**的需求种子池：挂起项目的日常碎片、以及 apply/调研中发现的超出当前 change 范围的改进。先记录、不阻塞当前变更；消化窗口可按 **theme** 收成 BMAD Epic，再切 OpenSpec change。
 
-`docs/proposal-backlog/` 目录是这类**衍生提案想法**的登记缓冲：先记录、不阻塞当前变更、未来各自孵化为独立的 `openspec/changes/` 变更。**每条目一文件**，便于单独编辑、精确链接、git diff 清晰。
+`docs/intake/`：**每条目一文件** `INT-001-<slug>.md`，便于链接、git diff 与按 theme 批量消化。
 
 ### 目录结构
 
 ```
-docs/proposal-backlog/
-├── README.md            ← 索引（所有条目的可扫描表格）+ 维护规则
-├── _template.md         ← 新条目模板（复制后填写）
-├── PBL-001-<slug>.md    ← 每个条目一个文件
+docs/intake/
+├── README.md            ← 索引 + 活跃挂起（park）+ Next ID
+├── _template.md         ← 复制后填写
+├── INT-001-<slug>.md
 └── ...
 ```
 
 ### 何时登记
 
-在 `apply` 阶段（或调研/探索阶段）出现以下情形时，Agent **应该**登记一个 backlog 条目，而非扩大当前 change：
+Agent **应该**登记 INT，而非扩大当前 change / 不为记账而 `/opsx:propose`：
 
-- 发现既有代码有安全风险（如 SQL 注入、敏感信息泄露），但修复涉及多处既有逻辑、超出当前 change 范围
-- 发现一致性缺口（多个同类方法、但当前只动其一），需全族统一才合理
-- 发现可观测性 / 日志 / 测试覆盖的既有短板，但不属于当前变更的产品目标
-- 发现一个可独立验证的技术债项（重构、命名、死代码清理）
-- 用户明确说"先记下，以后再做"的任何改进想法
+- OpenSpec apply 或调研中发现安全、一致性、技术债、可观测性等**超出当前 proposal 范围**的问题
+- 挂起项目每日碎片；用户说「先记下 / pending / 挂起 / 下月再做」
 
-**登记而非立即做的判断准则**：如果把它做进当前 change，需要修改**当前 change 的 `proposal.md` 未列出的文件/模块**，就登记 backlog。
+**登记准则**：若做进当前 change 需动**当前 `proposal.md` 未列出的模块**，则登记 INT。
 
 ### 如何登记
 
-1. 复制 `docs/proposal-backlog/_template.md` → 改名为 `PBL-<下一序号>-<slug>.md`
-   - 序号升序分配（`PBL-001`、`PBL-002`……），**不复用、不重排**
-   - slug 用英文 kebab-case，与未来 OpenSpec change 名对齐（change 名通常为 `<前缀>-<slug>`）
-2. 填写条目字段；建议名称遵循 kebab-case + 字母开头（OpenSpec change 命名要求）
-3. 在 `docs/proposal-backlog/README.md` 的索引表追加一行
-4. 在源 change 的 `proposal.md` / `design.md` 的「替代方案」「开放问题」处，附一句"衍生提案见 `docs/proposal-backlog/PBL-XXX-<slug>.md`"以建立追溯
+1. 复制 `docs/intake/_template.md` → `INT-<下一序号>-<slug>.md`（序号升序，不复用）
+2. 必填：`theme`（kebab-case 业务主题）、`kind`、`summary`、`source`、`created`；挂起类填 `parked_until`（`YYYY-MM`）
+3. 更新 `docs/intake/README.md` 索引与 Next ID
+4. 衍生类：在源 change 的 proposal/design 附一句「衍生见 `docs/intake/INT-XXX-<slug>.md`」
+5. 可选 GitHub Issue：标题 `[INT-00N] …`，body 链到 INT 文件；INT 填 `github`
 
-### 状态流转与维护
+### 状态流转
 
-- 条目状态：`open`（已登记）→ `proposed`（已落 `openspec/changes/<name>/`）→ `closed`（已归档/否决）
-- 升级为正式 change 时：在该条目文件的"状态"字段改为 `proposed`，并在"孵化记录"追加 `→ change: <change-name>` + 日期；**保留该条目文件**（不删除，作索引与历史）
-- 否决时：状态改为 `closed`，在"孵化记录"追加否决理由与日期
-- 状态变更后，同步更新 `README.md` 索引表的"状态"列
-- 该目录为顶层长期维护，**不**进 `YYYY-MM-DD-主题/` 日期文件夹
+- `open` → `triaged` → `absorbed`（已进 BMAD Epic）→ `proposed`（已有 `openspec/changes/`）→ `closed`
+- **挂起月**：仅 `open` / `triaged`；禁止空占 Epic 或仅为记账 propose
+- 升级时更新条目「孵化记录」与 README；**保留** INT 文件作历史
+- 顶层长期维护，**不**进 `YYYY-MM-DD-主题/` 日期文件夹
 
 ### 约束
 
-- **不**用本目录替代正式 OpenSpec change——它只是"想法池"，最终落地仍走 `/opsx-propose` 创建 `openspec/changes/` 工件
-- **不**在条目里写完整 proposal/design——保持种子粒度（1-3 句现状 + 草案要点），详细内容留到正式 change
-- Agent **不应**自行把条目升级为正式 change，除非用户明确要求 `/opsx-propose`
+- **不**替代 BMAD / OpenSpec——种子粒度（1–3 句 + 证据链接），详细内容留给 Epic / change
+- **不**在 INT 写完整 PRD/design/tasks
+- Agent **不应**自行升到 `absorbed` / `proposed`，除非用户明确要求消化 / `/opsx:propose`
 
 ## 落地评估口径（Effort）
 
