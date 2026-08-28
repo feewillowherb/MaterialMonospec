@@ -1,14 +1,14 @@
 ## Why
 
-萧山上报配置与设置窗导航已在 Epic 落地，但实现仍带有切片遗留：分区切换靠 `FindControl` 字典与 code-behind 扫子树、`SettingsWindowViewModel` 直接拼信封/保留静态字段、保存异常被吞掉、客户端字段映射与服务端 `dataSource` 取值不完全一致。需要在不改产品主路径的前提下把壳层与映射收口到可维护、可测试的实现。
+城管配置只验收：设置 UI 核心字段写入客户端 `UrbanSettingsJson` 并能读回。客户端把配置同步到 UrbanManagement（Get/Write、乐观并发、管理端双端编辑）不在验收面，MC 与 UM 两侧相关代码应删除，避免半残同步栈被误测、误接。
 
 ## What Changes
 
-- 设置窗分区切换改为由 `SelectedSettingsSection` 声明式驱动可见性，删除导航 `FindControl` 注册表与按子控件扫描 `IsVisible` 的主路径
-- 将城管配置「表单 ↔ ModesJson/SettingsJson」及未展示静态字段的保留逻辑从 `SettingsWindowViewModel` 抽到 Common Service + 命名 `record`（禁止 tuple）；Urban 宿主注入实现，主程序无城管配置时不调用
-- 系统设置保存失败（含萧山推送超时/异常）SHALL 向用户提示，MUST NOT 空 `catch` 后当作成功关窗
-- 客户端推送前对 modes 信封做与协议 v3 一致的启用模式校验，避免全关三模式后才被服务端拒绝
-- 对齐 Weighbridge `dataSource`：客户端映射与 UrbanManagement 同样优先 mode settings，缺省再回落到 `WEIGHBRIDGE_XIAOSHAN`
+- **唯一保留并验收**：MaterialClient `SettingsWindow`「城管配置」核心字段 ↔ `UrbanSettings.XiaoshanUpload.ModesJson`，经 Common mapper，随 `ISettingsService.SaveSettingsAsync` 写入 `UrbanSettingsJson`
+- **核心字段**：三模式启用；地磅进出场；卡口进出场+场地；成品进出场+场地。AccessCode 只读不入库
+- **删除且不验收「客户端配置 → 服务端」**：MC LocalEvent/Facade/Refit Get+Write；UM `XiaoshanUploadConfig` Get/Write AppService 与 HTTP、Write DTO/`configVersion`/clientProtocolVersion、管理端上报配置编辑（ProjectManagement 弹窗等）、仅服务该 Write 的变更日志。无调用则删实体与后续 migration
+- **MC 其余**：删 `XiaoshanUploadSettingsEnvelope`、本地 `SettingsJson`、设置路径上的 field mapping；本地模型仅 `ModesJson`
+- **不删**：设置窗其它分区、分区导航、主仓 govsync pipeline。称重/卡口/成品**上报流水**若独立于配置 Get/Write 则本切片不强制删除（也不验收配置同步）
 
 ## Capabilities
 
@@ -18,15 +18,11 @@
 
 ### Modified Capabilities
 
-- `settings-window-section-navigation`: 分区切换 MUST 由 ViewModel 选中分区驱动，不得依赖按名称注册导航控件字典作为主路径
-- `settings-ui`: 保存失败 MUST 可感知（提示），不得静默吞掉异常并关闭窗口
-- `xiaoshan-upload-config`: 城管配置 JSON 组装/还原 MUST 经 Common Service；客户端在推送前校验至少一模式启用
-- `xiaoshan-upload-field-mapping`: Weighbridge `dataSource` 解析与服务端一致（mode settings 优先）
+- `xiaoshan-upload-config`: MaterialClient SHALL 仅本地持久化 `ModesJson`；SHALL NOT 同步到 UrbanManagement。UrbanManagement SHALL NOT 再提供给客户端/管理端的配置 Get/Write 同步面
+- `settings-ui`: Urban 宿主保存 SHALL 只写 `UrbanSettingsJson`，MUST NOT 走萧山配置 LocalEvent / Facade / UM Write
 
 ## Impact
 
-- **MaterialClient.Common**：`IXiaoshanUploadSettingsFormMapper` 与 form/preserved `record`（信封类型已在 Common）
-- **MaterialClient.UI**：`SettingsWindow.axaml` / `.axaml.cs`、`SettingsWindowViewModel`（仅引用 Common，禁止引用 Urban）
-- **MaterialClient.Urban**：`XiaoshanUploadFieldMappingService` dataSource 对齐；可选注册 mapper 若实现放 Urban 则 MUST `ExposeServices` 且接口在 Common
-- **UrbanManagement**：本 change **不改** Get/Write API、协议档位、管理端弹窗；仅若客户端映射对齐需要对照现有 `XiaoshanUploadFieldMappingService`
-- 无 **BREAKING** API；无新 EF migration
+- **MaterialClient.Common / UI / Urban**：删除配置同步栈；保留设置 UI → UrbanJson
+- **UrbanManagement**：删除配置 Get/Write 与对应管理端编辑；可能含 EF 实体/迁移（仅当该表只服务配置同步）
+- **不验收**：任何 MC→UM 配置推送、冲突覆盖、打开设置拉服务端

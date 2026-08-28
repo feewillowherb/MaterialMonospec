@@ -1,34 +1,33 @@
 ## ADDED Requirements
 
-### Requirement: Urban config form mapping lives in a Service with named records
+### Requirement: Settings persist Xiaoshan mode fields into UrbanSettingsJson
 
-MaterialClient SHALL provide a Service in **Common** that maps between the 城管配置 UI fields (enabled modes and per-mode inOut/device/site indexes) and `ModesJson`. The mapper MUST NOT round-trip `DisplayName`, `Remark`, or static settings (`buildLicenseNo`, `areaCode`, `spaceName`) through the settings form. Multi-value types SHALL be named records, not tuples. `SettingsWindowViewModel` MUST NOT parse or serialize Xiaoshan envelopes directly and MUST NOT reference the Urban project.
+MaterialClient SHALL persist 城管配置 core fields into `SettingsEntity.UrbanSettingsJson` as `UrbanSettings.XiaoshanUpload.ModesJson`. Mapping SHALL use a Common Service and named records (not tuples). `SettingsWindowViewModel` MUST NOT parse Xiaoshan JSON itself and MUST NOT reference the Urban project.
 
-#### Scenario: Load form from local urban settings
+Core fields SHALL be: Weighbridge/Gate/Product enabled flags; Weighbridge in/out; Gate in/out and site type; Product in/out and site type. Site access code display SHALL use license `AccessCode` and MUST NOT be written to `UrbanSettingsJson`. Local config SHALL store `ModesJson` only.
+
+This change SHALL NOT require or verify that local Urban settings are synchronized to UrbanManagement.
+
+#### Scenario: Save writes ModesJson from UI
+
+- **WHEN** the operator saves 系统设置 on an Urban host with 城管配置 dirty
+- **THEN** `UrbanSettingsJson` SHALL contain `XiaoshanUpload.ModesJson` reflecting the core UI fields
+- **AND** that save SHALL complete without Xiaoshan LocalEvent, config Facade, or UrbanManagement config Write
+- **AND** acceptance SHALL NOT include a client-to-server config sync check
+
+#### Scenario: Reload restores core fields
 
 - **WHEN** settings load applies `UrbanSettings.XiaoshanUpload`
-- **THEN** the ViewModel SHALL obtain UI form fields via the mapping Service from `ModesJson`
-- **AND** MUST NOT load `DisplayName` or `Remark` into the settings form
+- **THEN** the ViewModel SHALL obtain the core UI fields via the mapping Service from `ModesJson`
 
-#### Scenario: Build draft for LocalEvent push
+## REMOVED Requirements
 
-- **WHEN** the operator saves with dirty 城管配置
-- **THEN** the ViewModel SHALL obtain a draft whose `ModesJson` reflects only UI mode fields
-- **AND** SHALL publish that draft via the existing LocalEvent path
+### Requirement: Client-to-server Xiaoshan upload config sync
 
-#### Scenario: Push does not wipe server static fields
+The dual-edit config sync path SHALL be removed and SHALL NOT be accepted as in-scope: MaterialClient LocalEvent/Facade/Refit Get+Write, and UrbanManagement Get/Write AppService, write DTOs, optimistic `configVersion`, management UI for upload **config**, and change log used only for those writes.
 
-- **WHEN** the Urban client writes configuration after a successful Get of an existing row
-- **THEN** the write SHALL keep the server `DisplayName`, `Remark`, and `SettingsJson`
-- **AND** SHALL replace `ModesJson` with the UI-built modes envelope
+#### Scenario: No client config push
 
-### Requirement: Client validates at least one enabled mode before push
-
-Before publishing the Xiaoshan upload save LocalEvent, the Urban client SHALL reject a form with no enabled modes. The settings window SHALL remain open and the user SHALL be informed.
-
-#### Scenario: All modes unchecked blocks push
-
-- **WHEN** the operator saves 系统设置 with 城管配置 dirty
-- **AND** Weighbridge, Gate, and Product are all disabled
-- **THEN** the client MUST NOT publish the Xiaoshan upload save-requested event
-- **AND** the user SHALL be informed that at least one mode must remain enabled
+- **WHEN** settings are saved on the Urban client
+- **THEN** the client MUST NOT call UrbanManagement Xiaoshan upload config Write
+- **AND** types used only for that sync SHALL be deleted on both MaterialClient and UrbanManagement rather than left unused

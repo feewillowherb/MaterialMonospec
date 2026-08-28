@@ -16,6 +16,7 @@ MaterialClient.UI MUST provide `SettingsWindowViewModel` that loads and saves `S
 - **WHEN** user executes the save command
 - **AND** persistence and post-save steps succeed
 - **THEN** it SHALL persist a complete `SettingsEntity` via `ISettingsService.SaveSettingsAsync`
+- **AND** on an Urban host SHALL include `UrbanSettingsJson` with 城管配置 core mode fields (see `xiaoshan-upload-config`) without Xiaoshan LocalEvent or config Facade
 - **AND** SHALL call `_truckScaleWeightService.RestartAsync()` after successful save
 - **AND** SHALL send `DetailCloseRequestedMessage` to close the window
 - **AND** SHALL send `SettingsSavedMessage` on the ReactiveUI message bus for consumers that listen
@@ -24,7 +25,7 @@ MaterialClient.UI MUST provide `SettingsWindowViewModel` that loads and saves `S
 #### Scenario: Save failure stays open and informs the user
 
 - **WHEN** user executes the save command
-- **AND** persistence, scale restart, or Xiaoshan upload push throws or returns unsuccessful
+- **AND** persistence or scale restart throws or returns unsuccessful
 - **THEN** the ViewModel MUST inform the user of the failure
 - **AND** MUST NOT send `DetailCloseRequestedMessage` solely due to that failure
 - **AND** MUST NOT swallow the failure in an empty catch with no user-visible outcome

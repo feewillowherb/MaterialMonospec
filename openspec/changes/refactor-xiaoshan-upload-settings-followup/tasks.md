@@ -1,28 +1,31 @@
-## 1. Form mapping Service
+## 1. 仅验收 UI → UrbanSettingsJson
 
-- [x] 1.1 新增命名 `record`：`XiaoshanUploadSettingsFormState`、`XiaoshanUploadPreservedStatics`（禁止 tuple）
-- [x] 1.2 在 **Common** 实现 `IXiaoshanUploadSettingsFormMapper` / `XiaoshanUploadSettingsFormMapper`（`ITransientDependency`）：ApplyToForm / ToDraft；UI 工程不得引用 Urban
-- [x] 1.3 实现至少一启用模式的校验方法；单测：空 `{}` 默认、三模式全关失败、静态字段 round-trip
-- [x] 1.4 `SettingsWindowViewModel` 注入 Common mapper；删除 VM 内信封 JSON 解析/序列化与散落 `_preserved*`
+- [ ] 1.1 Common mapper：核心 UI 字段 ↔ `ModesJson`；命名 record；UI 不得引用 Urban
+- [ ] 1.2 `XiaoshanUploadLocalConfig` 仅 `ModesJson`；`SaveAsync` → `ISettingsService.SaveSettingsAsync`
+- [ ] 1.3 打开设置从 `UrbanSettingsJson` 还原；AccessCode 只读不入库
+- [ ] 1.4 验证：改核心字段 → 保存 → 再打开一致（**不做**同步到 UM 的验收）
 
-## 2. Settings 分区绑定
+## 2. 删除 MC 配置同步栈
 
-- [x] 2.1 按 Avalonia 绑定（`IsVisible` bool，非 WPF `Visibility`）将各分区可见性绑到 `SelectedSettingsSection`
-- [x] 2.2 `ListBox` 选中只更新 `SelectedSettingsSection`；打开默认仍为地磅设置；隐藏 Urban 项不得成为默认
-- [x] 2.3 删除 `_navigationItems` / `RegisterNav` / 扫 `SettingsSectionsHost.Children` 设 `IsVisible`；保留 LPR 列可见性等无关逻辑
+- [ ] 2.1 删除 LocalEvent / `XiaoshanUploadConfigSaveRequestedEventData` / handler
+- [ ] 2.2 删除 Facade、`XiaoshanUploadConfigClientService`、draft/snapshot、Refit 配置 Get/Write
+- [ ] 2.3 删除 `XiaoshanUploadSettingsEnvelope`、本地 `SettingsJson`
+- [ ] 2.4 删除仅服务配置同步的 `XiaoshanUploadFieldMappingService`；上报流水仍引用则保留并注明
+- [ ] 2.5 grep：MC 无配置同步死代码
 
-## 3. 保存失败与预校验
+## 3. 删除 UM 配置同步面（不验收客户端→服务端）
 
-- [x] 3.1 去掉 `SaveAsync` 空 `catch`；失败 MessageBox（或现有提示）+ `ILogger`；失败不发 `DetailCloseRequestedMessage`
-- [x] 3.2 脏城管配置且无启用模式：不 Publish 萧山 LocalEvent，提示用户，窗口保持打开
-- [x] 3.3 保持既有推送成功/有服务端行失败覆盖/无行保留草稿语义
+- [ ] 3.1 删除 `IXiaoshanUploadConfigAppService` Get/Write 及 HTTP 暴露
+- [ ] 3.2 删除配置 Write DTO / `configVersion` 协议字段 / 管理端上报**配置**编辑 UI
+- [ ] 3.3 删除仅服务 Write 的变更日志；配置实体无引用则 migration 删除
+- [ ] 3.4 不编写、不执行「客户端配置同步到服务端」测试或联调清单
 
-## 4. 字段映射对齐
+## 4. 分区导航 / 本地保存失败（已落地）
 
-- [x] 4.1 `MaterialClient.Urban` `XiaoshanUploadFieldMappingService` Weighbridge `dataSource`：mode settings 非空优先，否则 `WEIGHBRIDGE_XIAOSHAN`
-- [x] 4.2 单测或对照 UM：自定义 dataSource 与缺省常量两条路径
+- [x] 4.1 分区 `IsVisible` 绑定 `SelectedSettingsSection`
+- [x] 4.2 本地保存失败提示且不关窗
 
 ## 5. 验证
 
-- [x] 5.1 编译 `MaterialClient.UI` / Urban / 主程序
-- [x] 5.2 冒烟：切换分区、保存失败提示、三模式全关拦截、Urban/非 Urban 导航
+- [ ] 5.1 编译 MaterialClient 与 UrbanManagement（配置同步 API 应已不存在）
+- [ ] 5.2 冒烟：仅核心字段写入客户端 UrbanJson 并读回

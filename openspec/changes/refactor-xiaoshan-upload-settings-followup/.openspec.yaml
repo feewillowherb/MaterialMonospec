@@ -1,6 +1,6 @@
 schema: spec-driven
 created: 2026-08-27
 effort:
-  tier: M
-  tokens_estimate: "15万-40万"
-  notes: "主仓 OpenSpec + MaterialClient.UI/Urban；不含 UM API"
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "跨 MC+UM 删除配置 Get/Write；验收仅 UI→UrbanSettingsJson；不验同步"
