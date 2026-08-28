@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-28
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "仅 MaterialClient 三处 AbpDbContextOptions；不 fork ABP UoW"
