@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-28
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "跨 UrbanManagement + MaterialClient；Mode A；建议分会话：UM 表/API/页 → 出站/Worker → 客户端上云"
