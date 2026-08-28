@@ -9,8 +9,8 @@
 
 - [x] 2.1 删除 LocalEvent / `XiaoshanUploadConfigSaveRequestedEventData` / handler
 - [x] 2.2 删除 Facade、`XiaoshanUploadConfigClientService`、draft/snapshot、Refit 配置 Get/Write
-- [x] 2.3 删除本地 `SettingsJson`；`XiaoshanUploadSettingsEnvelope` **保留**（上报 skip log / field mapping 仍用）
-- [x] 2.4 **保留** `XiaoshanUploadFieldMappingService`（`UrbanServerUploadService` 上报流水仍引用）；改为读本地 `UrbanSettingsJson.ModesJson`
+- [x] 2.3 删除本地 `SettingsJson` 与 `XiaoshanUploadSettingsEnvelope`（MC/UM）
+- [x] 2.4 删除 `XiaoshanUploadFieldMappingService`（MC/UM）及 skip log；UM 信封仅服务映射一并删除
 - [x] 2.5 grep：MC 无配置同步死代码
 
 ## 3. 删除 UM 配置同步面（不验收客户端→服务端）
