@@ -307,6 +307,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | minimal-di | `traits/minimal-di-trait.md` | C# 新建类型/DI 注册；禁止纯逻辑注册为 Transient/Singleton；OpenSpec 中 Service 提案 |
 | no-database-fk | `traits/no-database-fk-trait.md` | 实体 / Fluent / migration / SQL；表间关联与跨 Context 数据组合 |
 | viewmodel-no-repository | `traits/viewmodel-no-repository-trait.md` | ViewModel / Blazor / 界面层访问数据；禁止 UI 注入 Repository 或 DbContext |
+| openspec-git-workflow | `traits/openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash 合入、`dev-*` promote；merge-check |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -372,6 +373,16 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整规则与正反例见 `traits/viewmodel-no-repository-trait.md`。
 
+### openspec-git-workflow（硬约束摘要）
+
+- 未声明 initiative 时用 **Mode A**（change 同名分支自 trunk 切出，squash 回 trunk）；Mode B 须在 `proposal.md` / `tasks.md` 写明 `dev-<initiative>`。
+- Apply **首次改该仓代码前**切到与 change 同名的分支；无实际改动的仓不建分支。
+- 合入目标分支 **MUST squash 单提交**；禁止 `--no-ff` merge；禁止在 trunk / `dev-*` 上直接堆功能 commit。
+- Archive **默认** sync delta → `openspec/specs/`，不要询问；合入后跑 merge-check 并切回 trunk（Mode B promote 后必须回 trunk）。
+- 本仓主干以 `origin/HEAD` 为准（monospec 多为 `main`，多数子仓多为 `master`）。
+
+完整规则、模式图与检查清单见 `traits/openspec-git-workflow.md`。
+
 ## OpenSpec 与技术债务
 
 > **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
@@ -415,3 +426,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **类型归属变更与投影遵循 type-owned-methods；Service 禁止字段赋值；禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）
 - **DI 注册遵循 minimal-di；纯逻辑不得注册为 Transient/Singleton；新建 Service 须过注册门槛**（参见「Required traits」）
 - **禁止数据库外键与 EF 关系映射；逻辑 Id + Service 组合**（参见「Required traits」）
+- **OpenSpec 分支与合入遵循 openspec-git-workflow；默认 Mode A + squash 单提交，禁止在目标分支直接开发**（参见「Required traits」）
