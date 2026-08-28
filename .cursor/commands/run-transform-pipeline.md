@@ -2,12 +2,14 @@
 name: /run-transform-pipeline
 id: run-transform-pipeline
 category: Workflow
-description: Run a transform Graph; write local output + hashes; stop at human Gate
+description: Run a transform Graph under graphs/<domain>/<slug>/; stop at human Gate
 ---
 
 Pin **family=transform**. Then follow `.cursor/commands/run-pipeline.md`.
 
-**Input**: slug with family transform.
+**必读**：`pipelines/AGENTS.md` §3。
+
+**Input**: `domain/slug` with family transform.
 
 ## Transform Cook
 

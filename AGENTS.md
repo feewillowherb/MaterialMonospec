@@ -45,7 +45,7 @@ MaterialMonospec/
 │   └── standard_words.yaml               # 标准用语
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
-├── pipelines/                            # AI Pipeline Graph（现行如何再验；非 OpenSpec）
+├── pipelines/                            # 可 cook 验收 Graph（框架 + graphs/）；约定见 pipelines/AGENTS.md
 ├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
 ├── _bmad-output/                         # BMAD 规划/实现产出
 ├── .agents/skills/                       # Cursor BMAD skills
@@ -407,8 +407,9 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 与 OpenSpec 同构、**不是** OpenSpec：`/gen-pipeline` 对 propose，`/run-pipeline` 对 apply。
 
-- 哲学与协议：`docs/2026-08-13-ai-pipeline-design-philosophy/`
-- 现行 Graph：`pipelines/<slug>/`（模板 `pipelines/_template/`）
+- **约定入口**：`pipelines/AGENTS.md`（分层 `graphs/<domain>/<slug>/`、选型、新建/退役）
+- 哲学深潜：`docs/2026-08-13-ai-pipeline-design-philosophy/`（cook 协议以 Graph + AGENTS.md 为准）
+- 现行 Graph：`pipelines/graphs/<domain>/<slug>/`（模板 `pipelines/_template/`）
 - 命令：`.cursor/commands/gen-pipeline.md`、`run-pipeline.md`，以及 `/gen-<family>-pipeline`、`/run-<family>-pipeline`
 - Family：`observe` | `ingest` | `probe` | `reconcile` | `transform`
 - **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 宣布 L3 通过
@@ -423,6 +424,8 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 |-------|------|----------|
 | effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
 | intake-parking | `traits/intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · `/intake-register` · `/intake-promote`；超出当前 change 范围先收件 |
+| avalonia-docs | `traits/avalonia-docs-trait.md` | Avalonia UI / AXAML / 绑定 / 样式 / DevTools / WPF 迁移；涉及 `repos/MaterialClient` 界面实现 |
+| static-from-to | `traits/static-from-to-trait.md` | C# 实体/DTO/表单/JSON 等数据转化；OpenSpec 中的转化 API 草图 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -441,6 +444,24 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 消化按 **theme**；挂起月勿空占 Epic / 勿为记账而 propose。
 
 完整机制、迁移清单见 `traits/intake-parking-trait.md`。本地设计决策记录见 `docs/2026-08-27-intake-parking/`。
+
+### avalonia-docs（硬约束摘要）
+
+- Avalonia **不是** WPF：禁止用 WPF 习惯（Triggers、`DependencyProperty`、`pack://`、`Visibility` 枚举等）凭记忆硬套。
+- 涉及 AXAML / 控件 / 样式 / 绑定时：先读 MCP `avalonia-docs`（`get_avalonia_expert_rules` / `search_avalonia_docs` / `lookup_avalonia_api`）。
+- **文档查证**用 avalonia-docs；**运行时检视**用 `avalonia_devtools`——二者勿混用。
+- 与子仓库 `AGENTS.md` 冲突时以**更具体**者为准（如 MaterialClient 继续用 ReactiveUI / Semi·Ursa，不因 MCP 默认 CommunityToolkit 而擅自换栈）。
+
+完整工具路由与优先级见 `traits/avalonia-docs-trait.md`。
+
+### static-from-to（硬约束摘要）
+
+- 项目内数据转化只用静态 **`From*`**（目标类型工厂）和 **`To*`**（源上的实例方法或扩展），例如 `WeighingListItemDto.FromWaybill(...)`。
+- **禁止**新增 `IXxxMapper` / `XxxMapper` / 映射 Service，也**禁止**为转化注册 DI。
+- 查表等上下文作为 `From*` / `To*` 的参数，不作为 mapper 构造注入。
+- 无明确要求时，不把存量 mapper 清扫塞进当前 change。
+
+完整规则与正反例见 `traits/static-from-to-trait.md`。
 
 ## OpenSpec 与技术债务
 
@@ -481,3 +502,5 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **禁止使用 tuple 作为 API/字段类型；多值组合使用命名 `record`**（参见「跨子仓库 C# 编码约定」）
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
 - **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）
+- **Avalonia UI 工作遵循 avalonia-docs；先查 MCP 文档，再实现；与子仓库 AGENTS 冲突时以更具体者为准**（参见「Required traits」）
+- **数据转化使用静态 From/To，禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）

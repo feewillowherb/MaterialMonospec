@@ -4,7 +4,7 @@ OpenSpec / BMAD **之前**的种子池。设计权威：`docs/2026-08-27-intake-
 
 | 项 | 值 |
 |----|-----|
-| Next ID | `INT-004` |
+| Next ID | `INT-005` |
 | 机制 topic | `intake-parking` |
 
 ## 目录结构
@@ -69,23 +69,25 @@ docs/intake/
 
 | ID | 月 | 状态 | kind | priority | 一句话 | parked_until | 文件 |
 |----|-----|------|------|----------|--------|--------------|------|
-| INT-001 | 08 | open | product | P1 | 地磅称重上报 | 2026-09 | [2026-08/INT-001-…](./2026-08/INT-001-xiaoshan-weighbridge-upload.md) |
-| INT-002 | 08 | open | product | P1 | 卡口进出记录上报 | 2026-09 | [2026-08/INT-002-…](./2026-08/INT-002-xiaoshan-gate-inout-record.md) |
-| INT-003 | 08 | open | product | P1 | 成品进出（-02） | 2026-09 | [2026-08/INT-003-…](./2026-08/INT-003-xiaoshan-product-inout-record.md) |
+| INT-001 | 08 | proposed | product | P1 | 上报配置双端编辑 | 2026-09 | [2026-08/INT-001-…](./2026-08/INT-001-xiaoshan-upload-config-dual-edit.md) |
+| INT-002 | 08 | proposed | product | P1 | 配置 sync/version/变更日志 | 2026-09 | [2026-08/INT-002-…](./2026-08/INT-002-xiaoshan-upload-config-sync-version.md) |
+| INT-003 | 08 | proposed | product | P1 | 三模式多选与字段映射 | 2026-09 | [2026-08/INT-003-…](./2026-08/INT-003-xiaoshan-upload-modes-field-mapping.md) |
+| INT-004 | 08 | proposed | product | P1 | 旧客户端兼容 | 2026-09 | [2026-08/INT-004-…](./2026-08/INT-004-xiaoshan-upload-legacy-client-compat.md) |
 
 ## 索引（按登记月）
 
 | 月 | INT 数 | 目录 |
 |----|--------|------|
-| 2026-08 | 3 | [2026-08/](./2026-08/README.md) |
+| 2026-08 | 4 | [2026-08/](./2026-08/README.md) |
 
 ## 平铺速查
 
 | ID | month | theme | status | title |
 |----|-------|-------|--------|-------|
-| INT-001 | 2026-08 | xiaoshan-upload | open | 萧山地磅称重结果上报 |
-| INT-002 | 2026-08 | xiaoshan-upload | open | 萧山卡口车辆进出记录上报 |
-| INT-003 | 2026-08 | xiaoshan-upload | open | 萧山成品进出记录上报 |
+| INT-001 | 2026-08 | xiaoshan-upload | proposed | 萧山上报配置模型与双端编辑 |
+| INT-002 | 2026-08 | xiaoshan-upload | proposed | 上报配置同步、version 与变更日志 |
+| INT-003 | 2026-08 | xiaoshan-upload | proposed | 萧山三模式多选与字段映射 |
+| INT-004 | 2026-08 | xiaoshan-upload | proposed | 萧山上报配置旧客户端兼容 |
 
 ## 消化 Checklist
 

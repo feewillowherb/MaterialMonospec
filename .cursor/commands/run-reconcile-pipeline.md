@@ -2,12 +2,14 @@
 name: /run-reconcile-pipeline
 id: run-reconcile-pipeline
 category: Workflow
-description: Run a reconcile Graph; left/right excerpts + diff; stop at human Gate
+description: Run a reconcile Graph under graphs/<domain>/<slug>/; stop at human Gate
 ---
 
 Pin **family=reconcile**. Then follow `.cursor/commands/run-pipeline.md`.
 
-**Input**: slug with family reconcile.
+**必读**：`pipelines/AGENTS.md` §3。
+
+**Input**: `domain/slug` with family reconcile.
 
 ## Reconcile Cook
 

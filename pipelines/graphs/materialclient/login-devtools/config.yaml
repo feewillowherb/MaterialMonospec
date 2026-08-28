@@ -1,0 +1,104 @@
+id: login-devtools
+created: "2026-08-27"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: observe
+  goal: login-observe-devtools
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: session-anonymous
+  end: observe-captured
+cook: new-object
+
+target:
+  hostProject: repos/MaterialClient/src/MaterialClient
+  startupRef: repos/MaterialClient/src/MaterialClient/Services/StartupService.cs
+  viewPointer: repos/MaterialClient/src/MaterialClient.UI/Views/LoginWindow.axaml
+  viewModel: MaterialClient.UI.ViewModels.LoginWindowViewModel
+  windowTitle: 凡东智能物料验收系统
+  controls:
+    usernameProperty: Username
+    passwordProperty: Password
+    loginCommand: LoginCommand
+    successProperty: IsLoginSuccessful
+    errorProperty: ErrorMessage
+  attach:
+    mode: attach-to-app
+    # attach-to-file 仅用于静态预览；本 Graph 禁止用预览路径宣称登录成功
+    forbidPreviewAsLoginProof: true
+  prerequisites:
+    - MaterialClient 主程序已运行且 LoginWindow 可见
+    - DevTools / DiagnosticsSupport 已启用（项目已引用 AvaloniaUI.DiagnosticsSupport）
+    - 授权有效；无活跃会话
+
+auth:
+  mode: form
+  fields: [username, password]
+
+steps:
+  - id: bind-app
+    name: attach-to-app；search LoginWindow / DataContext=LoginWindowViewModel
+  - id: cook-login
+    name: set-prop Username/Password → action 触发登录（或等价 input）
+  - id: validate-surface
+    name: 读 IsLoginSuccessful / ErrorMessage；screenshot；写 summary/report
+
+expect:
+  - id: login-window-attached
+    level: L0
+    description: DevTools 已 attach 到进程，并能定位 LoginWindow 或 LoginWindowViewModel
+  - id: credentials-applied
+    level: L1
+    description: Username/Password 已写入 VM；LoginCommand 已触发（可见 IsLoggingIn 或随后成功态）
+  - id: login-success-flag
+    level: L2
+    description: IsLoginSuccessful=true 或 LoginWindow 隐藏且主称重窗可见；ErrorMessage 为空
+  # L3 仅用户
+
+capture:
+  screenshot:
+    required: true
+    sink: screenshots/
+    moments: [pre-login, post-login]
+  treeSnapshot:
+    required: true
+    sink: tree/
+    moments: [pre-login, post-login]
+  props:
+    required: true
+    sink: props/
+    note: 脱敏 — 不落 Password 明文到证据
+  logs:
+    required: true
+    sink: logs/
+  http:
+    required: true
+    sink: http/
+    note: 默认难截获 → missing / count 0
+
+humanGates:
+  - missing-secrets
+  - app-not-running-or-authcode
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: false
+
+adapters:
+  ui:
+    mcp: avalonia_devtools
+    tools:
+      - attach-to-app
+      - tree
+      - search
+      - props
+      - set-prop
+      - action
+      - input
+      - screenshot
+    experimental: false

@@ -2,12 +2,14 @@
 name: /run-observe-pipeline
 id: run-observe-pipeline
 category: Workflow
-description: Run an observe Graph; screenshots/HTTP/logs; stop at human Gate
+description: Run an observe Graph under graphs/<domain>/<slug>/; stop at human Gate
 ---
 
 Pin **family=observe**. Then follow `.cursor/commands/run-pipeline.md`.
 
-**Input**: slug. If omitted, list `pipelines/` where `config.yaml` family is observe.
+**必读**：`pipelines/AGENTS.md` §3。
+
+**Input**: `domain/slug` 或 slug。If omitted, list `graphs/**` where `graph.family` / `family` is observe.
 
 ## Observe Cook
 

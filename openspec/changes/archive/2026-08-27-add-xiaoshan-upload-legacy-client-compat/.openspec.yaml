@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-27
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "跨 MaterialClient + UrbanManagement；Write 分流与 legacy merge；不含 GovSync 与双响应形态"

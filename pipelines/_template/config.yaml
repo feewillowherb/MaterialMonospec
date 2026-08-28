@@ -1,14 +1,18 @@
 id: "{{slug}}"
-family: observe # observe | ingest | probe | reconcile | transform
-goal: "{{goal}}"
-status: active # active | retired
-environment: local # local | shared | production
+created: "{{created}}"         # YYYY-MM-DD；Graph 落盘创建日
+graph:
+  product: "{{product}}"       # materialclient | urban | baseplatform | platform
+  domain: "{{domain}}"         # materialclient | urban | baseplatform | govsync | platform
+  family: observe              # observe | ingest | probe | reconcile | transform
+  goal: "{{goal}}"             # kebab；同一 goal 槽互斥
+  status: active               # active | retired
+environment: local             # local | shared | production
 stopOnError: false
 secretsRef: secrets.local.yaml
 sockets:
   start: "{{socket_start}}"
   end: "{{socket_end}}"
-cook: new-object # in-place | new-object
+cook: new-object               # in-place | new-object
 
 target: {}
 steps: []

@@ -2,12 +2,14 @@
 name: /run-ingest-pipeline
 id: run-ingest-pipeline
 category: Workflow
-description: Run an ingest Graph; dry-run or transactional write; stop at human Gate
+description: Run an ingest Graph under graphs/<domain>/<slug>/; stop at human Gate
 ---
 
 Pin **family=ingest**. Then follow `.cursor/commands/run-pipeline.md`.
 
-**Input**: slug with family ingest.
+**必读**：`pipelines/AGENTS.md` §3。
+
+**Input**: `domain/slug` with family ingest.
 
 ## Ingest Cook
 

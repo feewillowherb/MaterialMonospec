@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-27
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "跨 MC+UM 删除配置 Get/Write；验收仅 UI→UrbanSettingsJson；不验同步"
