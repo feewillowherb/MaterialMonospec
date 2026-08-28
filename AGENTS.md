@@ -14,6 +14,8 @@ MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（�
 
 跨子仓库 C# 约定（含 Record 替代 Tuple）见下文「跨子仓库 C# 编码约定」；实现前仍须阅读对应子仓库 `AGENTS.md`，冲突时以**更严格**者为准。
 
+ViewModel / 界面层 **不得**直接使用 Repository：规则在 `traits/viewmodel-no-repository-trait.md`，**不要**写入各子仓库 `AGENTS.md`。
+
 ## 目录结构
 
 ```
@@ -242,130 +244,6 @@ repositories:                # 子仓库列表
 - [ ] 多值类型为命名 `record`（DTO、值对象、查询结果等）
 - [ ] OpenSpec 设计文档中的 API 签名未使用 tuple
 
-## 代码架构约束
-
-> **关键规则：ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据。**
-
-### Repository 访问约束
-
-**禁止在 ViewModels 中直接使用 Repository**
-
-- **原因**：ViewModels 无法创建和管理 UnitOfWork，直接使用 Repository 会导致事务管理问题
-- **正确做法**：所有 Repository 访问必须通过 Service 层进行
-- **架构层级**：View → ViewModel → Service → Repository → DbContext
-
-### Service 层要求
-
-**Service 方法必须使用 UnitOfWork 修饰**
-
-- **数据变更方法**：任何涉及数据写入的 Service 方法必须使用 `[UnitOfWork]` 特性修饰
-- **事务边界**：UnitOfWork 自动管理事务开始、提交和回滚
-- **异常处理**：方法中的异常会自动触发事务回滚
-
-**Service 创建规则**
-
-- 如果需要访问 Repository 或外部 I/O 但没有对应的 Service，必须创建新的 **AppService / DomainService**（满足 `minimal-di` 注册门槛）。
-- Service 通过构造函数注入所需的 Repository 与其他**运行时**依赖；纯映射/格式化/校验 **不得**仅为 DI 而新建 Service。
-- 通过注册门槛的实现类使用 `ITransientDependency` 或 `ISingletonDependency` 标记（见 `traits/minimal-di-trait.md`）。
-
-### 正确与错误示例
-
-| 场景 | ❌ 错误做法 | ✅ 正确做法 |
-|------|-----------|-----------|
-| ViewModel 查询数据 | `var records = await _repository.GetListAsync()` | `var records = await _myService.GetRecordsAsync()` |
-| ViewModel 保存数据 | `await _repository.InsertAsync(entity)` | `await _myService.CreateRecordAsync(dto)` |
-| Service 定义 | 直接在 ViewModel 中实现业务逻辑 | 创建 `IMyService` 接口和 `MyService` 实现 |
-| 事务管理 | 不使用 UnitOfWork 特性 | `[UnitOfWork] public async Task CreateAsync()` |
-| 数据访问模式 | ViewModel → Repository | ViewModel → Service → Repository |
-
-### 实现示例
-
-**正确的 Service 层实现**：
-
-```csharp
-// Service 接口
-public interface IWeighingRecordService : ITransientDependency
-{
-    Task<List<WeighingRecord>> GetRecordsByStatusAsync(SyncStatus status);
-    Task<WeighingRecord> CreateAsync(CreateWeighingRecordDto dto);
-}
-
-// Service 实现
-public class WeighingRecordService : IWeighingRecordService
-{
-    private readonly IRepository<WeighingRecord, long> _repository;
-    private readonly IUnitOfWorkManager _unitOfWorkManager;
-
-    public WeighingRecordService(
-        IRepository<WeighingRecord, long> repository,
-        IUnitOfWorkManager unitOfWorkManager)
-    {
-        _repository = repository;
-        _unitOfWorkManager = unitOfWorkManager;
-    }
-
-    [UnitOfWork]
-    public async Task<List<WeighingRecord>> GetRecordsByStatusAsync(SyncStatus status)
-    {
-        return await _repository
-            .Where(r => r.SyncStatus == status)
-            .ToListAsync();
-    }
-
-    [UnitOfWork]
-    public async Task<WeighingRecord> CreateAsync(CreateWeighingRecordDto dto)
-    {
-        var record = new WeighingRecord
-        {
-            PlateNumber = dto.PlateNumber,
-            TotalWeight = dto.TotalWeight,
-            SyncStatus = SyncStatus.Pending
-        };
-
-        await _repository.InsertAsync(record);
-        return record;
-    }
-}
-```
-
-**正确的 ViewModel 使用**：
-
-```csharp
-public class UrbanAttendedWeighingViewModel : ViewModelBase
-{
-    private readonly IWeighingRecordService _weighingRecordService;
-
-    public UrbanAttendedWeighingViewModel(IWeighingRecordService weighingRecordService)
-    {
-        _weighingRecordService = weighingRecordService;
-    }
-
-    public async Task LoadRecordsAsync()
-    {
-        // ✅ 正确：通过 Service 访问数据
-        var records = await _weighingRecordService.GetRecordsByStatusAsync(SyncStatus.Pending);
-        Records.AddRange(records);
-    }
-}
-```
-
-### 违反约束的后果
-
-- **事务管理混乱**：直接使用 Repository 可能导致数据不一致
-- **业务逻辑分散**：业务逻辑散落在 ViewModels 中，难以测试和复用
-- **违反 DDD 原则**：破坏了领域驱动设计的分层架构
-- **测试困难**：ViewModel 直接依赖 Repository 使得单元测试复杂化
-
-### 检查清单
-
-在代码审查时，确认以下内容：
-
-- [ ] ViewModel 中没有直接注入 `IRepository<TEntity, TKey>`
-- [ ] ViewModel 中没有调用 `GetListAsync()`, `InsertAsync()`, `UpdateAsync()` 等 Repository 方法
-- [ ] 所有数据访问都通过相应的 Service 接口进行
-- [ ] Service 中涉及数据写入的方法都使用了 `[UnitOfWork]` 特性
-- [ ] Service 的构造函数只注入 Repository 和其他服务，不注入 ViewModel
-
 ## 工具和验证
 
 ```bash
@@ -428,6 +306,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | type-owned-methods | `traits/type-owned-methods-trait.md` | C# 类型归属变更与投影；Service 禁止字段赋值；OpenSpec 转化/变更 API 草图 |
 | minimal-di | `traits/minimal-di-trait.md` | C# 新建类型/DI 注册；禁止纯逻辑注册为 Transient/Singleton；OpenSpec 中 Service 提案 |
 | no-database-fk | `traits/no-database-fk-trait.md` | 实体 / Fluent / migration / SQL；表间关联与跨 Context 数据组合 |
+| viewmodel-no-repository | `traits/viewmodel-no-repository-trait.md` | ViewModel / Blazor / 界面层访问数据；禁止 UI 注入 Repository 或 DbContext |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -484,6 +363,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整规则与正反例见 `traits/no-database-fk-trait.md`。
 
+### viewmodel-no-repository（硬约束摘要）
+
+- 界面层（ViewModel、Avalonia code-behind、等价 Blazor 组件）**禁止**注入或调用 `IRepository` / `DbContext`。
+- 数据访问：**View → ViewModel → Service → Repository → DbContext**；缺 Service 时按 `minimal-di` 新建 Service，不得把 Repository 接到 UI。
+- Service **写操作**必须 `[UnitOfWork]`；Service **不得**注入 ViewModel。
+- **禁止**把本规则再写进子仓库 `AGENTS.md`；以本 trait 为准。
+
+完整规则与正反例见 `traits/viewmodel-no-repository-trait.md`。
+
 ## OpenSpec 与技术债务
 
 > **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
@@ -519,7 +407,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 归档前确认所有任务已完成
 - 定期运行验证脚本确保配置正确
 - **无明确要求时，OpenSpec 不处理技术债务**（参见「OpenSpec 与技术债务」）
-- **ViewModels 不得直接使用 Repository，必须通过 Service 层访问数据**（参见「代码架构约束」）
+- **界面层不得碰 Repository**（viewmodel-no-repository；**不要**写入子仓 `AGENTS.md`）
 - **禁止使用 tuple 作为 API/字段类型；多值组合使用命名 `record`**（参见「跨子仓库 C# 编码约定」）
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
 - **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）
