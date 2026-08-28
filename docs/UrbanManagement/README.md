@@ -27,6 +27,12 @@
 
 参数与完整用法见 [windows-server-deploy.md §3.1](./windows-server-deploy.md#31-使用发布脚本推荐)。
 
+## 调研（上云 / 萧山分流）
+
+客户端卡口/成品进出与服务端三通道上报的对照，见日期夹（非本目录运维手册）：
+
+- [`docs/2026-08-28-urbanmanagement-passage-xiaoshan-upload/`](../2026-08-28-urbanmanagement-passage-xiaoshan-upload/00-调研总览.md)
+
 ## 相关资源
 
 - 子仓库代码：`repos/UrbanManagement/`
