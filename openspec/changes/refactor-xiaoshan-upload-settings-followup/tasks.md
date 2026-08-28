@@ -1,6 +1,6 @@
 ## 1. 仅验收 UI → UrbanSettingsJson
 
-- [x] 1.1 Common mapper：核心 UI 字段 ↔ `ModesJson`；命名 record；UI 不得引用 Urban
+- [x] 1.1 Common 静态扩展：核心 UI 字段 ↔ `ModesJson`；命名 record；UI 不得引用 Urban
 - [x] 1.2 `XiaoshanUploadLocalConfig` 仅 `ModesJson`；`SaveAsync` → `ISettingsService.SaveSettingsAsync`
 - [x] 1.3 打开设置从 `UrbanSettingsJson` 还原；AccessCode 只读不入库
 - [x] 1.4 验证：改核心字段 → 保存 → 再打开一致（**不做**同步到 UM 的验收）
