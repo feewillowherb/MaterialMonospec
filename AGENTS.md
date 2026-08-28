@@ -425,7 +425,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
 | intake-parking | `traits/intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · `/intake-register` · `/intake-promote`；超出当前 change 范围先收件 |
 | avalonia-docs | `traits/avalonia-docs-trait.md` | Avalonia UI / AXAML / 绑定 / 样式 / DevTools / WPF 迁移；涉及 `repos/MaterialClient` 界面实现 |
-| static-from-to | `traits/static-from-to-trait.md` | C# 实体/DTO/表单/JSON 等数据转化；OpenSpec 中的转化 API 草图 |
+| type-owned-methods | `traits/type-owned-methods-trait.md` | C# 类型归属变更与投影；Service 禁止字段赋值；OpenSpec 转化/变更 API 草图 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -454,14 +454,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整工具路由与优先级见 `traits/avalonia-docs-trait.md`。
 
-### static-from-to（硬约束摘要）
+### type-owned-methods（硬约束摘要）
 
-- 项目内数据转化只用静态 **`From*`**（目标类型工厂）和 **`To*`**（源上的实例方法或扩展），例如 `WeighingListItemDto.FromWaybill(...)`。
-- **禁止**新增 `IXxxMapper` / `XxxMapper` / 映射 Service，也**禁止**为转化注册 DI。
-- 查表等上下文作为 `From*` / `To*` 的参数，不作为 mapper 构造注入。
-- 无明确要求时，不把存量 mapper 清扫塞进当前 change。
+- **变更（mutation）**：Entity、DTO、envelope、form 等由**类型自身实例方法**改状态（如 `waybill.ConfirmReceiving(...)`、`envelope.EnableMode(...)`）；Service / ViewModel **禁止**逐字段赋值。
+- **投影（projection）**：跨类型只读转换用静态 **`From*`**（目标类型 canonical）与 **`To*`**（源扩展，须委托 `From*`），例如 `RecycleTransportRecord.FromWaybill(...)`。
+- **禁止**新增 `IXxxMapper` / `XxxMapper` / 映射 Service，也**禁止**为转化注册 DI；领域实体不得依赖外部契约 DTO 形状。
+- 查表等上下文作为方法参数或 Context `record`，不作为 mapper 构造注入。
+- 无明确要求时，不把存量 mapper 清扫塞进当前 change；**触及** Service 内字段赋值时应在该 change 内迁到类型归属方法。
 
-完整规则与正反例见 `traits/static-from-to-trait.md`。
+完整规则与正反例见 `traits/type-owned-methods-trait.md`（原 `static-from-to`）。
 
 ## OpenSpec 与技术债务
 
@@ -503,4 +504,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
 - **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）
 - **Avalonia UI 工作遵循 avalonia-docs；先查 MCP 文档，再实现；与子仓库 AGENTS 冲突时以更具体者为准**（参见「Required traits」）
-- **数据转化使用静态 From/To，禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）
+- **类型归属变更与投影遵循 type-owned-methods；Service 禁止字段赋值；禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）
