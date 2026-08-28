@@ -346,7 +346,7 @@ _Source: SPL core vs application assets; SQLite file ops_
 
 ### Architecture decision (ADR-style)
 
-**Status: ADOPTED (2026-08-28).** OpenSpec change **not** opened yet (deferred by user).
+**Status: ADOPTED (2026-08-28).** OpenSpec: `openspec/changes/refactor-common-product-layers`.
 
 **Decision:** Option B + product-common layers: `MaterialClient.Common` is the frozen kernel baseline; `MaterialClient.Common.Urban` / `MaterialClient.Common.Recycle` hold product entities, product DbContext/migrations, and product Service APIs. Hosts are UI composition only. Standard `MaterialClient` MUST NOT reference `Common.*` product projects.
 
@@ -356,7 +356,7 @@ _Source: SPL core vs application assets; SQLite file ops_
 
 **Rejected:** A (weak freeze), C (snapshot drift / ABP merge), D (ops + WAL ATTACH).
 
-**Follow-up:** When implementation starts, create OpenSpec in `openspec/changes/` (do not implement from this research file alone).
+**Follow-up:** Implement via OpenSpec change `refactor-common-product-layers` (`/opsx:apply`).
 
 ### Naming: `Common.Urban` / `Common.Recycle` product-common layers (ADOPTED, 2026-08-28)
 

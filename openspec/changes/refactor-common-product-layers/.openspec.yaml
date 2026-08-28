@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-08-28
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "仅 MaterialClient；建议 Urban 与 Recycle 分会话 apply"
