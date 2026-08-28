@@ -264,9 +264,9 @@ repositories:                # 子仓库列表
 
 **Service 创建规则**
 
-- 如果需要访问 Repository 但没有对应的 Service，必须创建新的 Service 类
-- Service 通过构造函数注入所需的 Repository
-- Service 实现应该使用 `ITransientDependency` 或 `ISingletonDependency` 标记
+- 如果需要访问 Repository 或外部 I/O 但没有对应的 Service，必须创建新的 **AppService / DomainService**（满足 `minimal-di` 注册门槛）。
+- Service 通过构造函数注入所需的 Repository 与其他**运行时**依赖；纯映射/格式化/校验 **不得**仅为 DI 而新建 Service。
+- 通过注册门槛的实现类使用 `ITransientDependency` 或 `ISingletonDependency` 标记（见 `traits/minimal-di-trait.md`）。
 
 ### 正确与错误示例
 
@@ -425,7 +425,9 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | effort-token-estimate | `traits/effort-token-estimate-trait.md` | 调研工作量评估；创建/更新 change 的 `.openspec.yaml`；用户问及工作量 / effort / 落地规模 |
 | intake-parking | `traits/intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · `/intake-register` · `/intake-promote`；超出当前 change 范围先收件 |
 | avalonia-docs | `traits/avalonia-docs-trait.md` | Avalonia UI / AXAML / 绑定 / 样式 / DevTools / WPF 迁移；涉及 `repos/MaterialClient` 界面实现 |
-| static-from-to | `traits/static-from-to-trait.md` | C# 实体/DTO/表单/JSON 等数据转化；OpenSpec 中的转化 API 草图 |
+| type-owned-methods | `traits/type-owned-methods-trait.md` | C# 类型归属变更与投影；Service 禁止字段赋值；OpenSpec 转化/变更 API 草图 |
+| minimal-di | `traits/minimal-di-trait.md` | C# 新建类型/DI 注册；禁止纯逻辑注册为 Transient/Singleton；OpenSpec 中 Service 提案 |
+| no-database-fk | `traits/no-database-fk-trait.md` | 实体 / Fluent / migration / SQL；表间关联与跨 Context 数据组合 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -454,14 +456,33 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整工具路由与优先级见 `traits/avalonia-docs-trait.md`。
 
-### static-from-to（硬约束摘要）
+### type-owned-methods（硬约束摘要）
 
-- 项目内数据转化只用静态 **`From*`**（目标类型工厂）和 **`To*`**（源上的实例方法或扩展），例如 `WeighingListItemDto.FromWaybill(...)`。
-- **禁止**新增 `IXxxMapper` / `XxxMapper` / 映射 Service，也**禁止**为转化注册 DI。
-- 查表等上下文作为 `From*` / `To*` 的参数，不作为 mapper 构造注入。
-- 无明确要求时，不把存量 mapper 清扫塞进当前 change。
+- **变更（mutation）**：Entity、DTO、envelope、form 等由**类型自身实例方法**改状态（如 `waybill.ConfirmReceiving(...)`、`envelope.EnableMode(...)`）；Service / ViewModel **禁止**逐字段赋值。
+- **投影（projection）**：跨类型只读转换用静态 **`From*`**（目标类型 canonical）与 **`To*`**（源扩展，须委托 `From*`），例如 `RecycleTransportRecord.FromWaybill(...)`。
+- **禁止**新增 `IXxxMapper` / `XxxMapper` / 映射 Service，也**禁止**为转化注册 DI；领域实体不得依赖外部契约 DTO 形状。
+- 查表等上下文作为方法参数或 Context `record`，不作为 mapper 构造注入。
+- 无明确要求时，不把存量 mapper 清扫塞进当前 change；**触及** Service 内字段赋值时应在该 change 内迁到类型归属方法。
 
-完整规则与正反例见 `traits/static-from-to-trait.md`。
+完整规则与正反例见 `traits/type-owned-methods-trait.md`（原 `static-from-to`）。
+
+### minimal-di（硬约束摘要）
+
+- 新类型 **默认不注册 DI**；仅当需要 Repository、外部 I/O、ABP 基础设施角色、生命周期状态，或子仓 UI 约定（ViewModel/Window 等）时才 `ITransientDependency` / `ISingletonDependency`。
+- **禁止**将纯映射、格式化、校验、Helper 注册为 Service（`*HelperService`、`*MappingService`、无 I/O 的 `*ConverterService`）。
+- 纯逻辑用 static / extension / type-owned 方法；与 `type-owned-methods` 同时生效。
+- OpenSpec `tasks.md` 不得写「实现 XxxService 并注册 DI」除非满足注册门槛。
+
+完整决策树与正反例见 `traits/minimal-di-trait.md`。
+
+### no-database-fk（硬约束摘要）
+
+- 表间只用逻辑 **`{Related}Id`** 列；**禁止**数据库外键、EF `HasForeignKey` / `HasOne`/`HasMany`、实体上的 `[ForeignKey]` 与为关系服务的导航属性。
+- 关联数据在 **Service** 中二次查询或查表后组合；需要原子写时共用连接/事务，不靠引擎 FK。
+- 内核与产品 Context 之间同样 **禁止跨 Context FK**。
+- 无明确要求时，不把存量引擎外键清扫塞进当前 change。
+
+完整规则与正反例见 `traits/no-database-fk-trait.md`。
 
 ## OpenSpec 与技术债务
 
@@ -503,4 +524,6 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **工作量评估遵循 effort-token-estimate；effort 仅写入 `.openspec.yaml`，禁止进入 `proposal.md`**（参见「Required traits」）
 - **挂起/碎片需求遵循 intake-parking；业务 theme/park 仅写在 `docs/intake/themes.md` / `parks.md`，禁止写进可迁移 trait**（参见「Required traits」）
 - **Avalonia UI 工作遵循 avalonia-docs；先查 MCP 文档，再实现；与子仓库 AGENTS 冲突时以更具体者为准**（参见「Required traits」）
-- **数据转化使用静态 From/To，禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）
+- **类型归属变更与投影遵循 type-owned-methods；Service 禁止字段赋值；禁止新增 mapper 类型或为映射注册 DI**（参见「Required traits」）
+- **DI 注册遵循 minimal-di；纯逻辑不得注册为 Transient/Singleton；新建 Service 须过注册门槛**（参见「Required traits」）
+- **禁止数据库外键与 EF 关系映射；逻辑 Id + Service 组合**（参见「Required traits」）

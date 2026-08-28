@@ -50,14 +50,14 @@ Defines the requirements for implementing ABP typed distributed caching in the U
 
 ### Requirement: DeviceStatusService 类型化缓存注入
 
-`DeviceStatusService` MUST 注入类型化 `IDistributedCache<T>` 实例替代原始 `IDistributedCache`。MUST NOT 注入 `IDistributedCache<ConnectionRegistryCacheItem>`。
+`DeviceStatusService` MUST 注入类型化 `IDistributedCache<T>` 实例替代原始 `IDistributedCache`。MUST NOT 注入 `IDistributedCache<ConnectionRegistryCacheItem>`。设备消息队列仍使用类型化缓存；客户端连接态权威源为数据库（见 `device-online-status-persistence`），粒度 `(ProId, ClientId)`。
 
 #### Scenario: 注入 3 个类型化缓存实例
 
 - **WHEN** `DeviceStatusService` 被 DI 容器构造
 - **THEN** MUST 注入 `IDistributedCache<DeviceStatusCacheItem>` 用于设备消息队列缓存
 - **AND** MUST 注入 `IDistributedCache<ClientRegistryCacheItem>` 用于客户端发现注册表和连接发现注册表（使用不同缓存键）
-- **AND** MUST 注入 `IDistributedCache<ClientConnectionCacheItem>` 用于连接状态缓存
+- **AND** MUST 注入 `IDistributedCache<ClientConnectionCacheItem>` 用于连接状态写穿旁路缓存
 - **AND** MUST NOT 注入原始 `IDistributedCache`
 - **AND** MUST NOT 注入 `IDistributedCache<ConnectionRegistryCacheItem>`
 
@@ -95,17 +95,43 @@ Defines the requirements for implementing ABP typed distributed caching in the U
 
 #### Scenario: 连接状态缓存写入
 
-- **WHEN** 客户端连接或断开时
-- **THEN** MUST 通过 `IDistributedCache<ClientConnectionCacheItem>` 设置对应 ProId 的连接状态
-- **AND** 连接时 MUST 设置 `IsConnected = true`、`ConnectedAt = DateTime.UtcNow`
-- **AND** 断开时 MUST 设置 `IsConnected = false`、`DisconnectedAt = DateTime.UtcNow`
-- **AND** MUST 同时更新连接发现注册表（使用 `IDistributedCache<ClientRegistryCacheItem>` 缓存键 `"__connection_registry__"`）
+- **WHEN** 客户端实例连接或断开时
+- **THEN** MUST 持久化对应 `(ProId, ClientId)` 的 `ClientOnlineStatus`
+- **AND** MAY 通过写穿更新 `ClientConnectionCacheItem`（或等价实例级缓存项）
+- **AND** 连接时 MUST 设置 `IsConnected = true`、`ConnectedAt` 为写路径时钟
+- **AND** 断开时 MUST 设置 `IsConnected = false`、`DisconnectedAt` 为写路径时钟
+- **AND** MUST NOT 因单个 `ClientId` 断开而将同 `ProId` 下其它实例在数据库中标为离线
 
 #### Scenario: 连接状态缓存读取
 
-- **WHEN** `GetClientConnectionAsync(proId)` 被调用
-- **THEN** MUST 通过 `IDistributedCache<ClientConnectionCacheItem>.GetAsync(proId)` 读取
-- **AND** 若不存在 MUST 返回 `null`
+- **WHEN** 查询某实例或某项目的连接态
+- **THEN** MUST 优先从数据库 `ClientOnlineStatus` 读取
+- **AND** 若不存在 MUST 返回空/未注册语义
+- **AND** MAY 使用缓存仅作加速，且结果 MUST 与数据库一致或在未命中时回源数据库
+
+### Requirement: 连接态与设备详情缓存降级为写穿旁路
+
+客户端连接态的权威数据源 MUST 为 `ClientOnlineStatus`（`(ProId, ClientId)`）。设备在线详情的权威数据源 MUST 为设备详情当前态表（`(ProId, ClientId, DeviceType)`）。`ClientConnectionCacheItem` / `DeviceStatusCacheItem` 仅可作为写穿旁路；查询 MUST NOT 仅依赖缓存命中。
+
+#### Scenario: 连接写入同时落库
+
+- **WHEN** 某客户端实例连接或断开需要更新连接态
+- **THEN** `DeviceStatusService` MUST 持久化对应 `(ProId, ClientId)` 的 `ClientOnlineStatus`
+- **AND** MAY 同步更新写穿缓存（键 MUST 能区分 `ClientId`，不得仅用 ProId 作为唯一键覆盖同项目其它实例）
+- **AND** 缓存更新失败 MUST NOT 导致跳过数据库写入
+
+#### Scenario: 设备详情写入同时落库
+
+- **WHEN** `UploadStatus` 更新某设备类型状态
+- **THEN** `DeviceStatusService` MUST upsert 对应 `(ProId, ClientId, DeviceType)` 的设备详情当前态
+- **AND** MAY 同时写入 `DeviceStatusCacheItem` 消息队列作旁路
+- **AND** 缓存失败 MUST NOT 跳过数据库 upsert
+
+#### Scenario: GetClientList / GetClientDevices 不以缓存为唯一来源
+
+- **WHEN** `GetClientListAsync` 或 `GetClientDevicesAsync` 被调用
+- **THEN** MUST 从数据库构建结果
+- **AND** MUST NOT 仅因连接注册表或 `DeviceStatusCacheItem` 为空而在库中仍有数据时返回空列表
 
 ### Requirement: DeviceStatusAppService 缓存访问统一
 

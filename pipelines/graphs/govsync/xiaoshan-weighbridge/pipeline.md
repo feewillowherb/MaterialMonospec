@@ -38,7 +38,7 @@ Status: **active**
 
 ## Context
 
-- **指针**：`target.url` = `http://191.12.15.58:8899/sapi/v1/inoutRecord/lantu/saveRecord`（沿用既有联调基址；SyncDoc 示例主机不同，见设计稿 Q5）
+- **指针**：`target.url` = `http://172.18.34.209:8899/sapi/v1/inoutRecord/lantu/saveRecord`（SyncDoc 示例基址；见设计稿 Q5）
 - **指纹**：必填 `dataSource`、`inOutType`、`goodsWeight`；**不得**写入卡口字段 `deviceID` / `siteType` / `areaCode`
 - **场景**：对接码 `XNXS20250819001`；车牌 `浙A12345`；`dataSource=WEIGHBRIDGE_XIAOSHAN`
 - **时间**：`snapTimeMode: run-now`

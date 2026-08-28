@@ -16,7 +16,7 @@ cook: new-object
 
 target:
   method: POST
-  url: http://191.12.15.58:8899/sapi/v1/inoutRecord/lantu/saveRecord
+  url: http://172.18.34.209:8899/sapi/v1/inoutRecord/lantu/saveRecord
   contentType: application/json; charset=utf-8
   contractRef: docs/SyncDoc/地磅数据上传对接接口（萧山）V1.0.md
   designRef: docs/2026-08-27-xiaoshan-weighbridge-gate-product-upload-design/01-设计稿.md

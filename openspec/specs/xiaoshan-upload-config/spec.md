@@ -2,7 +2,7 @@
 
 ## Purpose
 
-定义按项目绑定的萧山上报权威配置：UrbanManagement 存储与 Get/Write API、乐观并发 `configVersion`、结构化 modes/settings 信封，以及 MaterialClient.Urban 在系统设置「城管配置」中的本地镜像与保存推送。
+定义按项目绑定的萧山上报权威配置：UrbanManagement 存储与 Get/Write API、乐观并发 `configVersion`、结构化 modes/settings 信封，以及 MaterialClient.Urban 在系统设置「城管配置」中的本地镜像。客户端保存 MUST NOT 向 UrbanManagement 推送配置。
 
 ## Requirements
 
@@ -137,9 +137,7 @@ MaterialClient 系统设置（`SettingsWindow`）SHALL include a navigation item
 
 ### Requirement: 城管配置 panel edits Xiaoshan upload config without configVersion UI
 
-The「城管配置」panel SHALL present structured mode editing (enabled modes and per-mode parameters) **without** displaying `configVersion` as an operator-facing field. Opening the panel SHALL load the local Urban settings mirror. Settings UI MUST NOT pull or refresh from the server on open; server sync SHALL be push-on-save only. The client MUST NOT persist a `XiaoshanUploadConfigCaches` table.
-
-Internal write calls MAY still GET `configVersion` immediately before Write to populate `expectedConfigVersion`.
+The「城管配置」panel SHALL present structured mode editing (enabled modes and per-mode parameters) **without** displaying `configVersion` as an operator-facing field. Opening the panel SHALL load the local Urban settings mirror. Settings UI MUST NOT pull or refresh from the server on open. The client MUST NOT persist a `XiaoshanUploadConfigCaches` table. Saving settings MUST NOT push Xiaoshan upload config to UrbanManagement.
 
 #### Scenario: Panel loads from local Urban settings
 
@@ -152,52 +150,37 @@ Internal write calls MAY still GET `configVersion` immediately before Write to p
 
 MaterialClient SHALL persist Urban aggregated settings in `SettingsEntity.UrbanSettingsJson` (deserialized as `UrbanSettings`). Xiaoshan upload local mirror SHALL live under `UrbanSettings.XiaoshanUpload` (display name, remark, modes JSON, settings JSON). The local mirror SHALL NOT store `configVersion`.
 
-#### Scenario: Save writes UrbanSettingsJson then pushes
+#### Scenario: Save writes UrbanSettingsJson without server push
 
 - **WHEN** the operator saves 系统设置 with Urban config changes
 - **THEN** the client SHALL persist `UrbanSettingsJson` with the current Xiaoshan upload form values
-- **AND** SHALL publish the LocalEvent push to the server when the urban config section is dirty
+- **AND** MUST NOT publish a Xiaoshan LocalEvent, call a config Facade, or Write UrbanManagement upload config
 
-### Requirement: Settings save pushes config via LocalEvent
+### Requirement: Settings persist Xiaoshan mode fields into UrbanSettingsJson
 
-When the operator saves 系统设置 and Urban「城管配置」has pending changes, MaterialClient.Urban SHALL publish a named local event (`XiaoshanUploadConfigSaveRequestedEventData` record, not a tuple) via `ILocalEventBus`. An Urban local event handler SHALL push the configuration to UrbanManagement through a Service using protocol version 3. The settings ViewModel MUST NOT call the UrbanManagement HTTP/Refit API directly.
+MaterialClient SHALL persist 城管配置 core fields into `SettingsEntity.UrbanSettingsJson` as `UrbanSettings.XiaoshanUpload.ModesJson`. Mapping SHALL use a Common Service and named records (not tuples). `SettingsWindowViewModel` MUST NOT parse Xiaoshan JSON itself and MUST NOT reference the Urban project.
 
-Server configuration is authoritative after a successful push. If the push succeeds, the UI SHALL apply the server-accepted snapshot and persist it to `UrbanSettingsJson`.
+Core fields SHALL be: Weighbridge/Gate/Product enabled flags; Weighbridge in/out; Gate in/out and site type; Product in/out and site type. Site access code display SHALL use license `AccessCode` and MUST NOT be written to `UrbanSettingsJson`. Local config SHALL store `ModesJson` only.
 
-If the push fails and a server row already exists (`configVersion` greater than 0), the client SHALL discard the local edits, apply the server snapshot to the UI and `UrbanSettingsJson`, and inform the user. If the push fails and no server row exists, the client SHALL keep the local draft and keep the urban config dirty so the operator can retry.
+This change SHALL NOT require or verify that local Urban settings are synchronized to UrbanManagement.
 
-Hardware/system settings already saved in the same Save action MUST NOT be rolled back solely because Xiaoshan push failed. Outcomes SHALL be written to application logs.
+#### Scenario: Save writes ModesJson from UI
 
-#### Scenario: Successful push via LocalEvent
+- **WHEN** the operator saves 系统设置 on an Urban host with 城管配置 dirty
+- **THEN** `UrbanSettingsJson` SHALL contain `XiaoshanUpload.ModesJson` reflecting the core UI fields
+- **AND** that save SHALL complete without Xiaoshan LocalEvent, config Facade, or UrbanManagement config Write
+- **AND** acceptance SHALL NOT include a client-to-server config sync check
 
-- **WHEN** the operator saves 系统设置 with dirty 城管配置 changes
-- **AND** the local event handler’s server write succeeds
-- **THEN** the UI SHALL present the server configuration
-- **AND** the application log SHALL record a successful push
+#### Scenario: Reload restores core fields
 
-#### Scenario: Failed push with existing server row discards local
+- **WHEN** settings load applies `UrbanSettings.XiaoshanUpload`
+- **THEN** the ViewModel SHALL obtain the core UI fields via the mapping Service from `ModesJson`
 
-- **WHEN** the operator saves 系统设置 with dirty 城管配置 changes
-- **AND** the server write fails or does not complete successfully
-- **AND** the server already has an authoritative row (`configVersion` greater than 0)
-- **THEN** the client SHALL discard the pending local 城管配置 edits
-- **AND** the client SHALL apply the server snapshot to the UI and `UrbanSettingsJson`
-- **AND** the user SHALL be informed that the push failed and local edits were discarded
-- **AND** hardware/system settings already saved in the same Save action MUST NOT be rolled back solely because Xiaoshan push failed
+#### Scenario: No client config push
 
-#### Scenario: Failed push with no server row keeps local draft
-
-- **WHEN** the operator saves 系统设置 with dirty 城管配置 changes
-- **AND** the server write fails
-- **AND** the server has no authoritative row (`configVersion` equal to 0)
-- **THEN** the client SHALL keep the local 城管配置 draft
-- **AND** SHALL keep the section dirty for a later retry
-
-#### Scenario: Clean 城管配置 skips push event
-
-- **WHEN** the operator saves 系统设置
-- **AND** 城管配置 has no pending changes
-- **THEN** the client MUST NOT publish a Xiaoshan upload config save-requested local event
+- **WHEN** settings are saved on the Urban client
+- **THEN** the client MUST NOT call UrbanManagement Xiaoshan upload config Write
+- **AND** types used only for that sync SHALL be deleted on both MaterialClient and UrbanManagement rather than left unused
 
 ### Requirement: Standalone 上报配置 menu is not the primary entry
 
