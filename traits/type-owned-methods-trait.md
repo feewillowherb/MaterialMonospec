@@ -15,6 +15,7 @@ Two lanes, same ownership rule:
 
 - Mapping is **not** a layer, a service, or an injectable collaborator.
 - New code must not add `IXxxMapper`, `XxxMapper`, `XxxMappingService`, AutoMapper `Profile`, or Mapster `IRegister` for project types.
+- Do not register those types in DI — see `minimal-di-trait.md`.
 
 ## When this trait applies
 
