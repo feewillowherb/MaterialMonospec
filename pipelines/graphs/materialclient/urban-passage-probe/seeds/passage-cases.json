@@ -1,0 +1,92 @@
+[
+  {
+    "id": "cp-01-gate-in-primary",
+    "label": "Checkpoint enter — photo plate",
+    "siteType": "Checkpoint",
+    "deviceName": "gate-in",
+    "plateNumber": "浙A12345",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "cp-02-gate-out-same-plate",
+    "label": "Checkpoint exit — same plate as photo",
+    "siteType": "Checkpoint",
+    "deviceName": "gate-out",
+    "plateNumber": "浙A12345",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "cp-03-gate-in-blue-car",
+    "label": "Checkpoint enter — blue plate",
+    "siteType": "Checkpoint",
+    "deviceName": "gate-in",
+    "plateNumber": "浙B88888",
+    "plateColor": "蓝",
+    "vehicleType": "小车"
+  },
+  {
+    "id": "cp-04-gate-in-medium",
+    "label": "Checkpoint enter — medium truck",
+    "siteType": "Checkpoint",
+    "deviceName": "gate-in",
+    "plateNumber": "浙C66666",
+    "plateColor": "黄",
+    "vehicleType": "中型车"
+  },
+  {
+    "id": "cp-05-gate-out-exit",
+    "label": "Checkpoint exit — dedicated exit lane",
+    "siteType": "Checkpoint",
+    "deviceName": "gate-out",
+    "plateNumber": "浙D77777",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "fp-01-product-in-primary",
+    "label": "FinishedProduct enter — photo plate",
+    "siteType": "FinishedProduct",
+    "deviceName": "product-in",
+    "plateNumber": "浙A12345",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "fp-02-product-out-exit",
+    "label": "FinishedProduct exit",
+    "siteType": "FinishedProduct",
+    "deviceName": "product-out",
+    "plateNumber": "浙A54321",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "fp-03-product-in-nev",
+    "label": "FinishedProduct enter — NEV green plate",
+    "siteType": "FinishedProduct",
+    "deviceName": "product-in",
+    "plateNumber": "浙E11111",
+    "plateColor": "绿",
+    "vehicleType": "新能源"
+  },
+  {
+    "id": "fp-04-product-out-heavy",
+    "label": "FinishedProduct exit — heavy truck",
+    "siteType": "FinishedProduct",
+    "deviceName": "product-out",
+    "plateNumber": "浙F22222",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  },
+  {
+    "id": "fp-05-product-in-repeat",
+    "label": "FinishedProduct enter — repeat inbound",
+    "siteType": "FinishedProduct",
+    "deviceName": "product-in",
+    "plateNumber": "浙G33333",
+    "plateColor": "黄",
+    "vehicleType": "大车"
+  }
+]

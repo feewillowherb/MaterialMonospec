@@ -180,6 +180,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
+| urban-passage-lpr-probe | probe | `graphs/materialclient/urban-passage-probe/` | active |
 
 Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）。
 

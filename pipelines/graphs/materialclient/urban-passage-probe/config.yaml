@@ -1,0 +1,88 @@
+id: urban-passage-probe
+created: "2026-08-31"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: urban-passage-lpr-probe
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: diagnostic-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9961
+  settingsGet: /api/settings
+  settingsSave: /api/settings
+  testPassage: /api/lpr/test-passage
+  apiRef: repos/MaterialClient/src/MaterialClient.Urban/Services/MinimalWebHostService.cs
+  docsRef: docs/2026-08-31-forge-hikvision-lpr-without-device/02-HTTP-test-plate操作手册.md
+
+fixture:
+  source: ../../govsync/xiaoshan-gate/fixtures/test_pic.jpg
+  note: Shared gate fixture; plate in photo is Zhe A12345 yellow minivan
+
+seeds:
+  cases: seeds/passage-cases.json
+  lprDevices: seeds/lpr-devices.json
+
+steps:
+  - id: bind-diagnostic
+    name: Read config/secrets; resolve fixture; GET /api/settings health
+  - id: seed-settings
+    name: Shared replace-all LPR seed (../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1)
+  - id: cook-passage-cases
+    name: POST /api/lpr/test-passage for 10 cases with lprImagePath
+  - id: validate-responses
+    name: Assert HTTP 200 and success=true; write summary/report
+
+expect:
+  - id: host-reachable
+    level: L0
+    description: GET / and GET /api/settings return HTTP 200
+  - id: settings-seeded
+    level: L1
+    description: POST /api/settings succeeds; LPR list fully replaced by seeds/lpr-devices.json
+  - id: all-cases-accepted
+    level: L2
+    description: All 10 test-passage calls return success=true and published=true
+  - id: ui-records-visible
+    level: L3
+    description: Checkpoint / FinishedProduct tabs show new rows — user only
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: []
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - urban-not-running
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  seedSettings:
+    mode: script-invoke
+    script: scripts/Invoke-SeedSettings.ps1
+    shared: ../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1
+    experimental: true
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanPassageProbe.ps1
+    shared: ../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1
+    experimental: true
