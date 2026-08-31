@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $GraphRoot = Split-Path -Parent $PSScriptRoot
-$SharedScript = Join-Path $GraphRoot "../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1"
+$SharedScript = Join-Path $GraphRoot "../../../_shared/urban/Invoke-UrbanLprSeedSettings.ps1"
 $SharedScript = [System.IO.Path]::GetFullPath($SharedScript)
 
 if (-not (Test-Path -LiteralPath $SharedScript)) {

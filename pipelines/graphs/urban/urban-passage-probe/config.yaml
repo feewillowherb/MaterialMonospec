@@ -2,7 +2,7 @@ id: urban-passage-probe
 created: "2026-08-31"
 graph:
   product: materialclient
-  domain: materialclient
+  domain: urban
   family: probe
   goal: urban-passage-lpr-probe
   status: active
@@ -33,8 +33,10 @@ seeds:
 steps:
   - id: bind-diagnostic
     name: Read config/secrets; resolve fixture; GET /api/settings health
+  - id: seed-license
+    name: Optional pre-start demo license (../../../_shared/urban/Invoke-UrbanLicenseSeed.ps1 -Mode Local)
   - id: seed-settings
-    name: Shared replace-all LPR seed (../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1)
+    name: Shared replace-all LPR seed (../../../_shared/urban/Invoke-UrbanLprSeedSettings.ps1)
   - id: cook-passage-cases
     name: POST /api/lpr/test-passage for 10 cases with lprImagePath
   - id: validate-responses
@@ -79,10 +81,10 @@ adapters:
   seedSettings:
     mode: script-invoke
     script: scripts/Invoke-SeedSettings.ps1
-    shared: ../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1
+    shared: ../../../_shared/urban/Invoke-UrbanLprSeedSettings.ps1
     experimental: true
   http:
     mode: script-invoke
     script: scripts/Invoke-UrbanPassageProbe.ps1
-    shared: ../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1
+    shared: ../../../_shared/urban/Invoke-UrbanLprSeedSettings.ps1
     experimental: true

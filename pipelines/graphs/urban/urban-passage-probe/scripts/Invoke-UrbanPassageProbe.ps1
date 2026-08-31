@@ -19,7 +19,7 @@ $ConfigPath = Join-Path $GraphRoot "config.yaml"
 $CasesPath = Join-Path $GraphRoot "seeds/passage-cases.json"
 $FixtureRel = "../../govsync/xiaoshan-gate/fixtures/test_pic.jpg"
 $FixturePath = Join-Path $GraphRoot $FixtureRel
-$SharedScript = Join-Path $GraphRoot "../../../_shared/materialclient/Invoke-UrbanLprSeedSettings.ps1"
+$SharedScript = Join-Path $GraphRoot "../../../_shared/urban/Invoke-UrbanLprSeedSettings.ps1"
 $SharedScript = [System.IO.Path]::GetFullPath($SharedScript)
 
 function Write-Utf8NoBom {
@@ -77,7 +77,7 @@ $HttpDir = Join-Path $RunDir "http"
 New-Item -ItemType Directory -Force -Path $HttpDir | Out-Null
 
 $runMeta = [ordered]@{
-    graph      = "materialclient/urban-passage-probe"
+    graph      = "urban/urban-passage-probe"
     fixture    = $FixtureRel
     fixtureAbs = $fixtureAbs
     caseCount  = $cases.Count
@@ -158,7 +158,7 @@ foreach ($case in $cases) {
 }
 
 $summary = [ordered]@{
-    graph            = "materialclient/urban-passage-probe"
+    graph            = "urban/urban-passage-probe"
     runDir           = $RunDir
     baseUrl          = $baseUrl
     fixture          = $FixtureRel
