@@ -1,8 +1,8 @@
-# HTTP test-plate 操作手册
+# HTTP 诊断 API 操作手册
+
+只用 **GET / POST**（无 PUT）。配置接口读写**整份 Settings**，不是单独 LPR 列表。
 
 ## 1. 开启诊断 Host
-
-`MaterialClient.Urban/appsettings.json`（或本地覆盖）：
 
 ```json
 "MinimalWebHost": {
@@ -11,73 +11,102 @@
 }
 ```
 
-默认仓库里 **`EnableOnStartup` 为 `false`**，不改则注入口不会监听。
-
-启动 Urban 客户端后：
-
 ```http
 GET http://localhost:9961/
 ```
 
-应返回含 `/api/lpr/test-plate` 的 endpoints 列表。
-
-## 2. 伪造卡口识别
-
-假设设置里有设备名 `卡口-入口`，`SiteType = Checkpoint`：
+## 2. 查询整份 Settings
 
 ```powershell
-curl -Method POST "http://localhost:9961/api/lpr/test-plate" `
+curl "http://localhost:9961/api/settings"
+```
+
+响应含 `settings`：`ScaleSettings`、`SystemSettings`、`CameraConfigs`、`LicensePlateRecognitionConfigs`、`WeighingConfiguration`、`SoundDeviceSettings`、`UrbanSettings` 等。
+
+## 3. 保存整份 Settings
+
+典型流程：先 GET → 改 `licensePlateRecognitionConfigs` → 原样带回其它字段再 POST。
+
+```powershell
+$body = @{
+  scaleSettings = @{ scaleType = "TestMode" }
+  documentScannerConfig = @{}
+  systemSettings = @{ urls = "http://localhost:9961" }
+  cameraConfigs = @()
+  licensePlateRecognitionConfigs = @(
+    @{
+      name = "gate-in"
+      ip = "10.0.0.1"
+      siteType = "Checkpoint"
+      deviceType = "Hikvision"
+      urbanInOutType = "Enter"
+      urbanSiteType = "Construction"
+      userName = "admin"
+      password = "admin"
+      port = "8000"
+      channel = "1"
+    },
+    @{
+      name = "product-out"
+      ip = "10.0.0.2"
+      siteType = "FinishedProduct"
+      deviceType = "Hikvision"
+      urbanInOutType = "Exit"
+      urbanSiteType = "Disposal"
+      userName = "admin"
+      password = "admin"
+      port = "8000"
+      channel = "1"
+    }
+  )
+  weighingConfiguration = @{}
+  soundDeviceSettings = @{}
+  urbanSettings = @{}
+} | ConvertTo-Json -Depth 8
+
+curl -Method POST "http://localhost:9961/api/settings" `
+  -ContentType "application/json" `
+  -Body $body
+```
+
+保存后发布 `SettingsSavedEventData`。未传的嵌套对象会按空默认值覆盖，建议以 GET 结果为底稿。
+
+## 4. 测试卡口 / 成品（走 LicensePlateRecognizedEventData）
+
+```powershell
+curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
   -ContentType "application/json" `
   -Body (@{
+    siteType = "Checkpoint"
     plateNumber = "浙A12345"
-    deviceType  = "Hikvision"
-    deviceName  = "卡口-入口"
+    plateColor = "黄"
+  } | ConvertTo-Json)
+
+curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
+  -ContentType "application/json" `
+  -Body (@{
+    siteType = "FinishedProduct"
+    deviceName = "product-out"
+    plateNumber = "浙B88888"
   } | ConvertTo-Json)
 ```
 
-期望：
+`siteType` 禁止 `Scale`。无匹配配置时返回 400，提示先 `POST /api/settings`。
 
-- 日志：`Test plate injected` + `Created urban passage record ... site Checkpoint`
-- 有人值守窗 **卡口** tab 出现一行（`PassageSource.Checkpoint`）
-
-## 3. 伪造成品识别
-
-设备名如 `成品-出口`，`SiteType = FinishedProduct`：
+## 5. 通用 test-plate（仍保留）
 
 ```powershell
 curl -Method POST "http://localhost:9961/api/lpr/test-plate" `
   -ContentType "application/json" `
-  -Body (@{
-    plateNumber = "浙B88888"
-    deviceType  = "Hikvision"
-    deviceName  = "成品-出口"
-  } | ConvertTo-Json)
+  -Body (@{ plateNumber = "浙A12345"; deviceName = "gate-in" } | ConvertTo-Json)
 ```
 
-期望：成品 tab 有记录；`PassageSource.FinishedProduct`。
+## 6. 设备在线状态
 
-## 4. 请求体字段（代码契约）
+```powershell
+curl "http://localhost:9961/api/device/online-status"
+```
 
-`SetTestPlateRequest`：
+## 7. 边界
 
-| JSON 字段 | 类型 | 说明 |
-|-----------|------|------|
-| `plateNumber` | string | **必填** |
-| `deviceType` | `LprDeviceType?` | 默认 Hikvision |
-| `deviceName` | string? | 默认 `"TestApi"`；**必须能 FindByDeviceName** |
-| `colorType` | Vzvision 色枚举? | 可选；进出 handler 主要用 `PlateColor` 字符串（本 API 未设） |
-| `timestamp` | DateTime? | 默认 Now |
-
-## 5. 常见失败
-
-| 现象 | 原因 |
-|------|------|
-| 连接拒绝 | `EnableOnStartup=false` 或 Url/端口不对 |
-| HTTP 200 但无进出记录 | `deviceName` 与设置 `Name` 不一致，或该行是 `Scale` |
-| 只有称重侧反应 | 地磅服务也订阅了同一事件；进出仍依赖 SiteType≠Scale |
-
-## 6. 与「上云 HTTP POST」的边界
-
-本手册的 HTTP POST 是 **客户端本机诊断口**，不是 UrbanManagement Receive。
-
-UM 侧卡口/成品已有独立 AppService `ReceiveAsync`（ABP 惯例路由形如 `/api/app/urban-checkpoint-passage/receive` 等），但 **MaterialClient.Urban 尚未实现** 对应 Refit 调用（OpenSpec §7.1–7.2）。本地进出测通后，上云需另开联调或先用 Postman 直打 UM。
+本机诊断口 ≠ UM Receive。客户端上云卡口/成品仍见 OpenSpec §7。
