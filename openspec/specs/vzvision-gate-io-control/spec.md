@@ -1,17 +1,17 @@
 ## ADDED Requirements
 
 ### Requirement: LPR 道闸 I/O 通用配置项
-系统 MUST 提供面向 LPR 设备的道闸 I/O 通用配置能力，包括是否启用开关与 `IoChannel` 通道号，并将其持久化到现有 LPR 配置存储中。
+系统 MUST 提供面向 LPR 设备的道闸 I/O 通用配置能力，包括是否启用开关与 `IoChannel` 通道号，并将其持久化到现有 LPR 配置存储中。对话框内厂商 MUST 为该次所选 `DeviceType`，MUST NOT 依赖设置页全局 `SystemSettings.LprDeviceType`。
 
 **变更说明**：`Direction` 字段的枚举值从 `In/Out` 改为 `A/B`，用于表示物理侧别而非入口/出口角色。
 
 #### Scenario: 在 Vzvision 配置中展示并编辑 I/O 配置
-- **WHEN** 用户在 `AddLprDialog` 中配置 `LprDeviceType = Vzvision`
+- **WHEN** 用户在 `AddLprDialog` 中将 `DeviceType` 选为 `Vzvision`
 - **THEN** 系统 MUST 显示"是否启用道闸 I/O 功能"开关与 `IoChannel` 输入项，并允许编辑
 - **AND** 系统 MUST 显示道闸侧别选项：`A` 或 `B`（取代原有的 `In/Out` 选项）
 
 #### Scenario: 非 Vzvision 设备不暴露 I/O 配置
-- **WHEN** 用户在 `AddLprDialog` 中配置非 Vzvision 设备类型
+- **WHEN** 用户在 `AddLprDialog` 中将 `DeviceType` 选为非 Vzvision
 - **THEN** 系统 MUST 不显示或不允许编辑道闸 I/O 配置项
 
 #### Scenario: 保存并加载 I/O 配置
@@ -21,7 +21,7 @@
 
 #### Scenario: 非 Vzvision 设备保留配置但当前不执行
 - **WHEN** 非 Vzvision 设备存在 `EnableGateIo` 与 `IoChannel` 配置
-- **THEN** 系统 MUST 保留并加载配置值，但在运行时按能力门控判定为当前不支持
+- **THEN** 系统 MUST 保留并加载配置值，但在运行时按该行 `DeviceType` 能力门控判定为当前不支持
 
 #### Scenario: 枚举值从 In/Out 迁移到 A/B
 - **WHEN** 系统从旧版本升级（配置中存在 `Direction.In/Out`）
@@ -29,12 +29,12 @@
 - **AND** 系统 MUST 在 UI 中显示 `A/B` 选项而非 `In/Out`
 
 ### Requirement: 识别后触发开闸信号
-系统 MUST 通过 MessageBus 驱动的后置动作流程，在满足条件时调用 Vzvision SDK 向指定通道下发 `500ms` 自动复位开闸脉冲。
+系统 MUST 通过 MessageBus 驱动的后置动作流程，在满足条件时调用 Vzvision SDK 向指定通道下发 `500ms` 自动复位开闸脉冲。设备类型 MUST 取自该次识别对应配置行或消息上的 `DeviceType`，MUST NOT 使用全站 `SystemSettings.LprDeviceType`。
 
 **变更说明**：增加会话状态门控和称重状态检查，仅在允许状态下触发开闸。
 
 #### Scenario: 启用配置后识别触发开闸（新会话）
-- **WHEN** 设备类型为 Vzvision，`EnableGateIo = true`，且识别链路通过 MessageBus 收到有效车辆识别消息且称重状态为 `OffScale` 且道闸会话未激活
+- **WHEN** 该设备行 `DeviceType` 为 Vzvision，`EnableGateIo = true`，且识别链路通过 MessageBus 收到有效车辆识别消息且称重状态为 `OffScale` 且道闸会话未激活
 - **THEN** 系统 MUST 创建新会话并设置 `EntrySide =` 识别设备的 `Direction`（A 或 B）
 - **AND** 系统 MUST 调用 `VzLPRClient_SetIOOutputAutoResp(handle, ioChannel, 500)`（500ms 自动复位）
 
@@ -54,11 +54,11 @@
 - **AND** 系统 MUST 记录日志："称重状态 WaitingForDeparture，禁止 LRP 开闸（等待自动打开出口）"
 
 #### Scenario: 未启用配置时不触发开闸
-- **WHEN** 设备类型为 Vzvision，`EnableGateIo = false`，且收到车辆识别事件
+- **WHEN** 该设备行 `DeviceType` 为 Vzvision，`EnableGateIo = false`，且收到车辆识别事件
 - **THEN** 系统 MUST 不调用 I/O 开闸接口
 
 #### Scenario: 非 Vzvision 设备记录未支持日志
-- **WHEN** 设备类型不是 Vzvision，且识别后进入道闸 I/O 后置动作评估
+- **WHEN** 该设备行 `DeviceType` 不是 Vzvision，且识别后进入道闸 I/O 后置动作评估
 - **THEN** 系统 MUST 不调用 I/O 开闸接口，并 MUST 记录"当前设备类型未支持道闸 I/O 功能"的日志
 
 #### Scenario: 配置校验失败时禁用道闸功能

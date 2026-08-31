@@ -86,7 +86,9 @@ MaterialClient.UI MUST provide `SettingsWindowViewModel` that loads and saves `S
 
 - **WHEN** user adds, edits, removes, or tests a license plate recognition configuration
 - **THEN** the ViewModel SHALL use `AddLprDialog` and `ILprDeviceResolver` as in main branch
-- **AND** SHALL apply gate IO validation hints and column visibility based on `LprDeviceType`
+- **AND** the LPR DataGrid 操作列 MUST show an enabled 「编辑」 control (not hidden)
+- **AND** editing SHALL prefill the dialog from that row (including per-row `DeviceType`) and replace the same collection item on confirm
+- **AND** SHALL apply gate IO validation hints after add, edit, or remove
 
 #### Scenario: Sound device test
 
@@ -107,9 +109,14 @@ MaterialClient.UI MUST include `AddCameraDialog`, `AddLprDialog`, and their View
 - **THEN** it SHALL return a `CameraConfigViewModel` added to the parent settings collection
 
 #### Scenario: Add LPR dialog
-- **WHEN** user confirms AddLprDialog with valid input
+- **WHEN** user confirms AddLprDialog with valid input from the add command
 - **THEN** it SHALL return a `LicensePlateRecognitionConfigViewModel` added to the parent settings collection
-- **AND** SHALL respect the current `LprDeviceType` for field visibility defaults
+- **AND** SHALL use the dialog’s own `DeviceType` for field visibility defaults
+
+#### Scenario: Edit LPR dialog confirm
+- **WHEN** user confirms AddLprDialog opened from the edit command
+- **THEN** it SHALL return a `LicensePlateRecognitionConfigViewModel` that replaces the edited row
+- **AND** SHALL NOT append a duplicate row
 
 ### Requirement: Consuming application entry points
 MaterialClient and MaterialClient.Urban MUST open settings exclusively through the shared `SettingsWindow` from MaterialClient.UI.
@@ -187,4 +194,56 @@ MaterialClient.UI `SettingsWindow` (system settings section) SHALL expose a bool
 - **WHEN** existing settings JSON has no `EnableChunkedAttachmentUpload` property
 - **THEN** deserialization SHALL treat the value as `false`
 - **AND** attachment sync SHALL continue using multipart upload
+
+### Requirement: Settings page has no global LPR vendor ComboBox
+
+The 车牌识别 settings section MUST NOT present a window-level ComboBox that sets `SystemSettings.LprDeviceType` as the vendor for all LPR rows. Vendor selection SHALL live on `AddLprDialog` (add and edit).
+
+#### Scenario: Operator does not see global vendor combo
+
+- **WHEN** the operator opens 系统设置 and selects the license-plate section
+- **THEN** the UI MUST NOT show a single ComboBox that changes vendor type for every existing LPR row
+
+### Requirement: LPR row add and edit share AddLprDialog
+
+车牌识别「增加」与「编辑」MUST 使用同一个 Avalonia 窗口类型 `AddLprDialog` 与同一个 `AddLprDialogViewModel`。系统 MUST NOT 新增仅用于编辑的第二套 LPR 对话框 Window。增加与编辑 MUST 仅在标题/模式与初始值上不同；厂商字段可见性、道闸字段可见性与保存映射 MUST 共用同一套逻辑。
+
+#### Scenario: Edit reuses add dialog type
+
+- **WHEN** 用户在设置页车牌识别表格点击某一行的「编辑」
+- **THEN** 系统 MUST 打开 `AddLprDialog`（与「增加」相同的窗口类型）
+- **AND** MUST NOT 打开名为 `EditLprDialog` 的独立窗口类型
+
+#### Scenario: Edit titles differ from add
+
+- **WHEN** 对话框以编辑模式打开
+- **THEN** 窗口标题 MUST 表明编辑（例如「编辑车牌识别设备」）
+- **AND** MUST NOT 仍显示仅适用于增加的标题「添加车牌识别设备」
+
+#### Scenario: Add titles remain add
+
+- **WHEN** 用户点击车牌识别「增加」
+- **THEN** 打开的仍为 `AddLprDialog`
+- **AND** 窗口标题 MUST 表明添加
+
+### Requirement: Urban host can choose LPR site type; other hosts force scale
+
+On an Urban host, add and edit LPR dialogs MUST let the user select site type among 地磅, 卡口, and 成品, and the settings LPR grid MUST show the selected type. On Standard, SolidWaste, Recycle, and any other non-Urban host, the UI MUST NOT allow changing site type; add and edit MUST result in scale (地磅), and save MUST persist scale for every LPR row in that session.
+
+#### Scenario: Urban add or edit can select checkpoint
+
+- **WHEN** the Urban settings host opens AddLprDialog to add or edit an LPR row
+- **THEN** the dialog MUST present the three site types
+- **AND** confirming with 卡口 MUST store checkpoint on that row
+
+#### Scenario: Non-Urban add cannot leave scale
+
+- **WHEN** a non-Urban host opens AddLprDialog to add an LPR row
+- **THEN** site type MUST be scale
+- **AND** the user MUST NOT be able to persist 卡口 or 成品 from that dialog
+
+#### Scenario: Non-Urban save coerces stored rows to scale
+
+- **WHEN** a non-Urban host saves settings that contain LPR rows whose JSON site type is not scale
+- **THEN** persisted LPR rows MUST all be scale after that save
 
