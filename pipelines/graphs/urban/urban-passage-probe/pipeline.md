@@ -34,13 +34,13 @@ Status: **active**
 
 1. **（推荐）启动前写入演示授权**，避免未授权阻塞诊断口：
    ```powershell
-   . pipelines/_shared/urban/Invoke-UrbanLicenseSeed.ps1
-   Invoke-UrbanLicenseSeed -Mode Local -UrbanAppDir "<MaterialClient.Urban 输出目录>" -SkipConfirm
+   powershell -ExecutionPolicy Bypass -File `
+     pipelines/graphs/urban/urban-passage-probe/scripts/Start-UrbanForProbe.ps1
    ```
-   固定种子：`pipelines/_shared/urban/seeds/demo-license.json`。JWT 内 `machineCode` 须与本机一致，否则启动仍会失败。
-2. 启动 **MaterialClient.Urban**（非主程序 exe）
-3. `appsettings.json` → `MinimalWebHost:EnableOnStartup=true`，默认 `http://localhost:9961`
-4. **seed-settings 会完全覆盖** 当前所有 LPR 配置为 `seeds/lpr-devices.json` 中的 4 行（其它 Settings 块保留 GET 结果）
+   该脚本会：Debug build → seed 授权 → 启动 Urban。Debug 构建自动跳过 JWT machineCode 校验。
+   固定种子：`pipelines/_shared/urban/seeds/demo-license.json`。
+2. 启动 **MaterialClient.Urban**（若未用上一步脚本，须手动设置 `MinimalWebHost:EnableOnStartup=true`）
+3. **seed-settings 会完全覆盖** 当前所有 LPR 配置为 `seeds/lpr-devices.json` 中的 4 行（其它 Settings 块保留 GET 结果）
 
 ## Sockets
 

@@ -7,8 +7,38 @@
   Api mode: POST /api/license/seed when the diagnostic host is already running.
 
   Fixed demo license: seeds/demo-license.json (杭州凡东科技演示项目 / XNXS20260611001).
-  JWT machineCode must match the test machine, or startup authorization will still fail.
+  If JWT machineCode differs from this PC, use a Debug build (machineCode check is skipped in DEBUG).
 #>
+
+function Get-UrbanLocalMachineCode {
+    $cpu = ""
+    $board = ""
+    $mac = ""
+    try {
+        $cpu = [string](Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty ProcessorId)
+    }
+    catch {
+        $cpu = [string][Environment]::ProcessorCount
+    }
+    try {
+        $board = [string](Get-CimInstance Win32_BaseBoard | Select-Object -First 1 -ExpandProperty SerialNumber)
+    }
+    catch {
+        $board = [Environment]::MachineName
+    }
+    try {
+        $mac = [string](Get-CimInstance Win32_NetworkAdapter -Filter "MACAddress IS NOT NULL" |
+            Select-Object -First 1 -ExpandProperty MACAddress)
+    }
+    catch {
+        $mac = [Environment]::UserName
+    }
+
+    $combined = "{0}-{1}-{2}" -f $cpu, $board, $mac
+    $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash(
+        [System.Text.Encoding]::UTF8.GetBytes($combined))
+    return -join ($hash | ForEach-Object { $_.ToString("x2") })
+}
 
 function Write-UrbanUtf8NoBom {
     param([string] $Path, [string] $Content)
@@ -130,6 +160,15 @@ function Invoke-UrbanLicenseSeedLocal {
     $SharedRoot = (Resolve-Path -LiteralPath $SharedRoot).Path
     $UrbanAppDir = (Resolve-Path -LiteralPath $UrbanAppDir).Path
     $seed = Read-UrbanDemoLicenseSeed -SharedRoot $SharedRoot -SeedRelPath $SeedRelPath
+
+    $localMachineCode = Get-UrbanLocalMachineCode
+    $seedMachineCode = [string]$seed.License.machineCode
+    if (-not [string]::IsNullOrWhiteSpace($seedMachineCode) -and
+        $localMachineCode -ne $seedMachineCode.ToLowerInvariant()) {
+        Write-Warning (
+            "Demo JWT machineCode ({0}) != local ({1}). Use Debug build — machineCode check is skipped in DEBUG." -f `
+                $seedMachineCode, $localMachineCode)
+    }
 
     if ([string]::IsNullOrWhiteSpace($DatabasePath)) {
         $DatabasePath = Join-Path $UrbanAppDir "MaterialClient.db"
