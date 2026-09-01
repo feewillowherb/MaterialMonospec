@@ -1,0 +1,98 @@
+id: urban-debug-license-bypass
+created: "2026-09-01"
+graph:
+  product: materialclient
+  domain: urban
+  family: probe
+  goal: urban-debug-license-bypass
+  status: retired
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: urban-debug-idle
+  end: bypass-proved
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9961
+  healthGet: /
+  settingsGet: /api/settings
+  apiRef: repos/MaterialClient/src/MaterialClient.Urban/Services/MinimalWebHostService.cs
+  moduleRef: repos/MaterialClient/src/MaterialClient.Urban/MaterialClientUrbanModule.cs
+  debugAuthRef: repos/MaterialClient/src/MaterialClient.Urban/Services/UrbanDebugDevelopmentAuthorization.cs
+  openspecChange: openspec/changes/update-urban-debug-license-bypass/
+  expectedProjectId: 08DDCF46-3744-D3E1-1999-0D645800B322
+  expectedAccessCode: XNXS20260611001
+  logMarker: "DEBUG Urban authorization bypass active"
+
+prerequisites:
+  - MaterialClient branch update-urban-debug-license-bypass (or equivalent Debug bypass) is built
+  - Probe uses Configuration=Debug only; Release remains strict and is out of cook scope
+  - MinimalWebHost EnableOnStartup=true (set by start script)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; resolve Urban project/output; create runs/<ts>/
+  - id: prepare-invalid-license
+    name: Write malformed license.urban under Urban Debug output (no valid JWT seed)
+  - id: start-urban-debug
+    name: Build+launch MaterialClient.Urban Debug without license seed (reuse passage-probe Start-UrbanForProbe.ps1)
+  - id: cook-probe-host
+    name: GET / and GET /api/settings; capture request/response
+  - id: validate-bypass
+    name: Assert host reachable without valid license; write summary/report (optional log marker scan)
+
+expect:
+  - id: host-reachable
+    level: L0
+    description: GET / returns HTTP 200 while Urban Debug is running
+  - id: settings-readable
+    level: L1
+    description: GET /api/settings returns HTTP 200 (services past startup authorization)
+  - id: started-without-valid-jwt
+    level: L2
+    description: Run started with malformed/missing license.urban and without Invoke-UrbanLicenseSeed; diagnostic host still up
+  - id: main-window-no-activation
+    level: L3
+    description: User confirms Urban main window is usable and activation/recovery UI did not block — user only
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: []
+  prepare:
+    required: true
+    sink: prepare/
+    note: Record that invalid license.urban was planted and seed was skipped
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  logs:
+    required: true
+    sink: logs/
+    note: Recurse Logs/yyyy/MM/dd/MaterialClient.Urban-*.log; copy into logs/serilog/; scan logMarker
+
+humanGates:
+  - urban-already-running
+  - debug-build-required
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  start:
+    mode: script-invoke
+    script: scripts/Start-UrbanDebugForBypassProbe.ps1
+    reuses: ../urban-passage-probe/scripts/Start-UrbanForProbe.ps1
+    experimental: true
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanDebugLicenseBypassProbe.ps1
+    experimental: true

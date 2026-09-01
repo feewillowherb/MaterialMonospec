@@ -1,16 +1,16 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Build, seed demo license, and start MaterialClient.Urban for urban-passage-probe.
+  Build and start MaterialClient.Urban for urban-passage-probe.
 .DESCRIPTION
-  Builds Debug MaterialClient.Urban, seeds demo license, and starts the app.
-  Debug builds skip JWT machineCode validation (see StaticLicenseChecker).
-  Sets MinimalWebHost__EnableOnStartup=true.
+  Builds MaterialClient.Urban, seeds license via upsert-license-info (shared Invoke-UrbanLicenseSeed),
+  then starts the app with MinimalWebHost__EnableOnStartup=true.
 #>
 [CmdletBinding()]
 param(
     [string] $UrbanProject = "",
     [string] $Configuration = "Debug",
+    [string] $SeedRelPath = "seeds/demo-license.json",
     [switch] $SkipBuild,
     [switch] $SkipSeed,
     [switch] $NoLaunch
@@ -30,7 +30,7 @@ if (-not (Test-Path -LiteralPath $LicenseScript)) {
 }
 
 if (-not $SkipBuild) {
-    Write-Host "[start-urban-probe] building MaterialClient.Urban..."
+    Write-Host "[start-urban-probe] building MaterialClient.Urban ($Configuration)..."
     dotnet build $UrbanProject -c $Configuration | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet build failed."
@@ -49,11 +49,14 @@ if (-not (Test-Path -LiteralPath $urbanExe)) {
 
 if (-not $SkipSeed) {
     . $LicenseScript
-    Invoke-UrbanLicenseSeed -Mode Local -UrbanAppDir $urbanDir -SkipConfirm | Out-Host
+    Invoke-UrbanLicenseSeed -Mode Local -UrbanAppDir $urbanDir -SeedRelPath $SeedRelPath -SkipConfirm | Out-Host
+}
+else {
+    Write-Host "[start-urban-probe] skipping license seed (-SkipSeed)."
 }
 
 if ($NoLaunch) {
-    Write-Host "[start-urban-probe] seed complete; -NoLaunch set."
+    Write-Host "[start-urban-probe] prepare complete; -NoLaunch set."
     return
 }
 
@@ -65,7 +68,7 @@ if ($existing) {
 
 $env:MinimalWebHost__EnableOnStartup = "true"
 
-Write-Host "[start-urban-probe] launching $urbanExe (Debug — machineCode check skipped)"
+Write-Host "[start-urban-probe] launching $urbanExe ($Configuration; license seed=$SeedRelPath)"
 Write-Host "  MinimalWebHost__EnableOnStartup=$($env:MinimalWebHost__EnableOnStartup)"
 
 $p = Start-Process -FilePath $urbanExe -WorkingDirectory $urbanDir -PassThru

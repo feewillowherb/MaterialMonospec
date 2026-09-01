@@ -32,14 +32,16 @@ Status: **active**
 
 ## 前置
 
-1. **（推荐）启动前写入演示授权**，避免未授权阻塞诊断口：
+1. **启动 MaterialClient.Urban（Debug 或 Release）**：
    ```powershell
    powershell -ExecutionPolicy Bypass -File `
      pipelines/graphs/urban/urban-passage-probe/scripts/Start-UrbanForProbe.ps1
    ```
-   该脚本会：Debug build → seed 授权 → 启动 Urban。Debug 构建自动跳过 JWT machineCode 校验。
-   固定种子：`pipelines/_shared/urban/seeds/demo-license.json`。
-2. 启动 **MaterialClient.Urban**（若未用上一步脚本，须手动设置 `MinimalWebHost:EnableOnStartup=true`）
+   - 启动前**默认**调用 `Invoke-UrbanLicenseSeed`（Node/TS `upsert-license-info` 写入 `license.urban` + SQLite `LicenseInfo`）。
+   - 演示种子：`pipelines/_shared/urban/seeds/demo-license.json`；切换项目用 `-SeedRelPath seeds/<project>-license.json`。
+   - Local seed 会将 `machineCode` 补丁为本机后再 upsert；Debug 构建另在 `StaticLicenseChecker` 跳过 JWT machineCode 比对（Release 仍严格）。
+   - 跳过 seed：`-SkipSeed`（仅当你已手动灌好授权）。
+2. 若未用启动脚本，须手动设置 `MinimalWebHost:EnableOnStartup=true`，并自行 seed 授权。
 3. **seed-settings 会完全覆盖** 当前所有 LPR 配置为 `seeds/lpr-devices.json` 中的 4 行（其它 Settings 块保留 GET 结果）
 
 ## Sockets

@@ -1,0 +1,97 @@
+id: urban-license-probe
+created: "2026-09-01"
+graph:
+  product: materialclient
+  domain: urban
+  family: probe
+  goal: urban-license-seed-probe
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: urban-license-idle
+  end: license-proved
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9961
+  healthGet: /
+  settingsGet: /api/settings
+  licenseSeedApi: /api/license/seed
+  apiRef: repos/MaterialClient/src/MaterialClient.Urban/Services/MinimalWebHostService.cs
+  openspecChange: openspec/changes/update-urban-debug-license-bypass/
+  sharedSeed: ../../../_shared/urban/seeds/demo-license.json
+  sharedLicenseScript: ../../../_shared/urban/Invoke-UrbanLicenseSeed.ps1
+  upsertTool: ../../../_shared/urban/tools/upsert-license-info/upsert-license-info.ts
+  expectedProjectId: 08DDCF46-3744-D3E1-1999-0D645800B322
+  expectedAccessCode: XNXS20260611001
+
+seeds:
+  demoLicenseRel: ../../../_shared/urban/seeds/demo-license.json
+
+prerequisites:
+  - Node.js 22.5+ and pipelines/pnpm install (upsert-license-info uses node:sqlite)
+  - MaterialClient.Urban built Debug or Release with MinimalWebHost diagnostic port
+  - Invoke-UrbanLicenseSeed Local mode before or during start (default)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; resolve Urban output; create runs/<ts>/
+  - id: seed-license-local
+    name: Invoke-UrbanLicenseSeed Local (license.urban + SQLite LicenseInfo via upsert-license-info.ts)
+  - id: start-urban
+    name: Build+launch MaterialClient.Urban with seeded license
+  - id: cook-probe-host
+    name: GET / and GET /api/settings; capture request/response
+  - id: validate-seed
+    name: Assert host reachable with valid seed; write summary/report
+
+expect:
+  - id: host-reachable
+    level: L0
+    description: GET / returns HTTP 200 while Urban is running after license seed
+  - id: settings-readable
+    level: L1
+    description: GET /api/settings returns HTTP 200 (startup authorization passed)
+  - id: seed-applied
+    level: L2
+    description: license.urban written, LicenseInfo upserted, Local seed not skipped
+  - id: main-window-licensed
+    level: L3
+    description: User confirms Urban main window is usable without unauthorized notice — user only
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: []
+  prepare:
+    required: true
+    sink: prepare/
+    note: license-seed-summary from Invoke-UrbanLicenseSeed
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - urban-already-running
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  start:
+    mode: script-invoke
+    script: scripts/Start-UrbanForLicenseProbe.ps1
+    experimental: true
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanLicenseProbe.ps1
+    experimental: true

@@ -82,6 +82,81 @@ function Resolve-UrbanDiagnosticBaseUrl {
     return $baseUrl.TrimEnd('/')
 }
 
+function ConvertTo-UrbanLprEnumInt {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Name,
+
+        [object] $Value
+    )
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    if ($Value -is [int] -or $Value -is [long] -or $Value -is [decimal]) {
+        return [int]$Value
+    }
+
+    $text = [string]$Value
+    switch ($Name) {
+        "siteType" {
+            switch -Regex ($text) {
+                "^(Scale|0)$" { return 0 }
+                "^(Checkpoint|1)$" { return 1 }
+                "^(FinishedProduct|2)$" { return 2 }
+                default { throw "Unknown siteType value: $text" }
+            }
+        }
+        "deviceType" {
+            switch -Regex ($text) {
+                "^(Hikvision|0)$" { return 0 }
+                "^(Vzvision|1)$" { return 1 }
+                "^(Huaxiazhixin|2)$" { return 2 }
+                default { throw "Unknown deviceType value: $text" }
+            }
+        }
+        "direction" {
+            switch -Regex ($text) {
+                "^(A|0)$" { return 0 }
+                "^(B|1)$" { return 1 }
+                default { throw "Unknown direction value: $text" }
+            }
+        }
+        default { return $Value }
+    }
+}
+
+function ConvertTo-UrbanLprApiRow {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object] $SeedDevice,
+
+        [object] $TemplateRow = $null
+    )
+
+    $row = [ordered]@{}
+    if ($null -ne $TemplateRow) {
+        foreach ($prop in $TemplateRow.PSObject.Properties) {
+            $row[$prop.Name] = $prop.Value
+        }
+    }
+
+    foreach ($prop in $SeedDevice.PSObject.Properties) {
+        $value = $prop.Value
+        if ($prop.Name -in @("siteType", "deviceType", "direction")) {
+            $value = ConvertTo-UrbanLprEnumInt -Name $prop.Name -Value $value
+        }
+        $row[$prop.Name] = $value
+    }
+
+    if ($row.Contains("resolvedDeviceType")) {
+        $row.Remove("resolvedDeviceType")
+    }
+
+    return [pscustomobject]$row
+}
+
 function Read-UrbanLprDeviceSeed {
     param([string] $GraphRoot)
     $configPath = Join-Path $GraphRoot "config.yaml"
@@ -182,9 +257,22 @@ function Invoke-UrbanPassageLprSeedSettings {
         $settingsPayload = [ordered]@{}
     }
 
-    # Full replace: drop all existing LPR rows, use seed only.
+    $templateRow = $null
+    if ($null -ne $settingsResp.settings -and $null -ne $settingsResp.settings.licensePlateRecognitionConfigs) {
+        $existingRows = @($settingsResp.settings.licensePlateRecognitionConfigs)
+        if ($existingRows.Count -gt 0) {
+            $templateRow = $existingRows[0]
+        }
+    }
+
+    $lprRows = @()
+    foreach ($device in $seed.Devices) {
+        $lprRows += ConvertTo-UrbanLprApiRow -SeedDevice $device -TemplateRow $templateRow
+    }
+
+    # Full replace: drop all existing LPR rows, use normalized seed only.
     $settingsPayload | Add-Member -NotePropertyName licensePlateRecognitionConfigs `
-        -NotePropertyValue @($seed.Devices) -Force
+        -NotePropertyValue $lprRows -Force
 
     $settingsSaveResp = Invoke-UrbanJsonPost -Url $settingsUrl -Body $settingsPayload
     $settingsSaveOk = ($null -ne $settingsSaveResp) -and ($settingsSaveResp.success -eq $true)
