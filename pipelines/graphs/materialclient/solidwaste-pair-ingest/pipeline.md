@@ -26,8 +26,9 @@ Status: **active**
 - `./secrets.local.yaml`（可选覆盖 database 路径）
 - `./secrets.example.yaml`
 - Node 工具：`./scripts/ingest-pair.ts`（`node:sqlite`）
-- 源数据：`./seeds/`（`MaterialClient.db` + 3 张 jpg + `content.md`；自 `_temp/固废/91` 拷入）
+- 源数据：`./seeds/`（`MaterialClient.db` + `PhotoJianKong\2026\09\01\{相机}_1_{guid}.jpg` + `content.md`；自 `_temp/固废/91` 拷入）
 - `seeds/MaterialClient.db` **不入库**（见 `seeds/.gitignore`）
+- 图片命名对齐现网：`车牌_1_{Guid.N}.jpg`，`LocalPath` = `PhotoJianKong\2026\09\01\...`
 
 ## 前置
 

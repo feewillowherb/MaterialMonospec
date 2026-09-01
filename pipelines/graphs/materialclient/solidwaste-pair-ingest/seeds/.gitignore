@@ -1,3 +1,3 @@
 # Local SQLite package — do not commit
 MaterialClient.db
-PhotoJianKong/
+# Runtime may add more under PhotoJianKong; seed GUID jpgs ARE tracked.

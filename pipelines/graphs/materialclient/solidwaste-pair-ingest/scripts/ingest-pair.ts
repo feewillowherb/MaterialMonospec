@@ -3,9 +3,8 @@
  * Experimental: backfill missing SolidWaste join weighing + pair Waybill.
  * Uses Node >= 22.5 built-in node:sqlite. ASCII-safe source.
  */
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 type Scenario = {
@@ -21,6 +20,8 @@ type Scenario = {
   orderType: number;
   isPendingSync: boolean;
   imageGlobs: string[];
+  imageFiles?: string[];
+  photoRelDir?: string;
   dryRun: boolean;
 };
 
@@ -111,20 +112,31 @@ function almostEqual(a: number, b: number, eps = 0.001): boolean {
   return Math.abs(a - b) <= eps;
 }
 
-function resolveImageFiles(sourceDir: string, names: string[]): string[] {
-  const entries = readdirSync(sourceDir, { withFileTypes: true })
-    .filter((e) => e.isFile() && /\.jpe?g$/i.test(e.name))
-    .map((e) => e.name);
+const GUID_FILE_RE = /^.+_1_[0-9a-f]{32}\.jpe?g$/i;
 
+function resolveImageFiles(sourceDir: string, names: string[]): string[] {
   const resolved: string[] = [];
   for (const want of names) {
-    const hit = entries.find((n) => n === want || n.normalize("NFC") === want.normalize("NFC"));
-    if (!hit) {
-      throw new Error(`Missing image '${want}' in ${sourceDir}. Found: ${entries.join(", ") || "(none)"}`);
+    const normalized = want.replace(/\//g, "\\");
+    const abs = resolve(sourceDir, normalized);
+    if (!existsSync(abs)) {
+      throw new Error(`Missing image '${want}' -> ${abs}`);
     }
-    resolved.push(join(sourceDir, hit));
+    const fileName = basename(abs);
+    if (!GUID_FILE_RE.test(fileName)) {
+      throw new Error(
+        `Image name must match '{camera}_1_{guid32}.jpg' (existing AttachmentFiles style). Got: ${fileName}`,
+      );
+    }
+    resolved.push(abs);
   }
   return resolved;
+}
+
+/** Fixed relative LocalPath: PhotoJianKong\YYYY\MM\DD\file.jpg */
+function toLocalPath(photoRelDir: string, fileName: string): string {
+  const dir = photoRelDir.replace(/\//g, "\\").replace(/\\+$/, "");
+  return `${dir}\\${fileName}`;
 }
 
 function nextWaybillId(existingIds: Set<string>): bigint {
@@ -168,8 +180,21 @@ async function main(): Promise<void> {
     throw new Error(`Database not found: ${paths.databasePath}`);
   }
 
-  const images = resolveImageFiles(paths.sourceDir, scenario.imageGlobs);
   const joinAt = parseLocalDateTime(scenario.joinTime);
+  const imageNames = scenario.imageFiles?.length
+    ? scenario.imageFiles
+    : scenario.imageGlobs;
+  if (!imageNames?.length) {
+    throw new Error("scenario.imageFiles (or imageGlobs) is required");
+  }
+  const images = resolveImageFiles(paths.sourceDir, imageNames);
+  const photoRelDir = (scenario.photoRelDir?.trim() || "PhotoJianKong\\2026\\09\\01").replace(
+    /\//g,
+    "\\",
+  );
+  if (!/^PhotoJianKong\\2026\\09\\01$/i.test(photoRelDir)) {
+    throw new Error(`photoRelDir must be PhotoJianKong\\2026\\09\\01, got: ${photoRelDir}`);
+  }
   const joinWeight = dec(scenario.joinWeightTon);
   const outWeight = dec(scenario.outWeightTon);
   const netWeight = dec(scenario.netWeightTon);
@@ -332,8 +357,7 @@ async function main(): Promise<void> {
   );
   const waybillId = nextWaybillId(existingWbIds);
 
-  const relDir = `PhotoJianKong\\${joinAt.getFullYear()}\\${pad2(joinAt.getMonth() + 1)}\\${pad2(joinAt.getDate())}`;
-  const absPhotoDir = join(paths.photoRoot, "PhotoJianKong", String(joinAt.getFullYear()), pad2(joinAt.getMonth() + 1), pad2(joinAt.getDate()));
+  const absPhotoDir = join(paths.photoRoot, "PhotoJianKong", "2026", "09", "01");
   mkdirSync(absPhotoDir, { recursive: true });
 
   const tx = db.prepare("BEGIN IMMEDIATE");
@@ -372,12 +396,15 @@ async function main(): Promise<void> {
 
     const attachmentIds: number[] = [];
     for (const src of images) {
-      const base = basename(src);
-      const stem = base.replace(/\.jpe?g$/i, "");
-      const fileName = `${stem}_1_${randomUUID().replace(/-/g, "")}.jpg`;
+      const fileName = basename(src);
+      if (!GUID_FILE_RE.test(fileName)) {
+        throw new Error(`Invalid attachment file name: ${fileName}`);
+      }
       const destAbs = join(absPhotoDir, fileName);
-      const localPath = `${relDir}\\${fileName}`;
-      copyFileSync(src, destAbs);
+      const localPath = toLocalPath(photoRelDir, fileName);
+      if (resolve(src) !== resolve(destAbs)) {
+        copyFileSync(src, destAbs);
+      }
 
       db.prepare(
         `INSERT INTO AttachmentFiles (

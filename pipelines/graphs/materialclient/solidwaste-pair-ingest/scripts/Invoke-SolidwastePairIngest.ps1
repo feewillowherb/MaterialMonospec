@@ -94,6 +94,15 @@ if ([string]::IsNullOrWhiteSpace($RunDir)) {
 }
 New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
 
+$manifestPath = Join-Path $sourceDir "image-manifest.json"
+if (-not (Test-Path -LiteralPath $manifestPath)) {
+    throw "Missing image-manifest.json in seeds (GUID file list)."
+}
+$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$imageFiles = @($manifest | ForEach-Object {
+    ("PhotoJianKong/2026/09/01/" + $_.FileName)
+})
+
 $scenario = [ordered]@{
     plateNumber    = $plate
     joinWeightTon  = $joinWeight
@@ -106,9 +115,8 @@ $scenario = [ordered]@{
     orderSource    = [int]$orderSource
     orderType      = [int]$orderType
     isPendingSync  = ($isPendingSync -eq "true")
-    imageGlobs     = @([string]([char]0x8F66) + [string]([char]0x724C) + ".jpg",
-                       [string]([char]0x8F66) + [string]([char]0x724C) + "2.jpg",
-                       [string]([char]0x8F66) + [string]([char]0x9876) + ".jpg")
+    photoRelDir    = "PhotoJianKong\2026\09\01"
+    imageFiles     = $imageFiles
     dryRun         = (-not $willWrite)
 }
 $scenarioPath = Join-Path $RunDir "scenario.json"
