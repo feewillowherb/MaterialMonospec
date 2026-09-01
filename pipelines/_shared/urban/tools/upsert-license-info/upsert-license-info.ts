@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 
 interface LicenseSeed {
   id: string;
@@ -58,7 +57,6 @@ function getRequiredDateTime(root: LicenseSeed, name: keyof LicenseSeed): Date {
   return parsed;
 }
 
-/** Align with EF Core / Microsoft.Data.Sqlite: yyyy-MM-dd HH:mm:ss.fffffff */
 function formatEfDateTime(date: Date, useUtc: boolean): string {
   const year = useUtc ? date.getUTCFullYear() : date.getFullYear();
   const month = (useUtc ? date.getUTCMonth() : date.getMonth()) + 1;
@@ -73,7 +71,8 @@ function formatEfDateTime(date: Date, useUtc: boolean): string {
   return `${year}-${pad2(month)}-${pad2(day)} ${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}.${frac}`;
 }
 
-function main(): void {
+async function main(): Promise<void> {
+  const { DatabaseSync } = await import("node:sqlite");
   const [, , databaseArg, licenseJsonArg] = process.argv;
   if (!databaseArg || !licenseJsonArg) {
     usage();
@@ -139,7 +138,7 @@ function main(): void {
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);

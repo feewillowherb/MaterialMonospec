@@ -181,8 +181,9 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 | urban-passage-lpr-probe | probe | `graphs/urban/urban-passage-probe/` | active |
+| urban-license-seed-probe | probe | `graphs/urban/urban-license-probe/` | active |
 
-Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；授权改 UpsertLicenseInfo seed）。
+Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 
 Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）。
 

@@ -223,18 +223,42 @@ function Invoke-UrbanUpsertLicenseInfoTool {
 
     Push-Location $pipelinesRoot
     try {
-        if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-            $toolOutput = & pnpm exec tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+        $prevEap = $ErrorActionPreference
+        $prevNodeOptions = $env:NODE_OPTIONS
+        $ErrorActionPreference = 'Continue'
+        if ([string]::IsNullOrWhiteSpace($prevNodeOptions)) {
+            $env:NODE_OPTIONS = '--disable-warning=ExperimentalWarning'
         }
-        elseif (Get-Command npx -ErrorAction SilentlyContinue) {
-            $toolOutput = & npx tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+        elseif ($prevNodeOptions -notmatch 'disable-warning=ExperimentalWarning') {
+            $env:NODE_OPTIONS = "$prevNodeOptions --disable-warning=ExperimentalWarning"
         }
-        else {
-            throw "tsx runner not found. Install Node.js, then: cd pipelines && pnpm install"
+        try {
+            if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+                $toolOutput = & pnpm exec tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+            }
+            elseif (Get-Command npx -ErrorAction SilentlyContinue) {
+                $toolOutput = & npx tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+            }
+            else {
+                throw "tsx runner not found. Install Node.js, then: cd pipelines && pnpm install"
+            }
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $prevEap
+            if ($null -eq $prevNodeOptions) {
+                Remove-Item -Path Env:NODE_OPTIONS -ErrorAction SilentlyContinue
+            }
+            else {
+                $env:NODE_OPTIONS = $prevNodeOptions
+            }
         }
 
-        if ($LASTEXITCODE -ne 0) {
-            throw ("upsert-license-info failed (exit {0}): {1}" -f $LASTEXITCODE, ($toolOutput -join [Environment]::NewLine))
+        if ($null -eq $exitCode) {
+            $exitCode = 0
+        }
+        if ($exitCode -ne 0) {
+            throw ("upsert-license-info failed (exit {0}): {1}" -f $exitCode, ($toolOutput -join [Environment]::NewLine))
         }
 
         return @($toolOutput)

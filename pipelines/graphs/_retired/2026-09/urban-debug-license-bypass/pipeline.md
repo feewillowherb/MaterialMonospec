@@ -1,6 +1,6 @@
 # urban-debug-license-bypass（urban）
 
-> **Retired 2026-09**：`UrbanDebugDevelopmentAuthorization` 已移除；授权改由 `pipelines/_shared/urban/Invoke-UrbanLicenseSeed.ps1`（`UpsertLicenseInfo`）在启动前灌入。继任验收：`graphs/urban/urban-passage-probe/`。
+> **Retired 2026-09**：`UrbanDebugDevelopmentAuthorization` 已移除；授权改由 `Invoke-UrbanLicenseSeed` + `upsert-license-info` 在启动前灌入。继任验收：`graphs/urban/urban-license-probe/`。
 
 ## 目的 / Goal
 
