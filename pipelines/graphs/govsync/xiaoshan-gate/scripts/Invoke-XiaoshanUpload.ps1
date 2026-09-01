@@ -100,7 +100,6 @@ function ConvertTo-GateJson {
     [void]$sb.AppendLine(('  "deviceID": "{0}",' -f (& $esc $Fields.deviceID)))
     [void]$sb.AppendLine(('  "buildLicenseNo": "{0}",' -f (& $esc $Fields.buildLicenseNo)))
     [void]$sb.AppendLine(('  "siteType": "{0}",' -f (& $esc $Fields.siteType)))
-    [void]$sb.AppendLine(('  "goodsWeight": "{0}",' -f (& $esc $Fields.goodsWeight)))
     [void]$sb.AppendLine(('  "areaCode": "{0}"' -f (& $esc $Fields.areaCode)))
     [void]$sb.Append("}")
     return $sb.ToString()
@@ -140,17 +139,11 @@ if ([string]::IsNullOrWhiteSpace($carNoColor) -or $carNoColor -eq "null") {
 $carType = Get-YamlScalar -Text $configText -Key "carType"
 if ([string]::IsNullOrWhiteSpace($carType)) { $carType = $CarTypeHeavy }
 $licenseRaw = Get-YamlScalar -Text $configText -Key "buildLicenseNo"
-$goodsWeight = Get-YamlScalar -Text $configText -Key "goodsWeight"
-if ([string]::IsNullOrWhiteSpace($goodsWeight)) {
-    $kg = Get-YamlScalar -Text $configText -Key "grossWeightKg"
-    $goodsWeight = $kg
-}
 
 $fields = @{
     carNo          = $carNo
     carNoColor     = $carNoColor
     carType        = $carType
-    goodsWeight    = $goodsWeight
     dataSource     = Get-YamlScalar -Text $configText -Key "dataSource"
     inOutType      = Get-YamlScalar -Text $configText -Key "inOutType"
     placeType      = Get-YamlScalar -Text $configText -Key "placeType"
@@ -222,7 +215,6 @@ $requestMeta = [ordered]@{
     snapImagesBytes  = $bytes.Length
     carNo            = $carNo
     buildLicenseNo   = $fields.buildLicenseNo
-    goodsWeight      = $goodsWeight
     fixture          = $FixtureRel
 }
 Write-Utf8NoBom -Path (Join-Path $HttpDir "request.meta.json") -Content ($requestMeta | ConvertTo-Json -Depth 5)

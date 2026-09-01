@@ -31,7 +31,6 @@ scenario:
   deviceID: "01"
   siteType: "1"
   areaCode: "330109"
-  goodsWeight: "20000"
   snapTimeMode: run-now
   snapImages:
     source: fixtures/test_pic.jpg
