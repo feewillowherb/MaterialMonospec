@@ -1,5 +1,7 @@
 # urban-debug-license-bypass（urban）
 
+> **Retired 2026-09**：`UrbanDebugDevelopmentAuthorization` 已移除；授权改由 `pipelines/_shared/urban/Invoke-UrbanLicenseSeed.ps1`（`UpsertLicenseInfo`）在启动前灌入。继任验收：`graphs/urban/urban-passage-probe/`。
+
 ## 目的 / Goal
 
 验证 **MaterialClient.Urban Debug** 在本地 **无有效 JWT / 畸形 `license.urban`**、且 **未 seed 演示授权** 时，仍能完成启动授权旁路并拉起诊断 Host（`MinimalWebHost`），从而证明 `update-urban-debug-license-bypass` 的开发授权上下文生效。

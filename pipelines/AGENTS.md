@@ -138,7 +138,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 
 密钥：仅 `secrets.local.yaml`（gitignore）。**MUST NOT** 把密码写进 `pipeline.md` / `config.yaml`。
 
-**可选 TS runtime**：若引入 Node Cook，用 `scripts/Setup-TsEnv.ps1` + pnpm workspace；当前仓库以各 Graph 的 `scripts/`（experimental）为主。
+**Node/TS runtime**：`pipelines/package.json` + pnpm（共享 ingest 工具，如 `_shared/urban/tools/upsert-license-info/`）；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。**MUST NOT** 在 pipeline 中引入 C# 小工具（避免 `bin/`/`obj/` 产物）；SQLite ingest 用 Node ≥ 22.5 内置 `node:sqlite`。
 
 ---
 
@@ -181,7 +181,8 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 | urban-passage-lpr-probe | probe | `graphs/urban/urban-passage-probe/` | active |
-| urban-debug-license-bypass | probe | `graphs/urban/urban-debug-license-bypass/` | active |
+
+Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；授权改 UpsertLicenseInfo seed）。
 
 Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）。
 

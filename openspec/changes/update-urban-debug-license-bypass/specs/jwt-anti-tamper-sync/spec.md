@@ -46,12 +46,12 @@ In Release builds, `DeviceStatusSignalRClient.SyncProjectLicenseFromServerAsync(
 
 - **WHEN** a Debug build establishes or restores its SignalR connection
 - **THEN** SHALL NOT invoke `VerifyJwtAsync`
-- **AND** SHALL NOT adopt a server JWT or synchronize server authorization fields into the Debug development authorization context
+- **AND** SHALL NOT adopt a server JWT solely from the anti-tamper sync path
 - **AND** SHALL continue SignalR device-status, log, approval and other non-authorization behavior
 
 ### Requirement: Server JWT as authoritative source for LicenseInfo
 
-In Release builds, the server-side JWT SHALL be the authoritative source for authorization state. On Release startup, the client SHALL use the server-provided JWT (stored in `LicenseInfo.LatestJwtToken`) if available; otherwise it SHALL fall back to the `.urban` file as offline bootstrap. In either case, validated JWT claims SHALL overwrite the `LicenseInfo` database record. In Debug builds, the canonical development authorization context SHALL be authoritative and invalid local or server JWT data SHALL NOT replace it.
+In Release builds, the server-side JWT SHALL be the authoritative source for authorization state on startup and after successful anti-tamper sync. On startup, the client SHALL use the server-provided JWT (stored in `LicenseInfo.LatestJwtToken`) if available; otherwise it SHALL fall back to the `.urban` file as offline bootstrap. Validated JWT claims SHALL overwrite the `LicenseInfo` database record. Debug builds follow the same startup JWT validation path (with machineCode relaxation only).
 
 #### Scenario: Release startup with LatestJwtToken available
 
@@ -76,12 +76,6 @@ In Release builds, the server-side JWT SHALL be the authoritative source for aut
 - **THEN** startup SHALL fall back to `.urban` if available
 - **AND** if `.urban` is unavailable or invalid, startup authorization SHALL fail
 
-#### Scenario: Debug ignores invalid JWT authority
-
-- **WHEN** a Debug build starts with any invalid, expired or mismatched local JWT
-- **THEN** SHALL use the canonical development authorization context
-- **AND** SHALL NOT derive trusted project fields from the invalid JWT
-
 ## ADDED Requirements
 
 ### Requirement: Debug ignores runtime authorization revocation
@@ -91,15 +85,13 @@ MaterialClient.Urban Debug builds MUST NOT interrupt normal program use because 
 #### Scenario: Debug receives server Expired result
 
 - **WHEN** a Debug build receives or is tested with an authorization-expired result or `LicenseExpiredEto`
-- **THEN** SHALL NOT clear the Debug development authorization context
-- **AND** SHALL NOT show the activation window
+- **THEN** SHALL NOT show the activation window
 - **AND** SHALL NOT shut down or restart the application
 
 #### Scenario: Debug receives server DeviceChanged result
 
 - **WHEN** a Debug build receives or is tested with a device-changed result or `LicenseDeviceRevokedEto`
-- **THEN** SHALL NOT clear the Debug development authorization context
-- **AND** SHALL NOT show the activation window
+- **THEN** SHALL NOT show the activation window
 - **AND** SHALL NOT shut down or restart the application
 
 #### Scenario: Release receives runtime revocation

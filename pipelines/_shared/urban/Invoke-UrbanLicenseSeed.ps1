@@ -3,11 +3,11 @@
 .SYNOPSIS
   Shared: seed MaterialClient.Urban demo license before or during diagnostic runs.
 .DESCRIPTION
-  Local mode (default): writes license.urban and upserts LicenseInfo in MaterialClient.db.
+  Local mode (default): writes license.urban and upserts LicenseInfo in MaterialClient.db via Node/TS upsert-license-info.
   Api mode: POST /api/license/seed when the diagnostic host is already running.
 
-  Fixed demo license: seeds/demo-license.json (杭州凡东科技演示项目 / XNXS20260611001).
-  If JWT machineCode differs from this PC, use a Debug build (machineCode check is skipped in DEBUG).
+  License seeds live under seeds/*.json (default: seeds/demo-license.json).
+  Local mode patches machineCode to this PC before upsert; Debug builds also skip JWT machineCode mismatch at startup.
 #>
 
 function Get-UrbanLocalMachineCode {
@@ -130,14 +130,147 @@ function Read-UrbanDemoLicenseSeed {
     }
 }
 
-function Resolve-UrbanLicenseToolProject {
+function Resolve-UrbanPipelinesRoot {
     param([string] $SharedRoot)
-    $toolProject = Join-Path $SharedRoot "tools/UpsertLicenseInfo/UpsertLicenseInfo.csproj"
-    if (-not (Test-Path -LiteralPath $toolProject)) {
-        throw "Missing UpsertLicenseInfo tool project: $toolProject"
+    $pipelinesRoot = Join-Path $SharedRoot "../.."
+    if (-not (Test-Path -LiteralPath $pipelinesRoot)) {
+        throw "Missing pipelines root: $pipelinesRoot"
     }
 
-    return (Resolve-Path -LiteralPath $toolProject).Path
+    return (Resolve-Path -LiteralPath $pipelinesRoot).Path
+}
+
+function Resolve-UrbanUpsertLicenseInfoScript {
+    param([string] $SharedRoot)
+    $scriptPath = Join-Path $SharedRoot "tools/upsert-license-info/upsert-license-info.ts"
+    if (-not (Test-Path -LiteralPath $scriptPath)) {
+        throw "Missing upsert-license-info script: $scriptPath"
+    }
+
+    return (Resolve-Path -LiteralPath $scriptPath).Path
+}
+
+function Ensure-UrbanPipelinesNodeModules {
+    param([string] $PipelinesRoot)
+
+    $nodeModules = Join-Path $PipelinesRoot "node_modules"
+    if (Test-Path -LiteralPath $nodeModules) {
+        return
+    }
+
+    $packageJson = Join-Path $PipelinesRoot "package.json"
+    if (-not (Test-Path -LiteralPath $packageJson)) {
+        throw "Missing pipelines/package.json — cannot install Node dependencies."
+    }
+
+    Write-Host "[urban-license-seed] installing pipelines Node dependencies (first run)..."
+    Push-Location $PipelinesRoot
+    try {
+        if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+            & pnpm install 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0) {
+                throw "pnpm install failed (exit $LASTEXITCODE)."
+            }
+        }
+        elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+            & npm install 2>&1 | ForEach-Object { Write-Host $_ }
+            if ($LASTEXITCODE -ne 0) {
+                throw "npm install failed (exit $LASTEXITCODE)."
+            }
+        }
+        else {
+            throw "Neither pnpm nor npm found. Install Node.js and pnpm, then run: cd pipelines && pnpm install"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Test-UrbanNodeVersion {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        throw "Node.js not found. Install Node.js 22.5+ (uses built-in node:sqlite), then: cd pipelines && pnpm install"
+    }
+
+    $raw = (& node -p "process.versions.node" 2>&1 | Select-Object -Last 1).ToString().Trim()
+    if ($raw -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+        throw "Unable to parse Node.js version from: $raw"
+    }
+
+    $major = [int]$Matches[1]
+    $minor = [int]$Matches[2]
+    if ($major -lt 22 -or ($major -eq 22 -and $minor -lt 5)) {
+        throw "Node.js $raw is too old for upsert-license-info. Require Node.js 22.5+ (built-in node:sqlite)."
+    }
+}
+
+function Invoke-UrbanUpsertLicenseInfoTool {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $DatabasePath,
+
+        [Parameter(Mandatory = $true)]
+        [string] $LicenseJsonPath,
+
+        [Parameter(Mandatory = $true)]
+        [string] $SharedRoot
+    )
+
+    $pipelinesRoot = Resolve-UrbanPipelinesRoot -SharedRoot $SharedRoot
+    $scriptPath = Resolve-UrbanUpsertLicenseInfoScript -SharedRoot $SharedRoot
+    Test-UrbanNodeVersion
+    Ensure-UrbanPipelinesNodeModules -PipelinesRoot $pipelinesRoot
+
+    Push-Location $pipelinesRoot
+    try {
+        if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+            $toolOutput = & pnpm exec tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+        }
+        elseif (Get-Command npx -ErrorAction SilentlyContinue) {
+            $toolOutput = & npx tsx $scriptPath $DatabasePath $LicenseJsonPath 2>&1
+        }
+        else {
+            throw "tsx runner not found. Install Node.js, then: cd pipelines && pnpm install"
+        }
+
+        if ($LASTEXITCODE -ne 0) {
+            throw ("upsert-license-info failed (exit {0}): {1}" -f $LASTEXITCODE, ($toolOutput -join [Environment]::NewLine))
+        }
+
+        return @($toolOutput)
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function New-UrbanEffectiveLicenseSeedFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object] $License,
+
+        [Parameter(Mandatory = $true)]
+        [string] $LocalMachineCode
+    )
+
+    $effective = @{}
+    foreach ($prop in $License.PSObject.Properties) {
+        $effective[$prop.Name] = $prop.Value
+    }
+
+    $seedMachineCode = [string]$effective["machineCode"]
+    if (-not [string]::IsNullOrWhiteSpace($seedMachineCode) -and
+        $LocalMachineCode -ne $seedMachineCode.ToLowerInvariant()) {
+        Write-Host (
+            "[urban-license-seed] patching machineCode for local upsert: seed={0} local={1}" -f `
+                $seedMachineCode, $LocalMachineCode)
+    }
+
+    $effective["machineCode"] = $LocalMachineCode
+    $tempPath = Join-Path ([System.IO.Path]::GetTempPath()) (
+        "urban-license-seed-{0}.json" -f [Guid]::NewGuid().ToString("N"))
+    Write-UrbanUtf8NoBom -Path $tempPath -Content ($effective | ConvertTo-Json -Depth 6)
+    return $tempPath
 }
 
 function Invoke-UrbanLicenseSeedLocal {
@@ -162,13 +295,7 @@ function Invoke-UrbanLicenseSeedLocal {
     $seed = Read-UrbanDemoLicenseSeed -SharedRoot $SharedRoot -SeedRelPath $SeedRelPath
 
     $localMachineCode = Get-UrbanLocalMachineCode
-    $seedMachineCode = [string]$seed.License.machineCode
-    if (-not [string]::IsNullOrWhiteSpace($seedMachineCode) -and
-        $localMachineCode -ne $seedMachineCode.ToLowerInvariant()) {
-        Write-Warning (
-            "Demo JWT machineCode ({0}) != local ({1}). Use Debug build — machineCode check is skipped in DEBUG." -f `
-                $seedMachineCode, $localMachineCode)
-    }
+    $effectiveSeedPath = New-UrbanEffectiveLicenseSeedFile -License $seed.License -LocalMachineCode $localMachineCode
 
     if ([string]::IsNullOrWhiteSpace($DatabasePath)) {
         $DatabasePath = Join-Path $UrbanAppDir "MaterialClient.db"
@@ -178,7 +305,6 @@ function Invoke-UrbanLicenseSeedLocal {
     }
 
     $licenseFilePath = Join-Path $UrbanAppDir "license.urban"
-    $toolProject = Resolve-UrbanLicenseToolProject -SharedRoot $SharedRoot
 
     if (-not $SkipConfirm) {
         $ans = Read-Host (
@@ -199,9 +325,14 @@ function Invoke-UrbanLicenseSeedLocal {
 
     Write-UrbanUtf8NoBom -Path $licenseFilePath -Content $jwt.Trim()
 
-    $toolOutput = & dotnet run --project $toolProject -- $DatabasePath $seed.Path 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw ("UpsertLicenseInfo failed (exit {0}): {1}" -f $LASTEXITCODE, ($toolOutput -join [Environment]::NewLine))
+    try {
+        $toolOutput = Invoke-UrbanUpsertLicenseInfoTool -DatabasePath $DatabasePath `
+            -LicenseJsonPath $effectiveSeedPath -SharedRoot $SharedRoot
+    }
+    finally {
+        if (Test-Path -LiteralPath $effectiveSeedPath) {
+            Remove-Item -LiteralPath $effectiveSeedPath -Force -ErrorAction SilentlyContinue
+        }
     }
 
     if (-not [string]::IsNullOrWhiteSpace($RunDir)) {
@@ -214,7 +345,8 @@ function Invoke-UrbanLicenseSeedLocal {
                 projectId      = [string]$seed.License.projectId
                 accessCode     = [string]$seed.License.accessCode
                 authEndTime    = [string]$seed.License.authEndTime
-                machineCode    = [string]$seed.License.machineCode
+                machineCode    = $localMachineCode
+                seedMachineCode = [string]$seed.License.machineCode
                 toolOutput     = @($toolOutput)
                 finishedAt     = (Get-Date).ToString("o")
             } | ConvertTo-Json -Depth 6)
@@ -231,7 +363,8 @@ function Invoke-UrbanLicenseSeedLocal {
         ProjectId      = [string]$seed.License.projectId
         AccessCode     = [string]$seed.License.accessCode
         AuthEndTime    = [string]$seed.License.authEndTime
-        MachineCode    = [string]$seed.License.machineCode
+        MachineCode    = $localMachineCode
+        SeedMachineCode = [string]$seed.License.machineCode
         ToolOutput     = @($toolOutput)
     }
 }

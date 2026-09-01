@@ -5,7 +5,7 @@ graph:
   domain: urban
   family: probe
   goal: urban-debug-license-bypass
-  status: active
+  status: retired
 environment: local
 stopOnError: false
 secretsRef: secrets.local.yaml
