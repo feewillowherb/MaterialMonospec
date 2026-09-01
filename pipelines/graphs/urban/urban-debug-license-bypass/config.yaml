@@ -73,9 +73,9 @@ capture:
     required: true
     sink: report.md
   logs:
-    required: false
+    required: true
     sink: logs/
-    note: If Serilog files found, scan for logMarker; else source missing
+    note: Recurse Logs/yyyy/MM/dd/MaterialClient.Urban-*.log; copy into logs/serilog/; scan logMarker
 
 humanGates:
   - urban-already-running

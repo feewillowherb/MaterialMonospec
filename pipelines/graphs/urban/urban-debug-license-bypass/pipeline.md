@@ -81,7 +81,7 @@ flowchart LR
 | request-response | true | `http/01-root.json`、`http/02-settings-get.json` |
 | summary | true | `summary.json` |
 | report | true | `report.md` |
-| logs | false | `logs/`（找不到 → `source: missing`） |
+| logs | true | `logs/bypass-marker.json` + `logs/serilog/MaterialClient.Urban-*.log`（递归 `Logs/yyyy/MM/dd/`） |
 
 缺证仍写文件：`source: missing` / `count: 0`。
 

@@ -140,7 +140,6 @@ try {
         url        = "$baseUrl/api/settings"
         statusCode = $settingsResp.StatusCode
         bodyPreviewLength = $settingsResp.Content.Length
-        # Full settings can be large; keep raw for evidence
         raw        = $settingsResp.Content
     } | ConvertTo-Json -Depth 4)
 }
@@ -165,59 +164,127 @@ if ($null -ne $prepareMeta -and $prepareMeta.PSObject.Properties.Name -contains 
 $l2 = $l0 -and $l1 -and $seedSkipped
 
 $logMarker = "DEBUG Urban authorization bypass active"
-$logScan = [ordered]@{
-    source = "missing"
-    count  = 0
-    marker = $logMarker
+$logScan = @{
+    source     = "missing"
+    count      = 0
+    marker     = $logMarker
+    logFiles   = @()
+    samples    = @()
+    copied     = @()
 }
-# Best-effort: Serilog under Urban output Logs/ if present
+# Serilog uses Logs/yyyy/MM/dd/MaterialClient.Urban-*.log (see SerilogFileLogConfigurator).
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../../../../..")).Path
 $urbanLogs = Join-Path $RepoRoot "repos/MaterialClient/src/MaterialClient.Urban/bin/Debug/net10.0/win-x64/Logs"
+$logSinkDir = Join-Path $LogsDir "serilog"
+New-Item -ItemType Directory -Force -Path $logSinkDir | Out-Null
+
 if (Test-Path -LiteralPath $urbanLogs) {
-    $hits = Select-String -Path (Join-Path $urbanLogs "*") -Pattern $logMarker -ErrorAction SilentlyContinue | Select-Object -First 5
-    if ($hits) {
-        $logScan.source = $urbanLogs
-        $logScan.count = @($hits).Count
-        $logScan.samples = @($hits | ForEach-Object { $_.Line.Trim() })
-        Write-Utf8NoBom (Join-Path $LogsDir "bypass-marker.json") ($logScan | ConvertTo-Json -Depth 6)
+    $logFiles = @(Get-ChildItem -LiteralPath $urbanLogs -Recurse -File -Filter "MaterialClient.Urban-*.log" |
+        Sort-Object LastWriteTime -Descending)
+    $logScan.logRoot = $urbanLogs
+    $logScan.logFiles = @($logFiles | Select-Object -First 5 | ForEach-Object { $_.FullName })
+
+    if ($logFiles.Count -gt 0) {
+        $logScan.source = $logFiles[0].FullName
+        $searchTargets = @($logFiles | Select-Object -First 3)
+        $hitLines = @()
+        foreach ($lf in $searchTargets) {
+            try {
+                $partial = Select-String -LiteralPath $lf.FullName -Pattern $logMarker -ErrorAction Stop |
+                    Select-Object -First 5
+                if ($partial) {
+                    $hitLines += @($partial | ForEach-Object {
+                            "{0}:{1}: {2}" -f $_.Filename, $_.LineNumber, $_.Line.Trim()
+                        })
+                }
+            }
+            catch {
+                $logScan.selectError = $_.Exception.Message
+            }
+
+            # Copy evidence with FileShare.ReadWrite so an active Serilog writer does not block.
+            $destName = $lf.Name
+            $destPath = Join-Path $logSinkDir $destName
+            try {
+                $srcStream = [System.IO.File]::Open(
+                    $lf.FullName,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::ReadWrite)
+                try {
+                    $dstStream = [System.IO.File]::Create($destPath)
+                    try {
+                        $srcStream.CopyTo($dstStream)
+                    }
+                    finally {
+                        $dstStream.Dispose()
+                    }
+                }
+                finally {
+                    $srcStream.Dispose()
+                }
+                $logScan.copied += @($destName)
+            }
+            catch {
+                $logScan.copyError = $_.Exception.Message
+                # Fallback: last 200 lines via Get-Content (often works under share)
+                try {
+                    $tail = Get-Content -LiteralPath $lf.FullName -Tail 200 -ErrorAction Stop
+                    Write-Utf8NoBom -Path (Join-Path $logSinkDir ($lf.BaseName + ".tail.txt")) -Content ($tail -join "`n")
+                    $logScan.copied += @($lf.BaseName + ".tail.txt")
+                }
+                catch {
+                    $logScan.tailError = $_.Exception.Message
+                }
+            }
+        }
+
+        $logScan.count = $hitLines.Count
+        $logScan.samples = $hitLines
+        if ($hitLines.Count -eq 0) {
+            $logScan.note = "Log files found and copied, but marker not present in newest files."
+        }
     }
     else {
-        Write-Utf8NoBom (Join-Path $LogsDir "bypass-marker.json") ($logScan | ConvertTo-Json -Depth 6)
+        $logScan.note = "Logs directory exists but no MaterialClient.Urban-*.log under dated folders."
     }
 }
 else {
-    Write-Utf8NoBom (Join-Path $LogsDir "bypass-marker.json") ($logScan | ConvertTo-Json -Depth 6)
+    $logScan.note = "Urban Logs directory missing: $urbanLogs"
 }
 
-$summary = [ordered]@{
-    graph           = "urban/urban-debug-license-bypass"
-    runDir          = $RunDir
-    baseUrl         = $baseUrl
-    startedByProbe  = $startedByProbe
-    seedSkipped     = $seedSkipped
-    levels          = [ordered]@{
+Write-Utf8NoBom -Path (Join-Path $LogsDir "bypass-marker.json") -Content ($logScan | ConvertTo-Json -Depth 6)
+
+$summary = @{
+    graph          = "urban/urban-debug-license-bypass"
+    runDir         = $RunDir
+    baseUrl        = $baseUrl
+    startedByProbe = $startedByProbe
+    seedSkipped    = $seedSkipped
+    levels         = @{
         L0 = $l0
         L1 = $l1
         L2 = $l2
         L3 = "pending-user"
     }
-    message         = "等待用户验收，尚未通过。"
+    message        = "Waiting for user acceptance; not passed yet."
 }
-Write-Utf8NoBom (Join-Path $RunDir "summary.json") ($summary | ConvertTo-Json -Depth 8)
+$summaryJson = $summary | ConvertTo-Json -Depth 8
+Write-Utf8NoBom -Path (Join-Path $RunDir "summary.json") -Content $summaryJson
 
-$report = @"
-# urban-debug-license-bypass report
-
-- baseUrl: $baseUrl
-- L0 GET /: $l0
-- L1 GET /api/settings: $l1
-- L2 started without valid JWT seed: $l2
-- L3: pending（仅用户）
-
-等待用户验收，尚未通过。
-请验收：pass / fail + 对象与原因。
-"@
-Write-Utf8NoBom (Join-Path $RunDir "report.md") $report
+$reportLines = @(
+    "# urban-debug-license-bypass report"
+    ""
+    "- baseUrl: $baseUrl"
+    "- L0 GET /: $l0"
+    "- L1 GET /api/settings: $l1"
+    "- L2 started without valid JWT seed: $l2"
+    "- L3: pending (user only)"
+    ""
+    "Waiting for user acceptance; not passed yet."
+    "Please accept: pass / fail + object + reason."
+)
+Write-Utf8NoBom -Path (Join-Path $RunDir "report.md") -Content ($reportLines -join "`n")
 
 Write-Host "[urban-debug-license-bypass] done. L0=$l0 L1=$l1 L2=$l2 runDir=$RunDir"
 if (-not $l2) {
