@@ -1,0 +1,102 @@
+id: urban-passage-um-reconcile
+created: "2026-09-01"
+graph:
+  product: urban
+  domain: urban
+  family: reconcile
+  goal: urban-passage-client-um-reconcile
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: client-um-idle
+  end: client-um-aligned
+cook: new-object
+
+target:
+  clientProbeGraph: ../urban-passage-probe/
+  clientDiagnosticBaseUrl: http://localhost:9961
+  umBaseUrl: http://localhost:44300
+  checkpointReceive: /api/app/urban-checkpoint-passage/receive
+  productReceive: /api/app/urban-finished-product-passage/receive
+  checkpointList: /api/app/urban-checkpoint-passage
+  productList: /api/app/urban-finished-product-passage
+  attachmentUpload: /api/urban-attachment/upload-multipart
+  openspecChange: openspec/changes/add-urbanmanagement-passage-xiaoshan-upload/
+  designRef: docs/2026-08-28-urbanmanagement-passage-xiaoshan-upload/
+  govGateGraph: ../../govsync/xiaoshan-gate/
+  govProductGraph: ../../govsync/xiaoshan-product/
+
+seeds:
+  passageCases: ../urban-passage-probe/seeds/passage-cases.json
+  lprDevices: ../urban-passage-probe/seeds/lpr-devices.json
+  fixture: ../../govsync/xiaoshan-gate/fixtures/test_pic.jpg
+
+reconcile:
+  modes:
+    bridge: Direct UM receive from seeds (client upload not required)
+    client-then-bridge: urban-passage-probe then bridge (local client rows + UM ingest)
+    client-upload: MaterialClient SubmitRecordAsync after tasks 7.1–7.2
+  expectedCheckpointCases: 5
+  expectedProductCases: 5
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; resolve UM URL, proId, buildLicenseNo; create runs/<ts>/
+  - id: optional-client-probe
+    name: Optional urban-passage-probe (10x test-passage → client SQLite)
+  - id: bridge-ingest-um
+    name: POST checkpoint/product receive for seed cases (multipart attachment optional)
+  - id: reconcile-lists
+    name: GET UM list APIs; match plates vs seed expectations
+  - id: optional-gov-followup
+    name: Manual pointer to GovSync worker + govsync/xiaoshan-gate|product probes
+
+expect:
+  - id: um-reachable
+    level: L0
+    description: UM list or receive endpoints return HTTP 2xx
+  - id: ingest-accepted
+    level: L1
+    description: All bridge receive calls return success with recordId
+  - id: lists-aligned
+    level: L2
+    description: UM checkpoint list has 5 seed plates; product list has 5 seed plates
+  - id: ui-and-gov
+    level: L3
+    description: User confirms Blazor pages and optional Gov outbound — user only
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+  clientProbe:
+    required: false
+    sink: client-probe/
+    note: Copy or reference urban-passage-probe run summary when -IncludeClientProbe
+  reconcile:
+    required: true
+    sink: reconcile/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - um-not-running
+  - wrong-proid-or-license
+  - bridge-writes-production-db
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  reconcile:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanPassageUmReconcile.ps1
+    experimental: true
