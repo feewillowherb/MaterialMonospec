@@ -37,8 +37,8 @@
 
 ## 7. MaterialClient
 
-- [ ] 7.1 Upload passage attachments via existing multipart API
-- [ ] 7.2 Checkpoint pending rows → checkpoint ingest API; product → product ingest; weighing receive unchanged
+- [x] 7.1 Upload passage attachments via existing multipart API
+- [x] 7.2 Checkpoint pending rows → checkpoint ingest API; product → product ingest; weighing receive unchanged
 - [ ] 7.3 Client MUST NOT HTTP to Xiaoshan Gov
 
 ## 8. Verify

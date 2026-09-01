@@ -1,6 +1,8 @@
 # design-brief — urban-passage-um-reconcile
 
-OpenSpec：`add-urbanmanagement-passage-xiaoshan-upload`
+OpenSpec：`update-urban-passage-client-upload-reconcile`（依赖 UM 侧 `add-urbanmanagement-passage-xiaoshan-upload` 已就绪）
+
+**Graph status: active** — ClientUpload cook L0–L2 通过（`runs/2026-09-01T163853`）。
 
 ## 为什么需要 reconcile Graph
 
@@ -12,9 +14,9 @@ OpenSpec：`add-urbanmanagement-passage-xiaoshan-upload`
 
 ## 三种联调模式
 
-1. **Bridge**（当前默认）：PS 按 `passage-cases.json` + `lpr-devices.json` 组装 Receive DTO，直 POST UM。用于 UM 已就绪、MC tasks 7.x 未完成的阶段。
-2. **ClientProbe + Bridge**：先 `urban-passage-probe` 证明客户端链路，再 Bridge 证明 UM 可接收同语义 payload。
-3. **ClientUpload**（未来）：MC 实现 passage 上云后，本 Graph 改为对照客户端 sync 状态与 UM 列表，删除 Bridge POST。
+1. **ClientUpload**（目标默认）：配置 `UrbanManagement:BaseUrl` → `urban-passage-probe` 灌本地 SQLite → 客户端 `IUrbanPassageUploadService` 上云 → GET UM 列表对照。见 OpenSpec `update-urban-passage-client-upload-reconcile`。
+2. **Bridge**（调试/临时）：PS 直 POST UM Receive；**非**主验收路径；apply 完成后 demote。
+3. **ReconcileOnly**：UM 已有数据时仅 GET 列表对照。
 
 ## 对照键
 
@@ -23,6 +25,6 @@ OpenSpec：`add-urbanmanagement-passage-xiaoshan-upload`
 
 ## 风险
 
-- Bridge 与真实客户端 DTO 漂移 → tasks 7.x 完成后增加 contract test 或共享 seed 单源
+- Bridge 与真实客户端 DTO 漂移 → `UrbanPassageSubmitDtoTests` + 共享 seed 单源
 - UM 鉴权 → `secrets.local.yaml` 的 `authorization`
 - 重复 cook 重复落库 → 联调库可清空 `UrbanPassageRecords` 或使用新 `proId`

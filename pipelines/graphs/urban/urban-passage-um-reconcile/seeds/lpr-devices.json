@@ -1,0 +1,54 @@
+[
+  {
+    "name": "gate-in",
+    "ip": "10.0.0.11",
+    "siteType": "Checkpoint",
+    "deviceType": "Hikvision",
+    "urbanInOutType": "Enter",
+    "urbanSiteType": "Construction",
+    "direction": "A",
+    "userName": "admin",
+    "password": "admin",
+    "port": "8000",
+    "channel": "1"
+  },
+  {
+    "name": "gate-out",
+    "ip": "10.0.0.12",
+    "siteType": "Checkpoint",
+    "deviceType": "Hikvision",
+    "urbanInOutType": "Exit",
+    "urbanSiteType": "Construction",
+    "direction": "B",
+    "userName": "admin",
+    "password": "admin",
+    "port": "8000",
+    "channel": "1"
+  },
+  {
+    "name": "product-in",
+    "ip": "10.0.0.21",
+    "siteType": "FinishedProduct",
+    "deviceType": "Hikvision",
+    "urbanInOutType": "Enter",
+    "urbanSiteType": "Disposal",
+    "direction": "A",
+    "userName": "admin",
+    "password": "admin",
+    "port": "8000",
+    "channel": "1"
+  },
+  {
+    "name": "product-out",
+    "ip": "10.0.0.22",
+    "siteType": "FinishedProduct",
+    "deviceType": "Hikvision",
+    "urbanInOutType": "Exit",
+    "urbanSiteType": "Disposal",
+    "direction": "B",
+    "userName": "admin",
+    "password": "admin",
+    "port": "8000",
+    "channel": "1"
+  }
+]

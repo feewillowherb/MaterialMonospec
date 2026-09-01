@@ -23,23 +23,24 @@ target:
   checkpointList: /api/app/urban-checkpoint-passage
   productList: /api/app/urban-finished-product-passage
   attachmentUpload: /api/urban-attachment/upload-multipart
-  openspecChange: openspec/changes/add-urbanmanagement-passage-xiaoshan-upload/
+  openspecChange: openspec/changes/update-urban-passage-client-upload-reconcile/
   designRef: docs/2026-08-28-urbanmanagement-passage-xiaoshan-upload/
   govGateGraph: ../../govsync/xiaoshan-gate/
   govProductGraph: ../../govsync/xiaoshan-product/
 
 seeds:
-  passageCases: ../urban-passage-probe/seeds/passage-cases.json
-  lprDevices: ../urban-passage-probe/seeds/lpr-devices.json
+  passageCases: seeds/passage-cases.json
+  lprDevices: seeds/lpr-devices.json
   fixture: ../../govsync/xiaoshan-gate/fixtures/test_pic.jpg
 
 reconcile:
   modes:
-    bridge: Direct UM receive from seeds (client upload not required)
-    client-then-bridge: urban-passage-probe then bridge (local client rows + UM ingest)
-    client-upload: MaterialClient SubmitRecordAsync after tasks 7.1–7.2
+    clientUpload: Configure UrbanManagement BaseUrl, probe, wait client IUrbanPassageUploadService, GET UM lists
+    reconcileOnly: GET UM lists only
+    bridge: Debug-only PS POST to UM (non-production)
   expectedCheckpointCases: 5
   expectedProductCases: 5
+  defaultMode: ClientUpload
 
 steps:
   - id: bind-config
@@ -47,7 +48,7 @@ steps:
   - id: optional-client-probe
     name: Optional urban-passage-probe (10x test-passage → client SQLite)
   - id: bridge-ingest-um
-    name: POST checkpoint/product receive for seed cases (multipart attachment optional)
+    name: ClientUpload wait or Bridge debug POST
   - id: reconcile-lists
     name: GET UM list APIs; match plates vs seed expectations
   - id: optional-gov-followup
@@ -59,7 +60,7 @@ expect:
     description: UM list or receive endpoints return HTTP 2xx
   - id: ingest-accepted
     level: L1
-    description: All bridge receive calls return success with recordId
+    description: ClientUpload client probe all cases accepted; Bridge all receive return recordId
   - id: lists-aligned
     level: L2
     description: UM checkpoint list has 5 seed plates; product list has 5 seed plates
