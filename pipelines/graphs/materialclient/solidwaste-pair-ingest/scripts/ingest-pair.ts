@@ -321,7 +321,11 @@ async function main(): Promise<void> {
       orderType: scenario.orderType,
       isPendingSync: scenario.isPendingSync ? 1 : 0,
     },
-    images: images.map((p) => basename(p)),
+    images: images.map((p) => ({
+      fileName: basename(p),
+      localPath: toLocalPath(photoRelDir, basename(p)),
+    })),
+    photoRelDir,
   };
   writeJson(join(prepareDir, "plan.json"), plan);
 
