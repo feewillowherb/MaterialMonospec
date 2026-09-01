@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-01
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "仅 UrbanManagement；对称复制称重 ResetSync 模式"
