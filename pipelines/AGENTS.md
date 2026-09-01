@@ -183,6 +183,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | urban-passage-lpr-probe | probe | `graphs/urban/urban-passage-probe/` | active |
 | urban-license-seed-probe | probe | `graphs/urban/urban-license-probe/` | active |
 | urban-passage-client-um-reconcile | reconcile | `graphs/urban/urban-passage-um-reconcile/` | active |
+| solidwaste-missing-join-pair | ingest | `graphs/materialclient/solidwaste-pair-ingest/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

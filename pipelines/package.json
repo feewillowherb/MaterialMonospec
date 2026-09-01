@@ -6,7 +6,8 @@
     "node": ">=22.5.0"
   },
   "scripts": {
-    "upsert-license-info": "tsx _shared/urban/tools/upsert-license-info/upsert-license-info.ts"
+    "upsert-license-info": "tsx _shared/urban/tools/upsert-license-info/upsert-license-info.ts",
+    "solidwaste-pair-ingest": "tsx graphs/materialclient/solidwaste-pair-ingest/scripts/ingest-pair.ts"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

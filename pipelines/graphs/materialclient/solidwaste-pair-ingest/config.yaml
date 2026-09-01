@@ -1,0 +1,93 @@
+id: solidwaste-pair-ingest
+created: "2026-09-01"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: ingest
+  goal: solidwaste-missing-join-pair
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-idle
+  end: pair-ingested
+cook: new-object
+
+target:
+  # Local package under this graph (copied from _temp/固废/91). DB is gitignored.
+  databaseRel: seeds/MaterialClient.db
+  sourceDirRel: seeds
+  photoRootRel: seeds
+  contractRef: repos/MaterialClient/src/MaterialClient.Common/Services/WeighingMatchingService.cs
+  entityRef: repos/MaterialClient/src/MaterialClient.Common/Entities/WeighingRecord.cs
+
+scenario:
+  plateNumber: 浙MKT298
+  joinWeightTon: "5.84"
+  outWeightTon: "3.58"
+  netWeightTon: "2.26"
+  joinTime: "2026-09-01 07:42:53"
+  # out record already in DB (tare); resolved by plate + unmatched + weight if outRecordId omitted
+  outRecordId: 14303
+  deliveryType: 0 # Receiving
+  weighingMode: 1 # SolidWaste
+  orderSource: 1 # MannedStation (SolidWaste CreateWaybill parity)
+  orderType: 1 # Completed (both weights present)
+  isPendingSync: true
+  imageGlobs:
+    - "车牌.jpg"
+    - "车牌2.jpg"
+    - "车顶.jpg"
+  dryRun: true # MUST confirm before false
+
+steps:
+  - id: bind-paths
+    name: Resolve DB / source images / runDir；校验 content 与场景参数
+  - id: locate-out
+    name: 定位未匹配出场称重（浙MKT298 / 3.58t）
+  - id: cook-ingest
+    name: Node/TS 事务写入进场称重 + 3 图附件 + Waybill 配对
+  - id: validate-integrity
+    name: 校验 Match/Waybill 重量/附件 AttachType 完整性
+
+expect:
+  - id: db-reachable
+    level: L0
+    description: MaterialClient.db 可打开且含 WeighingRecords / Waybills
+  - id: out-located
+    level: L1
+    description: 找到未匹配出场记录（或已配对且与场景一致则幂等跳过）
+  - id: pair-complete
+    level: L2
+    description: 进场 5.84t @07:42:53 已写入；与出场双向 Matched；Waybill 毛/皮/净=5.84/3.58/2.26；进场 3 图 EntryPhoto、出场图 ExitPhoto；WaybillAttachments 已挂接
+  - id: business-ok
+    level: L3
+    description: 用户在客户端确认该车牌磅单可打开且图片可见 — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - dry-run-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ingest:
+    mode: script-invoke
+    script: scripts/Invoke-SolidwastePairIngest.ps1
+    experimental: true
+    nodeTool: scripts/ingest-pair.ts
