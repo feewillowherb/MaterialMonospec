@@ -1,11 +1,11 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Build, seed demo license, and start MaterialClient.Urban for urban-passage-probe.
+  Build and start MaterialClient.Urban for urban-passage-probe.
 .DESCRIPTION
-  Builds Debug MaterialClient.Urban, seeds demo license, and starts the app.
-  Debug builds skip JWT machineCode validation (see StaticLicenseChecker).
-  Sets MinimalWebHost__EnableOnStartup=true.
+  Builds MaterialClient.Urban and starts the app with MinimalWebHost__EnableOnStartup=true.
+  Debug: development authorization bypass is compile-time; license seed is skipped by default.
+  Release: strict JWT/license checks remain; seeds demo license unless -SkipSeed.
 #>
 [CmdletBinding()]
 param(
@@ -13,6 +13,7 @@ param(
     [string] $Configuration = "Debug",
     [switch] $SkipBuild,
     [switch] $SkipSeed,
+    [switch] $ForceSeed,
     [switch] $NoLaunch
 )
 
@@ -30,7 +31,7 @@ if (-not (Test-Path -LiteralPath $LicenseScript)) {
 }
 
 if (-not $SkipBuild) {
-    Write-Host "[start-urban-probe] building MaterialClient.Urban..."
+    Write-Host "[start-urban-probe] building MaterialClient.Urban ($Configuration)..."
     dotnet build $UrbanProject -c $Configuration | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet build failed."
@@ -47,13 +48,27 @@ if (-not (Test-Path -LiteralPath $urbanExe)) {
     throw "Urban executable not found: $urbanExe"
 }
 
-if (-not $SkipSeed) {
+$shouldSeed = $false
+if ($ForceSeed) {
+    $shouldSeed = $true
+}
+elseif ($SkipSeed) {
+    $shouldSeed = $false
+}
+elseif ($Configuration -ne "Debug") {
+    $shouldSeed = $true
+}
+
+if ($shouldSeed) {
     . $LicenseScript
     Invoke-UrbanLicenseSeed -Mode Local -UrbanAppDir $urbanDir -SkipConfirm | Out-Host
 }
+elseif ($Configuration -eq "Debug") {
+    Write-Host "[start-urban-probe] Debug: skipping license seed (development authorization bypass). Use -ForceSeed to seed anyway."
+}
 
 if ($NoLaunch) {
-    Write-Host "[start-urban-probe] seed complete; -NoLaunch set."
+    Write-Host "[start-urban-probe] prepare complete; -NoLaunch set."
     return
 }
 
@@ -65,7 +80,13 @@ if ($existing) {
 
 $env:MinimalWebHost__EnableOnStartup = "true"
 
-Write-Host "[start-urban-probe] launching $urbanExe (Debug — machineCode check skipped)"
+$authNote = if ($Configuration -eq "Debug") {
+    "Debug — development authorization bypass (no valid JWT required)"
+}
+else {
+    "Release — strict license checks"
+}
+Write-Host "[start-urban-probe] launching $urbanExe ($authNote)"
 Write-Host "  MinimalWebHost__EnableOnStartup=$($env:MinimalWebHost__EnableOnStartup)"
 
 $p = Start-Process -FilePath $urbanExe -WorkingDirectory $urbanDir -PassThru
