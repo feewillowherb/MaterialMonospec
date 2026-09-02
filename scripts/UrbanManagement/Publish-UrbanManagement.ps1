@@ -1,13 +1,15 @@
 ﻿# UrbanManagement 发布到 IIS 站点目录
 #
 # 服务器 IIS 物理路径: C:\wwwroot\UrbanManagement
-# 远程发布 UNC（admin 共享）: \\191.12.234.212\C$\wwwroot\UrbanManagement
+# 远程发布 UNC（SMB 共享 wwwroot）: \\191.12.234.212\wwwroot\UrbanManagement
 # 认证: 从凭据管理器读取 TERMSRV/191.12.234.212（用户 admin），脚本内不保存密码。
 #
 # 首次写入凭据（只需一次，密码勿写入仓库）:
 #   cmdkey /generic:TERMSRV/191.12.234.212 /user:admin /pass:你的密码
 #
 # 用法:
+#   # 发布前先测 VPN / 目标可达（推荐）
+#   powershell -ExecutionPolicy Bypass -File scripts/UrbanManagement/Test-UrbanManagementPublishTarget.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts/UrbanManagement/Publish-UrbanManagement.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts/UrbanManagement/Publish-UrbanManagement.ps1 -SkipRobocopy
 #   powershell -ExecutionPolicy Bypass -File scripts/UrbanManagement/Publish-UrbanManagement.ps1 -OverwriteAppSettings
@@ -20,7 +22,7 @@
 
 [CmdletBinding()]
 param(
-    [string] $TargetPath = '\\191.12.234.212\C$\wwwroot\UrbanManagement',
+    [string] $TargetPath = '\\191.12.234.212\wwwroot\UrbanManagement',
     [string] $Configuration = 'Release',
     [string] $StagingPath = '',
     [string] $CredentialTarget = 'TERMSRV/191.12.234.212',

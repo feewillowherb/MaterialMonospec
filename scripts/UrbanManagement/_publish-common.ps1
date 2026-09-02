@@ -407,3 +407,216 @@ function Invoke-IisWebPublish {
     Write-Host '发布完成。'
     Write-Host "站点目录: $target"
 }
+
+function Resolve-UrbanManagementPublishTargetHost {
+    param([string] $TargetPath)
+
+    $target = Convert-ToUncPath -Path $TargetPath
+    $hostName = Get-UncHostName -Path $target
+    if (-not [string]::IsNullOrWhiteSpace($hostName)) {
+        return @{
+            TargetPath = $target
+            HostName = $hostName
+            ShareRoot = Get-UncShareRoot -Path $target
+            IsUnc = $true
+        }
+    }
+
+    return @{
+        TargetPath = $target
+        HostName = $null
+        ShareRoot = $null
+        IsUnc = $false
+    }
+}
+
+function Test-UrbanManagementPublishReachability {
+    [CmdletBinding()]
+    param(
+        [string] $TargetPath = '\\191.12.234.212\wwwroot\UrbanManagement',
+
+        [string] $CredentialTarget = 'TERMSRV/191.12.234.212',
+
+        [string] $ShareUser = 'admin',
+
+        [string] $SharePassword = '',
+
+        [switch] $SkipShareConnect,
+
+        [int] $PingTimeoutSec = 2,
+
+        [int] $TcpTimeoutMs = 3000
+    )
+
+    $resolved = Resolve-UrbanManagementPublishTargetHost -TargetPath $TargetPath
+    $target = $resolved.TargetPath
+    $checks = New-Object System.Collections.Generic.List[object]
+
+    function Add-Check {
+        param(
+            [string] $Id,
+            [string] $Label,
+            [bool] $Ok,
+            [string] $Detail,
+            [switch] $Required
+        )
+        $checks.Add([ordered]@{
+            Id = $Id
+            Label = $Label
+            Ok = $Ok
+            Required = [bool]$Required
+            Detail = $Detail
+        }) | Out-Null
+    }
+
+    Write-Host 'UrbanManagement publish target reachability'
+    Write-Host "TargetPath : $target"
+    if ($resolved.IsUnc) {
+        Write-Host "Host       : $($resolved.HostName)"
+        Write-Host "ShareRoot  : $($resolved.ShareRoot)"
+    }
+    Write-Host "Credential : $CredentialTarget"
+    Write-Host "ShareUser  : $ShareUser"
+    Write-Host ''
+
+    if (-not $resolved.IsUnc) {
+        $localOk = Test-Path -LiteralPath $target
+        Add-Check -Id 'local-path' -Label 'Local IIS path' -Ok $localOk -Required `
+            -Detail $(if ($localOk) { 'Path exists' } else { "Missing: $target" })
+    }
+    else {
+        $pingOk = $false
+        $pingDetail = 'No reply (ICMP may be blocked; not fatal if SMB works)'
+        try {
+            if ($PSVersionTable.PSVersion.Major -ge 6) {
+                $pingOk = [bool](Test-Connection -ComputerName $resolved.HostName -Count 1 -Quiet -TimeoutSeconds $PingTimeoutSec -ErrorAction Stop)
+            }
+            else {
+                $pingOk = [bool](Test-Connection -ComputerName $resolved.HostName -Count 1 -Quiet -ErrorAction Stop)
+            }
+            if ($pingOk) {
+                $pingDetail = 'Host replied to ping'
+            }
+        }
+        catch {
+            $pingDetail = "Ping failed: $($_.Exception.Message)"
+        }
+        Add-Check -Id 'ping' -Label 'Host ping' -Ok $pingOk -Detail $pingDetail
+
+        $smbOk = $false
+        $smbDetail = 'Port 445 closed or filtered — check VPN'
+        try {
+            $tcp = Test-NetConnection -ComputerName $resolved.HostName -Port 445 -WarningAction SilentlyContinue -ErrorAction Stop
+            $smbOk = [bool]$tcp.TcpTestSucceeded
+            if ($smbOk) {
+                $smbDetail = 'SMB port 445 reachable'
+            }
+        }
+        catch {
+            $smbDetail = "TCP 445 probe failed: $($_.Exception.Message)"
+        }
+        Add-Check -Id 'smb445' -Label 'SMB (TCP 445)' -Ok $smbOk -Required -Detail $smbDetail
+
+        $credOk = $false
+        $credDetail = 'Credential readable from Windows Credential Manager'
+        if (-not [string]::IsNullOrWhiteSpace($SharePassword)) {
+            $credOk = $true
+            $credDetail = 'Password supplied via -SharePassword parameter'
+        }
+        else {
+            try {
+                $stored = Read-RdpCredential -Target $CredentialTarget
+                $credOk = $true
+                $credDetail = "Stored credential user: $($stored.UserName)"
+            }
+            catch {
+                $credDetail = $_.Exception.Message
+            }
+        }
+        Add-Check -Id 'credential' -Label 'Credential' -Ok $credOk -Required -Detail $credDetail
+
+        $shareOk = $false
+        $shareDetail = 'Share not checked'
+        if ($SkipShareConnect) {
+            $shareDetail = 'Skipped (-SkipShareConnect)'
+            Add-Check -Id 'share-connect' -Label 'UNC connect' -Ok $true -Detail $shareDetail
+        }
+        elseif (-not $smbOk) {
+            $shareDetail = 'Skipped because SMB 445 is not reachable'
+            Add-Check -Id 'share-connect' -Label 'UNC connect' -Ok $false -Required -Detail $shareDetail
+        }
+        else {
+            try {
+                Connect-UncShare -UncPath $target -CredentialTargetName $CredentialTarget -User $ShareUser -Password $SharePassword
+                $shareOk = $true
+                $shareDetail = "Connected to $($resolved.ShareRoot)"
+            }
+            catch {
+                $shareDetail = $_.Exception.Message
+            }
+            Add-Check -Id 'share-connect' -Label 'UNC connect' -Ok $shareOk -Required -Detail $shareDetail
+        }
+
+        $pathOk = $false
+        $pathDetail = 'Target folder not checked'
+        if ($shareOk -or (Test-UncAccessible -Path $target)) {
+            $pathOk = Test-UncAccessible -Path $target
+            if ($pathOk) {
+                $pathDetail = 'IIS folder exists'
+            }
+            else {
+                $pathDetail = "IIS folder missing: $target"
+            }
+        }
+        else {
+            $pathDetail = 'Cannot access target until UNC connect succeeds'
+        }
+        Add-Check -Id 'iis-path' -Label 'IIS folder' -Ok $pathOk -Required -Detail $pathDetail
+
+        $writeOk = $false
+        $writeDetail = 'Write probe not run'
+        if ($pathOk) {
+            $probeName = ".publish-reachability-$([guid]::NewGuid().ToString('N')).tmp"
+            $probePath = Join-Path $target $probeName
+            try {
+                Set-Content -LiteralPath $probePath -Value 'ok' -Encoding Ascii -ErrorAction Stop
+                Remove-Item -LiteralPath $probePath -Force -ErrorAction Stop
+                $writeOk = $true
+                $writeDetail = 'Write/delete probe succeeded'
+            }
+            catch {
+                $writeDetail = "Write probe failed: $($_.Exception.Message)"
+            }
+        }
+        else {
+            $writeDetail = 'Skipped because IIS folder is not accessible'
+        }
+        Add-Check -Id 'write-probe' -Label 'Write permission' -Ok $writeOk -Required -Detail $writeDetail
+    }
+
+    foreach ($check in $checks) {
+        $mark = if ($check.Ok) { '[OK]' } else { if ($check.Required) { '[FAIL]' } else { '[WARN]' } }
+        Write-Host "$mark $($check.Label): $($check.Detail)"
+    }
+
+    $requiredFailed = @($checks | Where-Object { $_.Required -and -not $_.Ok })
+    $ok = ($requiredFailed.Count -eq 0)
+
+    Write-Host ''
+    if ($ok) {
+        Write-Host 'Reachable: publish preflight passed.'
+    }
+    else {
+        Write-Host 'Not reachable: connect VPN and verify credential/share before publish.'
+        foreach ($fail in $requiredFailed) {
+            Write-Host "  - $($fail.Label): $($fail.Detail)"
+        }
+    }
+
+    return @{
+        Ok = $ok
+        TargetPath = $target
+        HostName = $resolved.HostName
+        Checks = $checks
+    }
+}
