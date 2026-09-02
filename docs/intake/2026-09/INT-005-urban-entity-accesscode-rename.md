@@ -22,6 +22,7 @@ UrbanManagement（及 MaterialClient）域内接入码字段仍混用 `BuildLice
 
 ## 证据
 
+- [`docs/2026-09-02-urbanmanagement-entity-semantic-analysis/05-AccessCode统一变动清单.md`](../../2026-09-02-urbanmanagement-entity-semantic-analysis/05-AccessCode统一变动清单.md) — 详细变动、边界、验收（权威明细）
 - [`docs/2026-09-02-urbanmanagement-entity-semantic-analysis/04-改进建议与优先级.md`](../../2026-09-02-urbanmanagement-entity-semantic-analysis/04-改进建议与优先级.md) — D4/D7/D8
 - [`docs/2026-09-02-urbanmanagement-entity-semantic-analysis/03-业务语义化缺口.md`](../../2026-09-02-urbanmanagement-entity-semantic-analysis/03-业务语义化缺口.md) — §1.1
 
@@ -33,6 +34,7 @@ UrbanManagement（及 MaterialClient）域内接入码字段仍混用 `BuildLice
 ## 孵化记录
 
 - 2026-09-02 登记（open）：自 entity 语义化 initiative 挂起项 promote
+- 2026-09-02 补充明细：`05-AccessCode统一变动清单.md`（域内 rename / 协议保留 / 分阶段 A–D）
 
 ## 消化后回填
 
