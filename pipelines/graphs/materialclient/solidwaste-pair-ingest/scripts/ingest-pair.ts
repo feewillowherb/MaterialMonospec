@@ -40,6 +40,15 @@ const AttachType = {
 
 const MatchType = { Join: 0, Out: 1 } as const;
 
+/** Avoid node:sqlite RangeError on snowflake WaybillId / Waybills.Id. */
+const WR_COLS = `Id, TotalWeight, PlateNumber, ProviderId, DeliveryType, MatchedId,
+  CAST(WaybillId AS TEXT) AS WaybillId, MatchedType, CreateUserId, Creator,
+  AddDate, AddTime, UpdateDate, UpdateTime, IsDeleted, WeighingMode`;
+const WB_COLS = `CAST(Id AS TEXT) AS Id, ProviderId, OrderNo, OrderType, DeliveryType, PlateNumber,
+  JoinTime, OutTime, OrderTotalWeight, OrderTruckWeight, OrderGoodsWeight,
+  IsPendingSync, OffsetResult, OffsetRate, OffsetCount, OrderSource, WeighingMode,
+  ExtraProperties, AddDate, AddTime`;
+
 function usage(): never {
   console.error(
     "Usage: ingest-pair --database <path> --sourceDir <path> --photoRoot <path> --runDir <path> --scenarioJson <path> [--write]",
@@ -205,13 +214,27 @@ async function main(): Promise<void> {
   }
 
   const db = new DatabaseSync(paths.databasePath);
+  const finalizeDb = (): void => {
+    try {
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+    } catch {
+      /* ignore checkpoint errors on read-only / already closed */
+    }
+    try {
+      db.close();
+    } catch {
+      /* ignore double-close */
+    }
+  };
+
+  try {
   db.exec("PRAGMA foreign_keys = OFF;");
 
   const outRow = scenario.outRecordId
-    ? db.prepare("SELECT * FROM WeighingRecords WHERE Id = ?").get(scenario.outRecordId)
+    ? db.prepare(`SELECT ${WR_COLS} FROM WeighingRecords WHERE Id = ?`).get(scenario.outRecordId)
     : db
         .prepare(
-          `SELECT * FROM WeighingRecords
+          `SELECT ${WR_COLS} FROM WeighingRecords
            WHERE PlateNumber = ? AND IsDeleted = 0 AND MatchedId IS NULL
              AND CAST(TotalWeight AS REAL) = ?
            ORDER BY AddDate ASC LIMIT 1`,
@@ -232,7 +255,8 @@ async function main(): Promise<void> {
       error: "Unmatched out weighing record not found",
     });
     console.error("L1 fail: unmatched out record not found");
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   const outId = Number((outRow as { Id: number }).Id);
@@ -252,12 +276,14 @@ async function main(): Promise<void> {
 
   // Idempotent success if already paired correctly
   if (outMatchedId != null) {
-    const joinExisting = db.prepare("SELECT * FROM WeighingRecords WHERE Id = ?").get(outMatchedId) as
+    const joinExisting = db.prepare(`SELECT ${WR_COLS} FROM WeighingRecords WHERE Id = ?`).get(outMatchedId) as
       | Record<string, unknown>
       | undefined;
-    const waybillId = (outRow as { WaybillId: number | null }).WaybillId;
+    const waybillId = (outRow as { WaybillId: string | null }).WaybillId;
     const wb = waybillId
-      ? (db.prepare("SELECT * FROM Waybills WHERE Id = ?").get(waybillId) as Record<string, unknown> | undefined)
+      ? (db.prepare(`SELECT ${WB_COLS} FROM Waybills WHERE CAST(Id AS TEXT) = ?`).get(String(waybillId)) as
+          | Record<string, unknown>
+          | undefined)
       : undefined;
     const ok =
       joinExisting &&
@@ -281,7 +307,8 @@ async function main(): Promise<void> {
       message: ok ? "Already paired with matching weights/time" : "Already matched but weights/time mismatch",
     });
     console.log(ok ? "Idempotent skip: already paired OK" : "Already matched but integrity mismatch");
-    process.exit(ok ? 0 : 1);
+    process.exitCode = ok ? 0 : 1;
+    return;
   }
 
   const outAt = parseLocalDateTime(outAddDate);
@@ -339,7 +366,8 @@ async function main(): Promise<void> {
       plan,
     });
     console.log("dryRun complete. Pass --write to apply.");
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
 
   const joinText = formatEfDateTime(joinAt);
@@ -451,7 +479,7 @@ async function main(): Promise<void> {
       ) VALUES (
         ?, NULL, ?, ?, ?, ?, ?, ?, NULL,
         NULL, NULL, NULL, ?, ?, ?,
-        NULL, ?, 0, 0, NULL, NULL, NULL, NULL,
+        NULL, ?, 0, 0, NULL, ?, ?, ?,
         NULL, ?, NULL, NULL, NULL,
         ?, ?, ?, ?, ?, ?, ?, ?,
         0, NULL, NULL, '{}', ?
@@ -468,6 +496,9 @@ async function main(): Promise<void> {
       scenario.outWeightTon,
       scenario.netWeightTon,
       scenario.isPendingSync ? 1 : 0,
+      0, // OffsetResult = Default
+      "0.0", // OffsetRate
+      "0.0", // OffsetCount
       scenario.orderSource,
       creatorId,
       creator,
@@ -524,12 +555,17 @@ async function main(): Promise<void> {
     commit.run();
 
     // Validate
-    const joinCheck = db.prepare("SELECT * FROM WeighingRecords WHERE Id = ?").get(joinId) as Record<string, unknown>;
-    const outCheck = db.prepare("SELECT * FROM WeighingRecords WHERE Id = ?").get(outId) as Record<string, unknown>;
-    const wbCheck = db.prepare("SELECT * FROM Waybills WHERE Id = ?").get(waybillId.toString()) as Record<
+    const joinCheck = db.prepare(`SELECT ${WR_COLS} FROM WeighingRecords WHERE Id = ?`).get(joinId) as Record<
       string,
       unknown
     >;
+    const outCheck = db.prepare(`SELECT ${WR_COLS} FROM WeighingRecords WHERE Id = ?`).get(outId) as Record<
+      string,
+      unknown
+    >;
+    const wbCheck = db.prepare(`SELECT ${WB_COLS} FROM Waybills WHERE CAST(Id AS TEXT) = ?`).get(
+      waybillId.toString(),
+    ) as Record<string, unknown>;
     const entryPhotoCount = (
       db
         .prepare(
@@ -595,7 +631,7 @@ async function main(): Promise<void> {
     console.log(
       `Wrote join=${joinId} out=${outId} waybill=${waybillId} orderNo=${orderNo} L2=${l2 ? "pass" : "fail"}`,
     );
-    process.exit(l2 ? 0 : 1);
+    process.exitCode = l2 ? 0 : 1;
   } catch (err) {
     try {
       rollback.run();
@@ -603,8 +639,9 @@ async function main(): Promise<void> {
       /* ignore */
     }
     throw err;
+  }
   } finally {
-    db.close();
+    finalizeDb();
   }
 }
 
