@@ -3,6 +3,7 @@
 ## Purpose
 TBD - created by archiving change add-urban-passage-record. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Single Urban passage entity without weight
 
 Urban SHALL persist checkpoint and finished-product captures as one entity (`UrbanPassageRecord` or equivalent) on `UrbanDbContext`. The entity MUST NOT include a weight column and MUST NOT use `WeighingRecord` or `UrbanWeighingExtension`. Source MUST be stored as `PassageSource` with exactly checkpoint and finished-product values. `UrbanInOutType` and `UrbanSiteType` MUST be written at create time as snapshots. Related files MUST use logical attachment ids with no database foreign keys.
@@ -87,3 +88,18 @@ MaterialClient.Urban SHALL upload pending checkpoint passage rows to the UrbanMa
 - **WHEN** a pending weighing record is submitted
 - **THEN** the client MUST use the existing weighing receive path
 
+### Requirement: UrbanPassageRecord ProId is required Guid
+
+`UrbanPassageRecord` SHALL persist `ProId` as a non-nullable `Guid`. Passage create/receive paths MUST supply a valid project id and MUST reject `Guid.Empty`.
+
+#### Scenario: Passage created with valid ProId
+
+- **WHEN** a checkpoint or finished-product passage is created via the Urban receive path
+- **THEN** `UrbanPassageRecord.ProId` SHALL be set to the supplied non-empty Guid
+- **AND** the value SHALL be persisted as non-nullable
+
+#### Scenario: Passage receive rejects empty ProId
+
+- **WHEN** a passage receive payload omits `proId` or supplies `Guid.Empty`
+- **THEN** the system SHALL reject the request
+- **AND** MUST NOT insert a passage row

@@ -4,6 +4,7 @@
 
 Provides background synchronization capabilities for forwarding urban weighing records to government platforms automatically with retry logic and logging via Serilog. (TBD: expand with architectural overview)
 ## Requirements
+
 ### Requirement: Periodic background sync execution
 The system SHALL run a background worker based on ABP's `AsyncPeriodicBackgroundWorkerBase` that executes every 5 seconds to forward unsynced records to the government platform API.
 
@@ -16,31 +17,22 @@ The system SHALL run a background worker based on ABP's `AsyncPeriodicBackground
 - **THEN** the background worker SHALL complete its current iteration and stop gracefully
 
 ### Requirement: Pending record selection from UrbanWeighingRecord
-The system SHALL query `UrbanWeighingRecord` records where `SyncType` is not equal to 1 (success), `RetryCount` is less than 10 (max retries), `IsAnomaly` is false, and the record's associated `GovProject` (matched via `ProId`) has `SyncStatus == true`.
 
-#### Scenario: Selecting records for sync
-- **WHEN** the worker executes and there are UrbanWeighingRecord records with `SyncType=0` and `RetryCount=2` and `IsAnomaly=false` associated with a project where `SyncStatus=true`
-- **THEN** these records SHALL be included in the sync batch
+The government sync worker SHALL select pending weighing records only for projects whose `GovProject.IsSyncEnabled` is `true`. Selection MUST use the `IsSyncEnabled` property (MUST NOT reference `EnableSync`).
 
-#### Scenario: Excluding synced records
-- **WHEN** the worker executes and a record has `SyncType=1`
-- **THEN** this record SHALL NOT be included in the sync batch
+#### Scenario: Disabled project excluded
 
-#### Scenario: Excluding exhausted retries
-- **WHEN** a record has `RetryCount >= 10`
-- **THEN** this record SHALL NOT be included in the sync batch regardless of SyncType
+- **WHEN** a weighing record is pending but its project's `IsSyncEnabled` is `false`
+- **THEN** the worker SHALL NOT select that record for outbound sync in the current cycle
 
-#### Scenario: Excluding anomalous records
-- **WHEN** a record has `IsAnomaly = true`
-- **THEN** this record SHALL NOT be included in the sync batch
+#### Scenario: Enabled project included
 
-#### Scenario: Excluding disabled projects
-- **WHEN** a record is associated with a project where `SyncStatus != true`
-- **THEN** this record SHALL NOT be included in the sync batch
+- **WHEN** a weighing record is pending and its project's `IsSyncEnabled` is `true`
+- **THEN** the record SHALL be eligible for pending selection subject to other filters (anomaly, retry limits, etc.)
 
 ### Requirement: Government API payload assembly via GovSyncData
 
-For each pending UrbanWeighingRecord, the system SHALL assemble an outbound government API payload with field mapping: `PlateNumber→carNo`, `VehicleColor→carColor`, `PlateColor→carNoColor`, `WeighingTime→snapTime` (formatted as `yyyy-MM-dd HH:mm:ss`), `DeviceId→deviceID`, `BuildLicenseNo→buildLicenseNo`, `SiteType→siteType`, `TotalWeight→grossWeight` (numeric kg) and `TotalWeight→goodsWeight` (string kg). The payload SHALL set `carType` to `"大车"` when `TotalWeight > 4500` kg, otherwise `"小车"`. The payload SHALL set `snapImages` to a JSON array of Base64 strings loaded from attachment files via `IFileService.ReadAttachmentFilesAsync`; when no attachments exist, `snapImages` MUST be an empty JSON array `[]`, not a string. Defaults SHALL be `inOutType=0`, `tareWeight=0`, `equipmentNumber=""`, `equipmentType=""`.
+For each pending UrbanWeighingRecord, the system SHALL assemble an outbound government API payload with field mapping: `PlateNumber→carNo`, `VehicleColor→carColor`, `PlateColor→carNoColor`, `WeighingTime→snapTime` (formatted as `yyyy-MM-dd HH:mm:ss`), `DeviceId→deviceID`, `BuildLicenseNo→buildLicenseNo`, **`SiteType` (`UrbanSiteType`)→`siteType` (Xiaoshan wire string via weighbridge converter)**, `TotalWeight→grossWeight` (numeric kg) and `TotalWeight→goodsWeight` (string kg). The payload SHALL set `carType` to `"大车"` when `TotalWeight > 4500` kg, otherwise `"小车"`. The payload SHALL set `snapImages` to a JSON array of Base64 strings loaded from attachment files via `IFileService.ReadAttachmentFilesAsync`; when no attachments exist, `snapImages` MUST be an empty JSON array `[]`, not a string. Defaults SHALL be `inOutType=0`, `tareWeight=0`, `equipmentNumber=""`, `equipmentType=""`.
 
 #### Scenario: Heavy vehicle classification
 
@@ -63,6 +55,16 @@ For each pending UrbanWeighingRecord, the system SHALL assemble an outbound gove
 - **WHEN** a record has attachment files readable from storage
 - **THEN** the outbound payload `snapImages` SHALL be a JSON array of Base64-encoded image strings
 
+#### Scenario: Disposal maps to wire siteType 2
+
+- **WHEN** a pending weighing record with `SiteType = Disposal` is assembled for government upload
+- **THEN** the outbound payload `siteType` SHALL be the string `"2"`
+
+#### Scenario: Construction maps to wire siteType 1
+
+- **WHEN** a pending weighing record with `SiteType = Construction` is assembled for government upload
+- **THEN** the outbound payload `siteType` SHALL be the string `"1"`
+
 ### Requirement: HTTP forwarding with Refit and Polly
 
 The system SHALL use a Refit-based `IGovSyncHttpClient` to POST typed government sync payloads to the configurable `GovAddress` endpoint. The HTTP client SHALL use Polly retry policy with 3 attempts and exponential backoff for transient failures. Business success SHALL be determined from the government API response body field `code` equal to `200`. The system MUST NOT treat sync as successful based solely on a `success` boolean property when the government response does not include that field.
@@ -70,12 +72,12 @@ The system SHALL use a Refit-based `IGovSyncHttpClient` to POST typed government
 #### Scenario: Successful forward
 
 - **WHEN** the government API responds with HTTP success and response body `code` equal to `200`
-- **THEN** the system SHALL update the record's `SyncType` to 1 and set `SyncTime` to the current time
+- **THEN** the system SHALL update the record's `SyncType` to `SyncStatus.Success` and set `SyncTime` to the current time
 
 #### Scenario: Forward failure with retry
 
 - **WHEN** the government API responds with a response body where `code` is not equal to `200`
-- **THEN** the system SHALL update `SyncType` to 2, increment `RetryCount` by 1, and log the failure with `code` and `msg`
+- **THEN** the system SHALL update `SyncType` to `SyncStatus.Failed`, increment `RetryCount` by 1, and log the failure with `code` and `msg`
 
 #### Scenario: Exhausted retries
 
@@ -91,7 +93,7 @@ The system SHALL use a Refit-based `IGovSyncHttpClient` to POST typed government
 
 - **WHEN** the government API returns `{ "code": 200, "msg": "操作成功", "data": null }` without a `success` field
 - **THEN** the system SHALL treat the forward as successful
-- **AND** SHALL update `SyncType` to 1
+- **AND** SHALL update `SyncType` to `SyncStatus.Success`
 
 ### Requirement: Configurable government endpoint
 The government API address SHALL be read from `StorageOptions.GovAddress` configuration. The default value SHALL be empty (not a hardcoded URL), requiring explicit configuration in production.
@@ -106,8 +108,8 @@ When an administrator approves a weighing record on UrbanManagement and the serv
 
 #### Scenario: Pending sync after web approval
 
-- **WHEN** a record had `SyncType = 1` (success) or `SyncType = 2` (failed) before approval
-- **AND** approval sets `SyncType = 0` and `IsAnomaly = false`
+- **WHEN** a record had `SyncType = Success` or `SyncStatus.Failed` before approval
+- **AND** approval sets `SyncType = Pending` and `IsAnomaly = false`
 - **AND** the associated `GovProject` has sync enabled
 - **THEN** `GovSyncBackgroundWorker` SHALL include the record in a subsequent sync batch
 
@@ -136,4 +138,3 @@ When forwarding `UrbanWeighingRecord`, the worker SHALL call the weighbridge sav
 - **WHEN** a pending weighing record is processed
 - **THEN** the HTTP call MUST target `lantu/saveRecord`
 - **AND** MUST NOT reuse checkpoint-only field sets as the weighbridge body
-

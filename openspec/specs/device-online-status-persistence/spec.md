@@ -8,13 +8,13 @@ UrbanManagement 将桌面客户端实例在线态与设备详情当前态持久�
 
 ### Requirement: Client online status entity persistence
 
-UrbanManagement MUST persist each desktop client instance's current online/offline connection state in the database via a `ClientOnlineStatus` entity that is unique by `(ProId, ClientId)`, registered on `UrbanManagementDbContext` with an EF Core migration. The schema MUST allow multiple rows per `ProId` so a future Urban V2 project can keep up to four concurrent machine instances online without a table redesign.
+UrbanManagement MUST persist each desktop client instance's current online/offline connection state in the database via a `ClientOnlineStatus` entity that is unique by `(ProId, ClientId)`, registered on `UrbanManagementDbContext` with an EF Core migration. The schema MUST allow multiple rows per `ProId` so a future Urban V2 project can keep up to four concurrent machine instances online without a table redesign. `ProId` SHALL be stored as **non-nullable `Guid`**.
 
 #### Scenario: Entity stored in DbContext
 
 - **WHEN** the application data model is configured
 - **THEN** `UrbanManagementDbContext` SHALL expose a `DbSet` for `ClientOnlineStatus`
-- **AND** the entity SHALL include at least `ProId`, `ClientId`, `ProName`, `IsConnected`, `ConnectedAt`, `DisconnectedAt`, and `LastSeenAt`
+- **AND** the entity SHALL include at least `ProId` (**Guid**), `ClientId`, `ProName`, `IsConnected`, `ConnectedAt`, `DisconnectedAt`, and `LastSeenAt`
 - **AND** `(ProId, ClientId)` SHALL be unique
 - **AND** `ProId` alone MUST NOT be a uniqueness constraint that would allow only one row per project
 
@@ -27,7 +27,7 @@ UrbanManagement MUST persist each desktop client instance's current online/offli
 
 #### Scenario: Upsert on client instance online
 
-- **WHEN** a MaterialClient SignalR connection maps a non-empty `ProId` and non-empty `ClientId` (online registration for that instance)
+- **WHEN** a MaterialClient SignalR connection maps a valid parsed `ProId` (Guid) and non-empty `ClientId` (online registration for that instance)
 - **THEN** the system SHALL upsert `ClientOnlineStatus` for that `(ProId, ClientId)` with `IsConnected = true`
 - **AND** SHALL set `ConnectedAt` and `LastSeenAt` to the write-path clock
 - **AND** SHALL update `ProName` when provided
@@ -48,24 +48,29 @@ UrbanManagement MUST persist each desktop client instance's current online/offli
 
 #### Scenario: Survives process restart
 
-- **WHEN** UrbanManagement restarts after client instances have previously connected and disconnected
-- **THEN** queries SHALL still return those `(ProId, ClientId)` rows with persisted state
-- **AND** SHALL NOT treat the project as unregistered solely because distributed cache was empty
+- **WHEN** UrbanManagement restarts after clients were connected
+- **THEN** persisted `ClientOnlineStatus` rows SHALL remain queryable from the database
+
+#### Scenario: Migration ignores unparseable historical ProId rows
+
+- **WHEN** an EF migration converts `ClientOnlineStatus.ProId` from string to Guid
+- **THEN** rows whose legacy `ProId` value cannot be parsed as Guid SHALL be removed from the table
+- **AND** the migration MUST NOT attempt to infer or repair invalid project identifiers
 
 ### Requirement: Device online detail current-state persistence
 
-UrbanManagement MUST persist the latest online detail for each device type on each client instance via a `ClientDeviceOnlineStatus` entity (name may vary) that is unique by `(ProId, ClientId, DeviceType)`, registered on `UrbanManagementDbContext` with an EF Core migration. This is current-state storage for the project management device modal and `GetClientDevicesAsync`, not an append-only audit log.
+UrbanManagement MUST persist the latest online detail for each device type on each client instance via a `ClientDeviceOnlineStatus` entity (name may vary) that is unique by `(ProId, ClientId, DeviceType)`, registered on `UrbanManagementDbContext` with an EF Core migration. `ProId` SHALL be **non-nullable `Guid`**. This is current-state storage for the project management device modal and `GetClientDevicesAsync`, not an append-only audit log.
 
 #### Scenario: Device detail entity in DbContext
 
 - **WHEN** the application data model is configured
 - **THEN** `UrbanManagementDbContext` SHALL expose a `DbSet` for the device online detail entity
-- **AND** each row SHALL include at least `ProId`, `ClientId`, `DeviceType`, `Status`, `LastUpdateTime`, and optional `AdditionalData`
+- **AND** each row SHALL include at least `ProId` (**Guid**), `ClientId`, `DeviceType`, `Status`, `LastUpdateTime`, and optional `AdditionalData`
 - **AND** `(ProId, ClientId, DeviceType)` SHALL be unique
 
 #### Scenario: Upsert on UploadStatus
 
-- **WHEN** a valid `UploadStatus` message includes `ProId`, `ClientId`, `DeviceType`, and `Status`
+- **WHEN** a valid `UploadStatus` message includes a parseable `ProId` (Guid), `ClientId`, `DeviceType`, and `Status`
 - **THEN** the system SHALL upsert the matching device detail row with that status and timestamp
 - **AND** SHALL NOT remove other device types or other `ClientId` rows under the same `ProId`
 
@@ -79,8 +84,7 @@ UrbanManagement MUST persist the latest online detail for each device type on ea
 #### Scenario: Device details survive restart
 
 - **WHEN** UrbanManagement restarts after device statuses were persisted
-- **THEN** `GetClientDevicesAsync` SHALL still return those current-state rows from the database
-- **AND** SHALL NOT depend on `DeviceStatusCacheItem` being populated
+- **THEN** `GetClientDevicesAsync` SHALL return persisted device detail rows from the database
 
 ### Requirement: Database is authoritative for connection and device-detail queries
 

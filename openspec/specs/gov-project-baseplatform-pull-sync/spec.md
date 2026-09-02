@@ -3,9 +3,10 @@
 ## Purpose
 TBD - created by archiving change sync-gov-project-from-baseplatform-publicapi. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: UrbanManagement periodically pulls project catalog from BasePlatform
 
-UrbanManagement SHALL run a periodic background worker that calls BasePlatform.PublicApi project catalog endpoint to fetch project data over HTTPS. The fetched payload SHALL include `ProId`, `ProName`, `ProductCode`, `ProAddress`, `ShigongUnitName`, `BuildLicenseNo`, `FdBuildLicenseNo`, and `AuthEndTime`.
+UrbanManagement SHALL run a periodic background worker that calls BasePlatform.PublicApi project catalog endpoint to fetch project data over HTTPS. The fetched payload MAY include `fdBuildLicenseNo` in the wire format, but UrbanManagement MUST NOT persist `FdBuildLicenseNo` on `GovProject`. Persisted catalog fields SHALL include `ProId`, `ProName`, `ProAddress`, `ShigongUnitName`, `BuildLicenseNo`, and `AuthEndTime`.
 
 #### Scenario: Worker executes on configured interval
 
@@ -17,41 +18,36 @@ UrbanManagement SHALL run a periodic background worker that calls BasePlatform.P
 
 ### Requirement: Sync inserts only new GovProject records
 
-UrbanManagement sync logic SHALL insert records whose `ProId` does not already exist in local `GovProject.Id`. For existing records, sync SHALL update all catalog-sourced fields from the API response (`ProName`, `ProAddress`, `ShigongUnitName`, `BuildLicenseNo`, `FdBuildLicenseNo`, `AuthEndTime`) and SHALL NOT update local operational fields (`EnableSync`, `AddTime`, soft-delete state).
+UrbanManagement sync logic SHALL insert records whose `ProId` does not already exist in local `GovProject.Id`. For existing records, sync SHALL update all catalog-sourced fields from the API response (`ProName`, `ProAddress`, `ShigongUnitName`, access-code / license fields, `AuthEndTime`) and SHALL NOT update local operational fields (**`IsSyncEnabled`**, `AddTime`, soft-delete state).
 
 #### Scenario: First pull inserts all unknown projects
 
 - **WHEN** local `GovProject` table does not contain incoming `ProId` values
-
 - **THEN** the sync SHALL insert new `GovProject` rows for all incoming records with all catalog-sourced fields populated
+- **AND** `IsSyncEnabled` SHALL be initialized to `false`
 
 #### Scenario: Repeated pull updates all catalog fields for existing records
 
 - **WHEN** a subsequent pull receives an existing `ProId` with any changed catalog-sourced field
-
-- **THEN** the sync SHALL update `ProName`, `ProAddress`, `ShigongUnitName`, `BuildLicenseNo`, `FdBuildLicenseNo`, and `AuthEndTime` from the API response
-
+- **THEN** the sync SHALL update catalog-sourced fields from the API response
 - **AND** the sync SHALL insert zero new rows for that `ProId`
-
-- **AND** the sync SHALL NOT modify `EnableSync`, `AddTime`, `IsDeleted`, or `DeletionTime`
+- **AND** the sync SHALL NOT modify `IsSyncEnabled`, `AddTime`, `IsDeleted`, or `DeletionTime`
 
 #### Scenario: Repeated pull is idempotent when remote data unchanged
 
 - **WHEN** a subsequent pull receives existing `ProId` values with identical catalog-sourced field values
-
 - **THEN** the sync SHALL insert zero rows
-
 - **AND** the sync MAY perform no-op updates for unchanged records
 
 #### Scenario: Source project name changed remotely
 
 - **WHEN** BasePlatform returns an existing `ProId` with changed `ProName`
-
 - **THEN** UrbanManagement SHALL update local `ProName` to match the remote value
+- **AND** SHALL leave `IsSyncEnabled` unchanged
 
 ### Requirement: New records initialize license fields via provider abstraction
 
-For each newly inserted `GovProject`, UrbanManagement SHALL populate `BuildLicenseNo`, `FdBuildLicenseNo`, and `AuthEndTime` directly from the BasePlatform catalog API response fields of the same names (camelCase JSON: `buildLicenseNo`, `fdBuildLicenseNo`, `authEndTime`). For existing records, pull sync SHALL update these same fields from the API response.
+For each newly inserted `GovProject`, UrbanManagement SHALL populate `BuildLicenseNo` and `AuthEndTime` directly from the BasePlatform catalog API response fields (`buildLicenseNo`, `authEndTime`). For existing records, pull sync SHALL update these same fields from the API response. Pull sync MUST ignore `fdBuildLicenseNo` for persistence.
 
 #### Scenario: Sync maps license fields from API response on insert
 
@@ -59,9 +55,9 @@ For each newly inserted `GovProject`, UrbanManagement SHALL populate `BuildLicen
 
 - **THEN** `BuildLicenseNo` SHALL be set from `buildLicenseNo`
 
-- **AND** `FdBuildLicenseNo` SHALL be set from `fdBuildLicenseNo`
-
 - **AND** `AuthEndTime` SHALL be set from `authEndTime`
+
+- **AND** MUST NOT set `FdBuildLicenseNo`
 
 #### Scenario: Sync updates license fields from API response on existing record
 
@@ -69,9 +65,9 @@ For each newly inserted `GovProject`, UrbanManagement SHALL populate `BuildLicen
 
 - **THEN** `BuildLicenseNo` SHALL be updated from `buildLicenseNo`
 
-- **AND** `FdBuildLicenseNo` SHALL be updated from `fdBuildLicenseNo`
-
 - **AND** `AuthEndTime` SHALL be updated from `authEndTime`
+
+- **AND** MUST NOT update or create `FdBuildLicenseNo`
 
 ### Requirement: Pull sync handles paging and partial failures safely
 UrbanManagement pull sync SHALL read remote data in pages and SHALL keep local consistency when remote calls fail.
@@ -126,4 +122,3 @@ UrbanManagement SHALL persist `ProAddress` and `ShigongUnitName` from the catalo
 - **THEN** `GovProject.ProAddress` SHALL be updated from `proAddress`
 
 - **AND** `GovProject.ShigongUnitName` SHALL be updated from `shigongUnitName`
-

@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-02
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "单仓 UM；只读表两列强类型 + parse migration + DTO；Mode B；不改 outbound wire"

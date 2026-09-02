@@ -77,43 +77,19 @@ MaterialClient 必须提供 DeviceStatusSignalRClient 单例服务，负责管�
 
 ### Requirement: 设备状态消息协议
 
-系统必须定义统一的设备状态消息格式，包含客户端标识、设备类型、状态值、时间戳等核心字段，并使用 JSON 序列化。
+系统必须定义统一的设备状态消息格式，包含客户端标识、设备类型、状态值、时间戳等核心字段，并使用 JSON 序列化。JSON 字段 `proId` SHALL remain a **string** on the wire (Guid canonical string format). Server-side persistence MUST parse `proId` to `Guid` before writing `ClientOnlineStatus` or `ClientDeviceOnlineStatus`; unparseable or empty values MUST skip database upsert.
 
-#### Scenario: 消息格式定义
+#### Scenario: 消息包含必填字段
 
-- **WHEN** 构建设备状态消息
-- **THEN** 消息必须为 `DeviceStatusMessage` record 类型
-- **AND** 包含 `ClientId` 字段（string，客户端唯一标识）
-- **AND** 包含 `ProId` 字段（string，项目主键，用于聚合和缓存，从 LicenseInfo.ProjectId 读取）
-- **AND** 包含 `ProName` 字段（string，项目展示名称，从 LicenseInfo.ProName 读取）
-- **AND** 包含 `DeviceType` 字段（string，设备类型如 "Scale"、"Camera"、"LPR"、"Sound"）
-- **AND** 包含 `Status` 字段（string，状态值如 "Online"、"Offline"）
-- **AND** 包含 `Timestamp` 字段（DateTime，状态变化时间）
-- **AND** 包含 `AdditionalData` 字段（string? nullable，可选附加信息）
+- **WHEN** MaterialClient 发送设备状态消息
+- **THEN** 消息 SHALL 包含 `clientId`、`proId`（string）、`proName`、`deviceType`、`status`、`timestamp`
+- **AND** `proId` SHOULD be `LicenseInfo.ProjectId.ToString()`
 
-#### Scenario: 消息序列化
+#### Scenario: 服务端拒绝无效 ProId 持久化
 
-- **WHEN** `DeviceStatusMessage` 实例需要通过 SignalR 发送
-- **THEN** 系统 SHALL 使用 System.Text.Json 序列化
-- **AND** 使用 `CamelCase` 命名策略（驼峰命名）
-- **AND** 忽略 null 值字段
-- **AND** 序列化结果为合法 JSON 字符串
-
-#### Scenario: 消息反序列化
-
-- **WHEN** 服务端接收 JSON 格式的设备状态消息
-- **THEN** 系统 SHALL 反序列化为 `DeviceStatusMessage` 实例
-- **AND** 验证所有必需字段非空
-- **AND** 时间戳字段正确解析为 DateTime
-- **AND** 反序列化失败时抛出 `JsonException`
-
-#### Scenario: 消息验证
-
-- **WHEN** 服务端接收到设备状态消息
-- **THEN** 系统 SHALL 验证 `ClientId` 长度不超过 100 字符
-- **AND** 验证 `DeviceType` 为预定义类型之一
-- **AND** 验证 `Timestamp` 在合理时间范围内（±24小时）
-- **AND** 验证失败时返回错误响应
+- **WHEN** `UploadStatus` receives a message whose `proId` is empty or not a valid Guid string
+- **THEN** the Hub MAY still accept the SignalR message for broadcast purposes
+- **AND** MUST NOT upsert `ClientOnlineStatus` or device detail rows for that message
 
 ### Requirement: 设备状态上报
 

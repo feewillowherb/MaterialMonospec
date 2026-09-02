@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-02
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "单仓 UrbanManagement 字段 rename + migration + Blazor/API；Mode B"

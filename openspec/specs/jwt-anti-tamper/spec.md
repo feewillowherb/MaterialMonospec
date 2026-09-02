@@ -14,8 +14,8 @@ Provides server-side JWT anti-tamper verification capabilities for the UrbanMana
 
 - **WHEN** `VerifyAndCompareAsync` is called with a JWT that has a valid RS256 signature, correct issuer (`UrbanManagement`) and audience (`MaterialClient.Urban`), and the `proId` claim matches an existing `GovProject` record
 - **THEN** SHALL return `JwtAntiTamperResult` with `Passed = true`
-- **AND** `ServerJwt` SHALL contain a freshly signed JWT from the `GovProject` data
-- **AND** `ProName`, `BuildLicenseNo`, `FdBuildLicenseNo`, `AuthEndTime` SHALL be populated from the `GovProject` fields
+- **AND** `ServerJwt` SHALL contain a freshly signed JWT from the `GovProject` data without an `fdBuildLicenseNo` claim
+- **AND** `ProName`, `BuildLicenseNo`, `AuthEndTime` SHALL be populated from the `GovProject` fields
 
 #### Scenario: Invalid RS256 signature
 
@@ -48,4 +48,9 @@ Provides server-side JWT anti-tamper verification capabilities for the UrbanMana
 
 ### Requirement: JwtAntiTamperResult DTO
 
-`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ServerJwt` (string?, the freshly signed JWT when passed), `ProName` (string?), `BuildLicenseNo` (string?), `FdBuildLicenseNo` (string?), `AuthEndTime` (DateTime?). The `ServerJwt` and license fields SHALL only be populated when `Passed = true`.
+`JwtAntiTamperResult` SHALL be a DTO with the following properties: `Passed` (bool), `Reason` (string?, null when passed), `ServerJwt` (string?, the freshly signed JWT when passed), `ProName` (string?), `BuildLicenseNo` (string?), `AuthEndTime` (DateTime?). The DTO MUST NOT include `FdBuildLicenseNo`. The `ServerJwt` and license fields SHALL only be populated when `Passed = true`.
+
+#### Scenario: Success result excludes FdBuildLicenseNo
+- **WHEN** anti-tamper verification passes and `JwtAntiTamperResult` is returned to the client
+- **THEN** the result SHALL populate `ProName`, `BuildLicenseNo`, and `AuthEndTime` from `GovProject`
+- **AND** MUST NOT include an `FdBuildLicenseNo` property or value

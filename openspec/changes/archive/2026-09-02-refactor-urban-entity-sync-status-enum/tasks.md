@@ -44,6 +44,6 @@
 ## 8. Monospec（本仓）
 
 - [x] 8.1 确认 OpenSpec 工件与实现一致
-- [ ] 8.2 准备 archive（用户确认后）
+- [x] 8.2 准备 archive（用户确认后）
 
 **后续 change（不在本 tasks 范围）**：`remove-gov-project-fd-build-license-no`、`refactor-urban-proid-guid-required`、`update-urban-weighing-record-site-type-enum`、`rename-gov-project-enable-sync-to-is-sync-enabled`；intake [INT-005](../../docs/intake/2026-09/INT-005-urban-entity-accesscode-rename.md)、[INT-006](../../docs/intake/2026-09/INT-006-legacy-gov-sync-reimplementation.md)。

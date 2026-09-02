@@ -4,29 +4,23 @@
 
 定义称重记录上传流程中的项目数据（ProId、ProName、BuildLicenseNo、FdBuildLicenseNo）从 LicenseInfo 到 DTO 再到服务端的完整数据流，确保项目关联信息正确传递和持久化。
 ## Requirements
+
 ### Requirement: UrbanServerUploadService reads LicenseInfo for project fields
 
-`UrbanServerUploadService.SubmitRecordAsync()` SHALL read the current `LicenseInfo` from `ILicenseService.GetCurrentLicenseAsync()` and populate ProId, ProName, and BuildLicenseNo in the `UrbanWeighingRecordSubmitDto` instead of hardcoding null. The submit DTO MUST NOT include `FdBuildLicenseNo`.
+`UrbanServerUploadService.SubmitRecordAsync()` SHALL read the current `LicenseInfo` and populate required `ProId`, `ProName`, and `BuildLicenseNo`, and SHALL set `SiteType` to an `UrbanSiteType` value (from Scale LPR snapshot or `Construction` default). The submit DTO MUST NOT include `FdBuildLicenseNo`. `ProId` MUST be a non-empty `Guid` from `LicenseInfo.ProjectId`.
 
 #### Scenario: LicenseInfo exists with project fields
 
-- **WHEN** `SubmitRecordAsync` is called and `LicenseInfo` exists with ProId, ProName, and AccessCode (mapped to BuildLicenseNo)
+- **WHEN** `SubmitRecordAsync` is called and `LicenseInfo` exists with a non-empty `ProjectId`, `ProName`, and `AccessCode`
 - **THEN** `UrbanWeighingRecordSubmitDto.ProId` SHALL be set to `LicenseInfo.ProjectId`
-- **AND** `UrbanWeighingRecordSubmitDto.ProName` SHALL be set to `LicenseInfo.ProName`
-- **AND** `UrbanWeighingRecordSubmitDto.BuildLicenseNo` SHALL be set to `LicenseInfo.AccessCode`
+- **AND** `UrbanWeighingRecordSubmitDto.SiteType` SHALL be a defined `UrbanSiteType` value
 - **AND** the serialized JSON MUST NOT include `fdBuildLicenseNo`
 
 #### Scenario: LicenseInfo does not exist
 
 - **WHEN** `SubmitRecordAsync` is called and no `LicenseInfo` exists
-- **THEN** ProId, ProName, and BuildLicenseNo in the DTO SHALL remain null
+- **THEN** the upload SHALL NOT proceed with a weighing submit
 - **AND** SHALL log a warning that license info is not available
-
-#### Scenario: LicenseInfo exists but project fields are null
-
-- **WHEN** `SubmitRecordAsync` is called and `LicenseInfo` exists but ProName or AccessCode are null
-- **THEN** the DTO fields SHALL be set to null (matching LicenseInfo values)
-- **AND** SHALL log a debug message that some project fields are empty
 
 ### Requirement: DeviceStatusHub remains unassociated with ProId
 
@@ -45,3 +39,10 @@
 - **AND** SHALL read `ProjectId` (ProId) from the LicenseInfo record
 - **AND** `DeviceStatusMessage` SHALL NOT be modified
 
+### Requirement: GovProject excludes FdBuildLicenseNo from license pipeline
+The proid-data-pipeline capability SHALL treat `BuildLicenseNo` as the sole persisted project-level access code on `GovProject`, `LicenseInfo`, JWT claims, and weighing submit DTOs. No entity in the weighing upload or project resolution pipeline SHALL persist or require `FdBuildLicenseNo`.
+
+#### Scenario: Pipeline uses BuildLicenseNo only
+- **WHEN** MaterialClient uploads a weighing record or UrbanManagement resolves a project for sync
+- **THEN** the effective access code SHALL come from `BuildLicenseNo` / `buildLicenseNo`
+- **AND** MUST NOT depend on a persisted `FdBuildLicenseNo` on any entity in the pipeline

@@ -17,38 +17,8 @@
 - **AND** `ProId` SHALL be parsed from the `proId` claim as a `Guid`
 - **AND** `ProName` SHALL be extracted from the `proName` claim
 - **AND** `BuildLicenseNo` SHALL be extracted from the `buildLicenseNo` claim
-- **AND** `FdBuildLicenseNo` SHALL be extracted from the `fdBuildLicenseNo` claim
 - **AND** `AuthEndTime` SHALL be converted from the `exp` claim (Unix timestamp) to `DateTime`
-
-#### Scenario: License file does not exist
-
-- **WHEN** `CheckLicenseAsync` is called with a path to a file that does not exist
-- **THEN** SHALL return `LicenseCheckResult` with `IsSuccess = false`
-- **AND** `Message` SHALL indicate the license file was not found
-
-#### Scenario: Invalid JWT signature
-
-- **WHEN** `CheckLicenseAsync` is called with a file whose JWT signature does not match the configured RSA public key
-- **THEN** SHALL return `LicenseCheckResult` with `IsSuccess = false`
-- **AND** `Message` SHALL indicate signature validation failure
-
-#### Scenario: Expired JWT token
-
-- **WHEN** `CheckLicenseAsync` is called with a validly-signed JWT whose `exp` claim is in the past (beyond clock skew tolerance)
-- **THEN** SHALL return `LicenseCheckResult` with `IsSuccess = false`
-- **AND** `Message` SHALL indicate the license has expired and include the expiration date
-
-#### Scenario: Tampered JWT claims
-
-- **WHEN** `CheckLicenseAsync` is called with a JWT whose payload has been modified after signing
-- **THEN** SHALL return `LicenseCheckResult` with `IsSuccess = false`
-- **AND** `Message` SHALL indicate validation failure
-
-#### Scenario: Malformed or empty file
-
-- **WHEN** `CheckLicenseAsync` is called with a file that is not a valid JWT format
-- **THEN** SHALL return `LicenseCheckResult` with `IsSuccess = false`
-- **AND** `Message` SHALL indicate the file content is not a valid JWT token
+- **AND** a missing or empty `fdBuildLicenseNo` claim MUST NOT cause validation failure
 
 ### Requirement: RSA public key configuration
 

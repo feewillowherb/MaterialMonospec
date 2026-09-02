@@ -3,6 +3,7 @@
 ## Purpose
 TBD - created by archiving change add-urbanmanagement-passage-xiaoshan-upload. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Three independent Gov outbound paths
 
 UrbanManagement SHALL upload weighing records via `POST /sapi/v1/inoutRecord/lantu/saveRecord` with `buildLicenseNo` equal to original `L` and `dataSource` exactly `WEIGHBRIDGE_XIAOSHAN`. Checkpoint passage SHALL upload via `POST /sapi/v1/inoutRecord/save` with `buildLicenseNo` equal to original `L` and MUST NOT include `dataSource`. Finished-product passage SHALL upload via the same path with `buildLicenseNo` equal to `L` plus `-02` applied once. Weighbridge and checkpoint MUST NEVER append `-02`. Checkpoint outbound code, product outbound code, and weighbridge outbound code MUST be separate implementations (duplication allowed) and MUST NOT share one method parameterized by suffix.
@@ -27,20 +28,13 @@ UrbanManagement SHALL upload weighing records via `POST /sapi/v1/inoutRecord/lan
 
 ### Requirement: Outbound converters only at Gov upload
 
-UrbanManagement SHALL convert domain `UrbanInOutType` and `UrbanSiteType` to Xiaoshan wire values only when assembling Gov payloads. Checkpoint and finished-product converters MUST be separate types. Converters MUST be static or invoked from payload `From*` factories and MUST NOT be registered in DI. Persistence MUST keep domain enums. Weighbridge `inOutType` MUST be `0` for Enter and `1` for Exit. Checkpoint and product `deviceID` MUST be `01` for Enter and `02` for Exit. Passage payloads MUST omit `goodsWeight` when absent and MUST NOT send `0` as a fake weight.
+UrbanManagement SHALL convert domain `UrbanInOutType` and `UrbanSiteType` to Xiaoshan wire values only when assembling Gov payloads. Checkpoint, finished-product, **and weighbridge** converters MUST be separate types (or separate static members). Converters MUST be static or invoked from payload `From*` factories and MUST NOT be registered in DI. Persistence MUST keep domain enums. Weighbridge `inOutType` MUST be `0` for Enter and `1` for Exit. Weighbridge wire `siteType` MUST be `"2"` for `UrbanSiteType.Disposal` and `"1"` otherwise. Checkpoint and product `deviceID` MUST be `01` for Enter and `02` for Exit. Passage payloads MUST omit `goodsWeight` when absent and MUST NOT send `0` as a fake weight.
 
-#### Scenario: Enter maps per channel
+#### Scenario: Weighbridge SiteType converter
 
-- **WHEN** a checkpoint row with `UrbanInOutType` Enter is uploaded
-- **THEN** `deviceID` MUST be `01`
-- **WHEN** a weighing row with Enter is uploaded
-- **THEN** `inOutType` MUST be `0`
-
-#### Scenario: Hardcoded inOutType zero is removed
-
-- **WHEN** a weighing row with Exit is uploaded
-- **THEN** `inOutType` MUST be `1`
-- **AND** MUST NOT remain hardcoded to `0`
+- **WHEN** `GovSyncWeightPayload.FromRecord` builds an outbound weighing payload
+- **THEN** `siteType` MUST come from `XiaoshanWeighbridgeConverter.SiteType(record.SiteType)` (or equivalent static)
+- **AND** MUST NOT copy a free-text column verbatim
 
 ### Requirement: Gov host configured in UrbanManagement
 
@@ -60,4 +54,3 @@ The system MUST NOT call `/sapi/sysdevicemng/heatBeat`.
 
 - **WHEN** Gov sync runs
 - **THEN** it MUST NOT HTTP POST the heartbeat path
-

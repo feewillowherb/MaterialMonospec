@@ -4,71 +4,70 @@
 
 Provides the core API for urban weighing record management, supporting extended fields for vehicle information, sync state management, and attachment file associations. (TBD: expand with API design principles)
 ## Requirements
+
 ### Requirement: UrbanWeighingRecord extended fields
 
-The `UrbanWeighingRecord` entity (currently `Entity<long>` PK) SHALL include the following fields beyond what is currently implemented: `VehicleColor` (string?), `PlateColor` (string?), `VehicleType` (string?), `DeviceId` (string?), `BuildLicenseNo` (string?), `SiteType` (string?), `ProId` (string?), `ProName` (string?), `IsAnomaly` (bool, default false), `ClientSyncType` (int?), `ClientSyncTime` (DateTime?), `ClientRetryCount` (int?), `ClientLastErrorTime` (DateTime?), `SyncTime` (DateTime?), `RetryCount` (int?), `LastErrorTime` (DateTime?), `ServerApprovedAt` (DateTime?), `ClientApprovalAckAt` (DateTime?). The `SnapImages` string field SHALL be removed. The entity MUST NOT include `FdBuildLicenseNo`.
+The `UrbanWeighingRecord` entity SHALL include extended fields including `SiteType` as **non-nullable `UrbanSiteType`** (default `Construction`), `ProId` as non-nullable `Guid`, sync fields as `SyncStatus` / non-nullable retry counts, and other vehicle/project fields as previously specified. The entity MUST NOT include `FdBuildLicenseNo`. `SnapImages` MUST NOT exist. Property name MUST remain `SiteType` (MUST NOT rename to `UrbanSiteType`).
 
-#### Scenario: Full record creation with extended fields
+#### Scenario: SiteType persisted as UrbanSiteType
 
-- **WHEN** a POST request creates an UrbanWeighingRecord with all extended fields including BuildLicenseNo
-- **THEN** all fields SHALL be persisted correctly to the database
-- **AND** MUST NOT create or persist an `FdBuildLicenseNo` column
+- **WHEN** a weighing record is created or received with `siteType` of `Disposal`
+- **THEN** `UrbanWeighingRecord.SiteType` SHALL equal `UrbanSiteType.Disposal`
+- **AND** the database column SHALL store the enum as an integer
 
-#### Scenario: SnapImages removed
+#### Scenario: Missing siteType defaults to Construction
 
-- **WHEN** the entity is mapped to the database
-- **THEN** no `SnapImages` column SHALL exist on the `Urban_WeighingRecord` table
+- **WHEN** Receive omits `siteType` or the client sends the Construction value
+- **THEN** the persisted `SiteType` SHALL be `UrbanSiteType.Construction`
 
-#### Scenario: Server approval sync columns nullable
+#### Scenario: Receive rejects empty ProId
 
-- **WHEN** a new `UrbanWeighingRecord` is created via `ReceiveAsync`
-- **THEN** `ServerApprovedAt` and `ClientApprovalAckAt` MUST default to null
-- **AND** MUST NOT block record creation or government sync eligibility
+- **WHEN** `ReceiveAsync` receives a payload with missing `proId`, null `proId`, or `Guid.Empty`
+- **THEN** the system SHALL reject the request with a validation or business error
+- **AND** MUST NOT persist a weighing record
 
 ### Requirement: ClientRecordId idempotency
+
 The system SHALL enforce uniqueness on `ClientRecordId`. If a record with the same `ClientRecordId` already exists, the system SHALL return the existing record's ID without creating a duplicate, and SHALL apply upsert updates to the existing record's correctable fields from the incoming DTO.
 
 #### Scenario: First submission
+
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and no record with that ID exists
 - **THEN** a new record SHALL be created and its ID returned
 
 #### Scenario: Duplicate submission with corrected fields
+
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
 - **AND** the payload contains updated `plateNumber`, `totalWeight`, and `isAnomaly: false`
 - **THEN** the existing record's ID SHALL be returned
 - **AND** no new record SHALL be created
 - **AND** the existing record's `PlateNumber` and `TotalWeight` MUST reflect the payload values
 - **AND** the existing record's `IsAnomaly` MUST be `false`
-- **AND** the existing record's `SyncType` MUST be reset to `0`
+- **AND** the existing record's `SyncType` MUST be reset to `SyncStatus.Pending`
 - **AND** the existing record's `RetryCount` MUST be reset to `0`
 
 #### Scenario: Duplicate submission idempotent retry
+
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
 - **AND** the payload fields match the stored values
 - **THEN** the existing record's ID SHALL be returned
 - **AND** no duplicate record SHALL be created
 
 #### Scenario: Duplicate submission ignores attachment updates
+
 - **WHEN** a record with `ClientRecordId: 12345` is submitted and a record with that ID already exists
 - **AND** the payload includes `attachmentIds` with one or more Guids
 - **THEN** the existing record's attachment associations MUST remain unchanged
-- **AND** the system MUST NOT insert additional `UrbanWeighingRecordAttachment` rows for that existing record
+- **AND** the system MUST NOT insert additional attachment join rows for that existing record
 
 ### Requirement: UrbanWeighingRecordDto extended with sync state fields
 
-The `UrbanWeighingRecordDto` SHALL accept the following additional fields: `VehicleColor`, `PlateColor`, `VehicleType`, `DeviceId`, `BuildLicenseNo`, `SiteType`, `ProId`, `ProName`, `IsAnomaly`, `ClientSyncType`, `ClientSyncTime`, `ClientRetryCount`, `ClientLastErrorTime`. The DTO field names SHALL use PascalCase and rely on global camelCase JSON serialization for wire format. The receive DTO MUST NOT include `FdBuildLicenseNo`.
+The receive / DTO surface SHALL expose `SiteType` as **`UrbanSiteType`** (JSON `siteType`, string enum name). `ProId` SHALL be required `Guid`. The receive DTO MUST NOT include `FdBuildLicenseNo`.
 
-#### Scenario: DTO round-trip with extended fields
+#### Scenario: DTO round-trip with UrbanSiteType
 
-- **WHEN** a MaterialClient.Urban POST request contains JSON with camelCase field names for all extended fields including buildLicenseNo
-- **THEN** the system SHALL correctly deserialize, persist, and return a success response
-- **AND** MUST NOT require or persist `fdBuildLicenseNo`
-
-#### Scenario: Unknown fdBuildLicenseNo in request body is ignored
-
-- **WHEN** a legacy client POST includes `fdBuildLicenseNo` in the JSON body
-- **THEN** the request SHALL still succeed if other fields are valid
-- **AND** the created or updated record MUST NOT store `fdBuildLicenseNo`
+- **WHEN** a MaterialClient.Urban POST includes `"siteType": "Disposal"` and a valid `proId`
+- **THEN** the system SHALL deserialize to `UrbanSiteType.Disposal`, persist, and return success
 
 ### Requirement: Attachment association on receive
 When a new `UrbanWeighingRecord` is created via the API, the system SHALL accept an optional list of `AttachmentFile` IDs and create `UrbanWeighingRecordAttachment` join records linking the new weighing record to the specified attachments.
@@ -225,4 +224,3 @@ UrbanManagement SHALL expose a query API returning records for a `ProId` where `
 - **WHEN** `IUrbanManagementApi` (or equivalent Refit interface) is configured for MaterialClient.Urban
 - **THEN** it SHALL NOT expose `ApproveWeighingRecordAsync` or map to the Approve endpoint for client approval flows
 - **AND** client weighing sync SHALL continue to use `ReceiveWeighingRecordAsync` and attachment upload APIs only
-

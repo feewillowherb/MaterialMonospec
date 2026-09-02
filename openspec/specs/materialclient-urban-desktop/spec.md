@@ -4,6 +4,7 @@
 
 定义 MaterialClient Urban 桌面应用的功能需求，包括单窗口称重主界面、静态授权检查、以及与 MaterialClient 主应用的架构差异。
 ## Requirements
+
 ### Requirement: Urban 应用启动进入唯一主界面
 
 MaterialClient.Urban 应用启动时，在 startup authorization 有效时 MUST 直接显示称重主界面（UrbanAttendedWeighingWindow）。MUST NOT 显示登录窗口或授权码输入窗口。当 startup authorization 无效时，MUST NOT 显示称重主界面，SHALL 显示未授权提示对话框后退出。启动完成后 SHALL 通过 ABP 容器初始化称重管线服务（仅授权成功路径）。
@@ -66,7 +67,7 @@ MaterialClient.Urban 顶栏菜单 MUST 仅包含"系统设置"入口，MUST NOT 
 
 ### Requirement: 静态授权检查
 
-MaterialClient.Urban MUST 在 ABP 模块的 OnApplicationInitializationAsync 中执行静态授权检查（IStaticLicenseChecker）。检查 SHALL 优先使用 `LicenseInfo.LatestJwtToken`，其次回退到 `license.urban` 文件。检查成功后 SHALL 将授权数据（ProId、ProName、BuildLicenseNo、FdBuildLicenseNo、AuthEndTime）写入 `LicenseInfo` 实体。检查失败时 SHALL 将 startup authorization 标记为无效并供 App 层展示未授权提示；所有构建配置 MUST 阻塞进入主界面。
+MaterialClient.Urban MUST 在 ABP 模块的 OnApplicationInitializationAsync 中执行静态授权检查（IStaticLicenseChecker）。检查 SHALL 优先使用 `LicenseInfo.LatestJwtToken`，其次回退到 `license.urban` 文件。检查成功后 SHALL 将授权数据（ProId、ProName、BuildLicenseNo、AuthEndTime）写入 `LicenseInfo` 实体。检查失败时 SHALL 将 startup authorization 标记为无效并供 App 层展示未授权提示；所有构建配置 MUST 阻塞进入主界面。
 
 #### Scenario: 启动授权检查
 - **WHEN** ABP 模块 OnApplicationInitializationAsync 执行
@@ -76,21 +77,14 @@ MaterialClient.Urban MUST 在 ABP 模块的 OnApplicationInitializationAsync 中
 
 #### Scenario: 授权数据写入 LicenseInfo
 - **WHEN** startup JWT 校验返回成功且 `LicenseCheckResult.ProId` 有效
-- **THEN** SHALL 读取 `LicenseCheckResult` 中的 ProId、ProName、BuildLicenseNo、FdBuildLicenseNo、AuthEndTime
+- **THEN** SHALL 读取 `LicenseCheckResult` 中的 ProId、ProName、BuildLicenseNo、AuthEndTime
 - **AND** SHALL 通过 IRepository&lt;LicenseInfo, Guid&gt; 写入或更新 `LicenseInfo` 记录
+- **AND** MUST NOT 写入 `FdBuildLicenseNo`
 - **AND** SHALL 在 UnitOfWork 中执行写入操作
 
 #### Scenario: 授权检查失败不写入且阻塞启动
 - **WHEN** startup JWT 校验返回失败
 - **THEN** SHALL NOT 修改 `LicenseInfo` 记录
-- **AND** SHALL 记录警告日志
-- **AND** SHALL 将 startup authorization 标记为无效
-- **AND** 应用 MUST NOT 进入称重主界面
-
-#### Scenario: Debug 模式状态显示
-- **WHEN** 应用在 Debug 模式下运行且 startup authorization 成功
-- **THEN** SHALL 在设备状态栏显示授权状态文本
-- **AND** SHALL 使用绿色（成功）指示器
 
 ### Requirement: 主界面布局四行结构
 
@@ -460,3 +454,32 @@ MaterialClient.Urban SHALL read UrbanManagement server address from configuratio
 - **THEN** MinimalWebHost diagnostic URLs MUST remain on `MinimalWebHost:Urls` (default `http://localhost:9961`)
 - **AND** probe scripts MUST continue to POST test-passage to the diagnostic host
 
+### Requirement: Urban weighing upload includes UrbanSiteType as SiteType
+
+MaterialClient.Urban `UrbanWeighingRecordSubmitDto` SHALL expose `SiteType` as **`UrbanSiteType`** (JSON `siteType`). `UrbanServerUploadService` MUST populate it from the Scale LPR configuration row’s `UrbanSiteType` when available; otherwise MUST use `UrbanSiteType.Construction`. The DTO MUST NOT send a free-text site type string.
+
+#### Scenario: Scale LPR provides Disposal
+
+- **WHEN** submit builds a weighing payload and the matched Scale LPR row has `UrbanSiteType.Disposal`
+- **THEN** `UrbanWeighingRecordSubmitDto.SiteType` SHALL be `Disposal`
+
+#### Scenario: No Scale LPR site type available
+
+- **WHEN** submit builds a weighing payload and no Scale LPR `UrbanSiteType` is available
+- **THEN** `SiteType` SHALL be `UrbanSiteType.Construction`
+
+### Requirement: Urban weighing and passage upload include required ProId
+
+MaterialClient.Urban upload DTOs for weighing and passage (`UrbanWeighingRecordSubmitDto`, `UrbanPassageSubmitDto`) SHALL expose `ProId` as **non-nullable `Guid`**. Upload services MUST populate `ProId` from `LicenseInfo.ProjectId` and MUST NOT submit when `ProjectId` is `Guid.Empty`.
+
+#### Scenario: Weighing upload includes ProId from license
+
+- **WHEN** `UrbanServerUploadService` builds a weighing submit payload under valid license
+- **THEN** `ProId` SHALL equal `LicenseInfo.ProjectId`
+- **AND** serialized JSON SHALL include `proId` as a Guid value
+
+#### Scenario: Passage upload includes ProId from license
+
+- **WHEN** `UrbanPassageUploadService` builds a passage submit payload under valid license
+- **THEN** `ProId` SHALL equal `LicenseInfo.ProjectId`
+- **AND** MUST NOT send null or empty Guid

@@ -3,24 +3,25 @@
 ## Purpose
 TBD - created by archiving change add-urban-passage-reset-sync. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Checkpoint passage reset sync API
 
-`UrbanCheckpointPassageAppService` SHALL expose `ResetSyncAsync(UrbanPassageResetSyncInputDto input)` returning `UrbanPassageListItemDto`. The method MUST use `[UnitOfWork]`. The service MUST load the row by `input.Id`, verify `PassageSource` is checkpoint, and apply sync reset via a type-owned method on `UrbanPassageRecord` (MUST NOT assign `SyncType` or `RetryCount` field-by-field in the service). When `SyncType` is success (1) or failure (2), the record MUST become pending sync (`SyncType = 0`, `RetryCount = 0`). When `SyncType` is pending (0) or null, the service MUST reject with a business error. Empty `Id` MUST be rejected.
+`UrbanCheckpointPassageAppService` SHALL expose `ResetSyncAsync(UrbanPassageResetSyncInputDto input)` returning `UrbanPassageListItemDto`. The method MUST use `[UnitOfWork]`. The service MUST load the row by `input.Id`, verify `PassageSource` is checkpoint, and apply sync reset via a type-owned method on `UrbanPassageRecord` (MUST NOT assign `SyncType` or `RetryCount` field-by-field in the service). When `SyncType` is `SyncStatus.Success` or `SyncStatus.Failed`, the record MUST become pending sync (`SyncType = SyncStatus.Pending`, `RetryCount = 0`). When `SyncType` is `SyncStatus.Pending`, the service MUST reject with a business error. Empty `Id` MUST be rejected.
 
 #### Scenario: Reset failed checkpoint record
 
-- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = 2`
-- **THEN** the row MUST have `SyncType = 0` and `RetryCount = 0`
-- **AND** the API MUST return the updated list item DTO
+- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = Failed`
+- **THEN** the row MUST have `SyncType = Pending` and `RetryCount = 0`
+- **AND** the API MUST return the updated list item DTO with string JSON `"Pending"` for sync status
 
 #### Scenario: Reset successful checkpoint record
 
-- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = 1`
-- **THEN** the row MUST have `SyncType = 0` and `RetryCount = 0`
+- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = Success`
+- **THEN** the row MUST have `SyncType = Pending` and `RetryCount = 0`
 
 #### Scenario: Reject pending checkpoint record
 
-- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = 0`
+- **WHEN** operator calls reset sync for a checkpoint row with `SyncType = Pending`
 - **THEN** the service MUST throw a business exception
 - **AND** MUST NOT change sync fields
 
@@ -36,8 +37,8 @@ TBD - created by archiving change add-urban-passage-reset-sync. Update Purpose a
 
 #### Scenario: Reset failed finished-product record
 
-- **WHEN** operator calls reset sync for a finished-product row with `SyncType = 2`
-- **THEN** the row MUST have `SyncType = 0` and `RetryCount = 0`
+- **WHEN** operator calls reset sync for a finished-product row with `SyncType = Failed`
+- **THEN** the row MUST have `SyncType = Pending` and `RetryCount = 0`
 
 #### Scenario: Reject checkpoint id on finished-product API
 
@@ -56,26 +57,25 @@ The system SHALL define `UrbanPassageResetSyncInputDto` in `UrbanManagement.Core
 
 ### Requirement: Checkpoint and finished-product list UI reset action
 
-The checkpoint list page and finished-product list page SHALL show a per-row「重置同步」action when `SyncType` is 1 or 2 (TEMP, aligned with weighing list). The action MUST call the corresponding ApplicationService only (MUST NOT inject Repository or DbContext). After success, the page MUST refresh the list. While a row is resetting, the UI MUST indicate in-progress state. Failures MUST surface an operator-visible error message without silent failure.
+The checkpoint list page and finished-product list page SHALL show a per-row「重置同步」action when `SyncType` is `Success` or `Failed` (TEMP, aligned with weighing list). The action MUST call the corresponding ApplicationService only (MUST NOT inject Repository or DbContext). After success, the page MUST refresh the list. While a row is resetting, the UI MUST indicate in-progress state. Failures MUST surface an operator-visible error message without silent failure. UI MUST interpret API string enum values for sync status.
 
 #### Scenario: Checkpoint page shows reset for failed sync
 
-- **WHEN** operator views the checkpoint list and a row shows sync failed
+- **WHEN** operator views the checkpoint list and a row shows sync failed (`"Failed"`)
 - **THEN** the row MUST offer reset sync
 - **AND** confirming MUST call checkpoint `ResetSyncAsync`
 - **AND** the row MUST show pending sync after refresh
 
 #### Scenario: Finished-product page hides reset for pending sync
 
-- **WHEN** a finished-product row is pending sync (`SyncType = 0`)
+- **WHEN** a finished-product row is pending sync (`"Pending"`)
 - **THEN** the reset action MUST NOT be offered for that row
 
 ### Requirement: Gov worker re-queue after reset
 
-Reset sync MUST NOT require changes to Gov sync workers. After reset, checkpoint rows MUST become eligible for `GovCheckpointSyncManager` pending selection and finished-product rows for `GovProductSyncManager`, using existing `SyncType != 1` rules.
+Reset sync MUST NOT require changes to Gov sync worker selection beyond enum-based `SyncType != Success`. After reset, checkpoint rows MUST become eligible for `GovCheckpointSyncManager` and finished-product rows for `GovProductSyncManager`.
 
 #### Scenario: Checkpoint re-queued
 
 - **WHEN** a checkpoint row is reset from failed to pending
-- **THEN** the next Gov checkpoint sync cycle MAY pick up that row without code changes to the worker
-
+- **THEN** the next Gov checkpoint sync cycle MAY pick up that row without code changes to worker selection rules

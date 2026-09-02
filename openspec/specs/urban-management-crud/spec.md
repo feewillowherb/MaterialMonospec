@@ -4,37 +4,45 @@
 
 Provides real database CRUD operations for project and sync data management in the urban management system, replacing mock implementations with production-ready data access. (TBD: expand with data access strategy details)
 ## Requirements
+
 ### Requirement: Project CRUD with ABP auto-generated API endpoints
-The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, set sync status, and delete project. All endpoints use ABP standard DTOs. The paged list behavior SHALL include records created by external BasePlatform pull sync in addition to manually created records.
+
+The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, **set `IsSyncEnabled`**, and delete project. All endpoints use ABP standard DTOs. The paged list behavior SHALL include records created by external BasePlatform pull sync in addition to manually created records.
 
 #### Scenario: Paged project list via ABP API
+
 - **WHEN** a GET request is sent to `/api/app/gov-project/get-list` with `PagedAndSortedResultRequestDto` parameters
 - **THEN** the system SHALL query `Gov_Project` table from the database
 - **AND** return `PagedResultDto<GovProjectDto>` with `Items` and `TotalCount` properties
-- **AND** ABP automatically generates Swagger documentation for this endpoint
+- **AND** each item SHALL expose `isSyncEnabled` (not `enableSync`)
 
 #### Scenario: Create project via ABP API
+
 - **WHEN** a POST request is sent to `/api/app/gov-project/create` with `GovProjectCreateDto`
 - **THEN** the system SHALL insert a new `GovProject` record into the database
 - **AND** return created `GovProjectDto` with generated Guid Id
-- **AND** ABP automatically validates request using DTO validation attributes
+- **AND** `IsSyncEnabled` SHALL default to `false` when not supplied
 
 #### Scenario: Update project via ABP API
+
 - **WHEN** a PUT request is sent to `/api/app/gov-project/update` with `EntityDto<Guid>` id and `GovProjectUpdateDto`
 - **THEN** the system SHALL update the corresponding `GovProject` record
 - **AND** return updated `GovProjectDto`
 
-#### Scenario: Set sync status via ABP API
-- **WHEN** a PUT request is sent to `/api/app/gov-project/set-sync-status` with project ID and status flag
-- **THEN** the system SHALL update the `SyncStatus` field on the corresponding `GovProject` record
+#### Scenario: Set IsSyncEnabled via ABP API
+
+- **WHEN** a client calls `SetIsSyncEnabledAsync` (ABP route under `gov-project`) with project ID and `isSyncEnabled`
+- **THEN** the system SHALL update `GovProject.IsSyncEnabled` on the corresponding record
 - **AND** return updated `GovProjectDto`
+- **AND** MUST NOT use an `EnableSync` / `enableSync` field name
 
 #### Scenario: Delete project via ABP API
+
 - **WHEN** a DELETE request is sent to `/api/app/gov-project/delete` with `EntityDto<Guid>` containing project ID
-- **THEN** the system SHALL update the `DeleteStatus` field to true on the corresponding `GovProject` record
-- **AND** ABP automatically maps DELETE verb to DeleteAsync method
+- **THEN** the system SHALL soft-delete the corresponding `GovProject` record
 
 #### Scenario: List includes pull-synced projects
+
 - **WHEN** external BasePlatform pull sync inserts new `GovProject` rows
 - **THEN** subsequent `/api/app/gov-project/get-list` responses SHALL include those rows
 - **AND** those rows SHALL follow the same DTO shape and pagination behavior as manually created projects
@@ -109,32 +117,34 @@ The system SHALL use ABP's `EntityDto<TKey>` for operations that reference entit
 - **AND** ABP automatically routes the id from URL or request body
 
 ### Requirement: GovProject access-code indexes
-The database SHALL have indexes on `GovProject.BuildLicenseNo` and `GovProject.FdBuildLicenseNo` to support efficient access-code lookups during legacy API validation and sync worker project resolution.
+The database SHALL have an index on `GovProject.BuildLicenseNo` to support efficient access-code lookups during sync worker project resolution and access-code validation. The database MUST NOT have an index on a removed `FdBuildLicenseNo` column.
 
 #### Scenario: Index creation
 - **WHEN** the EF Core model is configured
-- **THEN** indexes SHALL be created on both `BuildLicenseNo` and `FdBuildLicenseNo` columns of the `Gov_Project` table
+- **THEN** an index SHALL be created on the `BuildLicenseNo` column of the `Gov_Project` table
+- **AND** MUST NOT create an index on `FdBuildLicenseNo`
 
 ### Requirement: DTO mapping for government projects with UpdateDto
-The system SHALL provide `GovProjectDto` and `GovProjectUpdateDto` with entity mapping methods for data transfer operations, following ABP patterns. `GovProjectDto` SHALL include `ProAddress` and `ShigongUnitName`. `GovProjectDto` SHALL NOT include `ProductCode`.
+
+The system SHALL provide `GovProjectDto` and `GovProjectUpdateDto` with entity mapping methods for data transfer operations, following ABP patterns. `GovProjectDto` SHALL include `ProAddress`, `ShigongUnitName`, and **`IsSyncEnabled` (`bool`)**. `GovProjectDto` SHALL NOT include `ProductCode` or `EnableSync`.
 
 #### Scenario: FromEntity mapping
+
 - **WHEN** calling `GovProjectDto.FromEntity(entity)`
-- **THEN** system creates DTO with all entity properties mapped correctly including `ProAddress` and `ShigongUnitName`
-- **AND** handles nullable properties appropriately
-- **AND** SHALL NOT include `ProductCode` in the DTO
+- **THEN** system creates DTO with all entity properties mapped correctly including `ProAddress`, `ShigongUnitName`, and `IsSyncEnabled`
+- **AND** SHALL NOT include `EnableSync` or `ProductCode` in the DTO
 
 #### Scenario: ToEntity mapping for creation
+
 - **WHEN** calling `GovProjectCreateDto.ToEntity()`
 - **THEN** system creates new GovProject entity with provided properties
-- **AND** generates new Guid for Id
+- **AND** `IsSyncEnabled` defaults to `false` when not set
 
 #### Scenario: UpdateDto mapping
-- **WHEN** calling `input.ToEntity(existingEntity)` with `GovProjectUpdateDto`
-- **THEN** system updates existing `GovProject` entity with provided properties
-- **AND** preserves existing Id, AddTime, LastSyncTime values
-- **AND** updates only modifiable fields (ProName, BuildLicenseNo, FdBuildLicenseNo, SyncStatus)
-- **AND** SHALL NOT change `ProAddress` or `ShigongUnitName` via update DTO in this change scope
+
+- **WHEN** calling `input.ToEntity(existingEntity)` with `GovProjectUpdateDto` that supplies `IsSyncEnabled`
+- **THEN** system updates existing `GovProject.IsSyncEnabled` when the update value is present
+- **AND** preserves existing Id and audit fields
 
 ### Requirement: ApplicationService inheritance for project operations
 The system SHALL implement `GovProjectAppService` inheriting from `ApplicationService` to handle project CRUD operations.
@@ -165,18 +175,21 @@ The system SHALL implement `GovProjectAppService` inheriting from `ApplicationSe
 - **THEN** ABP generates DELETE endpoint at `/api/app/gov-project/delete`
 - **AND** Swagger documents this as a delete operation
 
-### Requirement: DTO mapping for sync data and logs
-The system SHALL provide DTO classes with entity mapping methods for sync data and logs.
+### Requirement: DTO mapping for sync data
 
-#### Scenario: FromEntity mapping for sync data
+The system SHALL provide `GovSyncDataDto` with entity mapping methods for data transfer operations. `SnapTime` SHALL be `DateTime?` and `GoodsWeight` SHALL be `decimal?`, matching the entity. Mapping MUST NOT treat these fields as strings.
+
+#### Scenario: FromEntity mapping with strong types
+
 - **WHEN** calling `GovSyncDataDto.FromEntity(entity)`
-- **THEN** system creates DTO with all entity properties mapped correctly
-- **AND** handles JSON serialization of SourceData field
+- **THEN** system creates DTO with `SnapTime` and `GoodsWeight` copied as `DateTime?` and `decimal?` respectively
+- **AND** other fields continue to map as before (`ProId` as `Guid`, `SyncType` as `SyncStatus`, `RetryCount` as `int`, etc.)
 
-#### Scenario: FromEntity mapping for sync logs
-- **WHEN** calling `GovLogDto.FromEntity(entity)`
-- **THEN** system creates DTO with all entity properties mapped correctly
-- **AND** includes error information if present
+#### Scenario: Read-only list API exposes strong types
+
+- **WHEN** a client queries `GovSyncData` via `GovSyncDataAppService` list/get
+- **THEN** the JSON payload SHALL serialize `snapTime` as a date-time (or null) and `goodsWeight` as a number (or null)
+- **AND** MUST NOT serialize those two fields as free-form weight/time strings for newly mapped DTOs
 
 ### Requirement: ApplicationService inheritance for sync data operations
 The system SHALL implement `GovSyncDataAppService` inheriting from `ApplicationService` to handle sync data query operations.
@@ -213,4 +226,3 @@ The `GovProject` entity SHALL include nullable `ProAddress` and `ShigongUnitName
 - **WHEN** a `GovProject` is created or loaded
 - **THEN** the entity SHALL expose `ProAddress` and `ShigongUnitName` properties
 - **AND** SHALL NOT expose a `ProductCode` column or property for persistence
-

@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-02
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "UrbanManagement 多实体 migration + 在线态 + MaterialClient submit 对齐；跨仓"

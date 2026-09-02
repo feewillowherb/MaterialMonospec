@@ -8,7 +8,7 @@
 
 ### Requirement: JWT license token generation
 
-`UrbanLicenseGenerator.GenerateLicenseToken()` SHALL accept a request containing ProId (Guid), ProName (string), BuildLicenseNo (string), FdBuildLicenseNo (string), and ExpiresAt (DateTime). It SHALL create a JWT token signed with RS256 using the RSA private key from configuration (`Jwt:PrivateKey`). The token SHALL contain claims: `proId`, `proName`, `buildLicenseNo`, `fdBuildLicenseNo`, `exp` (Unix timestamp), `jti` (unique ID), `iss` ("UrbanManagement"), `aud` ("MaterialClient.Urban").
+`UrbanLicenseGenerator.GenerateLicenseToken()` SHALL accept a request containing ProId (Guid), ProName (string), BuildLicenseNo (string), and ExpiresAt (DateTime). It SHALL create a JWT token signed with RS256 using the RSA private key from configuration (`Jwt:PrivateKey`). The token SHALL contain claims: `proId`, `proName`, `buildLicenseNo`, `exp` (Unix timestamp), `jti` (unique ID), `iss` ("UrbanManagement"), `aud` ("MaterialClient.Urban"). The token MUST NOT contain an `fdBuildLicenseNo` claim.
 
 #### Scenario: Generate valid license token
 
@@ -17,11 +17,11 @@
 - **AND** the `proId` claim SHALL equal the request's ProId as a string
 - **AND** the `proName` claim SHALL equal the request's ProName
 - **AND** the `buildLicenseNo` claim SHALL equal the request's BuildLicenseNo
-- **AND** the `fdBuildLicenseNo` claim SHALL equal the request's FdBuildLicenseNo
 - **AND** the `exp` claim SHALL be the Unix timestamp of `ExpiresAt`
 - **AND** the `iss` claim SHALL be `"UrbanManagement"`
 - **AND** the `aud` claim SHALL be `"MaterialClient.Urban"`
 - **AND** the `jti` claim SHALL be a unique identifier
+- **AND** MUST NOT include an `fdBuildLicenseNo` claim
 
 #### Scenario: Missing private key configuration
 
@@ -41,7 +41,8 @@
 
 - **WHEN** `GenerateAsync` is called with a valid `GovProjectId` and a future `ExpiresAt`
 - **THEN** SHALL load the `GovProject` from the repository
-- **AND** SHALL generate a JWT token with claims populated from the project (ProId, ProName, BuildLicenseNo, FdBuildLicenseNo) and the provided `ExpiresAt`
+- **AND** SHALL generate a JWT token with claims populated from the project (ProId, ProName, BuildLicenseNo) and the provided `ExpiresAt`
+- **AND** MUST NOT read or emit `FdBuildLicenseNo`
 - **AND** SHALL return a `FileContentResult` with the JWT as content, `application/octet-stream` content type, and `attachment; filename="license.urban"` disposition
 
 #### Scenario: Project not found
