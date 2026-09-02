@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-02
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "单仓 UrbanManagement + MaterialClient；EF migration drop column；无 Gov/授权链路改动"

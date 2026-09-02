@@ -1,9 +1,5 @@
-# ProId Data Pipeline Specification
+## MODIFIED Requirements
 
-## Purpose
-
-定义称重记录上传流程中的项目数据（ProId、ProName、BuildLicenseNo、FdBuildLicenseNo）从 LicenseInfo 到 DTO 再到服务端的完整数据流，确保项目关联信息正确传递和持久化。
-## Requirements
 ### Requirement: UrbanServerUploadService reads LicenseInfo for project fields
 
 `UrbanServerUploadService.SubmitRecordAsync()` SHALL read the current `LicenseInfo` from `ILicenseService.GetCurrentLicenseAsync()` and populate ProId, ProName, and BuildLicenseNo in the `UrbanWeighingRecordSubmitDto` instead of hardcoding null. The submit DTO MUST NOT include `FdBuildLicenseNo`.
@@ -28,20 +24,16 @@
 - **THEN** the DTO fields SHALL be set to null (matching LicenseInfo values)
 - **AND** SHALL log a debug message that some project fields are empty
 
-### Requirement: DeviceStatusHub remains unassociated with ProId
+## REMOVED Requirements
 
-`DeviceStatusMessage` SHALL NOT include ProId or any project-related fields. Device status is tracked per ClientId, which represents a physical machine. Project association is resolved separately through ClientId → LicenseInfo → ProId lookup when needed.
+### Requirement: UrbanWeighingRecordSubmitDto includes FdBuildLicenseNo
 
-#### Scenario: DeviceStatusMessage structure unchanged
+**Reason**: 称重记录上云不再传递对接码快照；项目级对接码由 `GovProject.FdBuildLicenseNo` 与授权 JWT 维护。
 
-- **WHEN** `DeviceStatusHub.UploadStatus()` receives a message
-- **THEN** the message SHALL only contain ClientId, DeviceType, Status, Timestamp, AdditionalData
-- **AND** SHALL NOT require ProId for processing or broadcasting
+**Migration**: 客户端与 Receive API 删除 `fdBuildLicenseNo`；需要对接码时通过 `ProId` 查询 `GovProject`。
 
-#### Scenario: Project association available via indirect lookup
+### Requirement: UrbanWeighingRecord server entity includes FdBuildLicenseNo
 
-- **WHEN** a consumer needs to know which project a device belongs to
-- **THEN** the consumer SHALL look up `LicenseInfo` by the device's ClientId (machine code)
-- **AND** SHALL read `ProjectId` (ProId) from the LicenseInfo record
-- **AND** `DeviceStatusMessage` SHALL NOT be modified
+**Reason**: 字段从未被读取或用于 Gov 出站；与 `BuildLicenseNo`（接入码）职责重复。
 
+**Migration**: EF migration 删除 `UrbanWeighingRecords.FdBuildLicenseNo` 列；Receive DTO 不再接受该字段。
