@@ -1,6 +1,6 @@
 ## 1. Branch & setup
 
-- [x] 1.1 在 `repos/UrbanManagement` 自 trunk 创建并切换分支 `refactor-urban-entity-sync-status-enum`（Mode A）
+- [x] 1.1 在 `repos/UrbanManagement` 自 `dev-urban-entity-semantic` 创建并切换分支 `refactor-urban-entity-sync-status-enum`（Mode B；已 squash 回 `dev-*`）
 - [x] 1.2 阅读 [`docs/2026-09-02-urbanmanagement-entity-semantic-analysis/04-改进建议与优先级.md`](../../docs/2026-09-02-urbanmanagement-entity-semantic-analysis/04-改进建议与优先级.md) P0 与 [`design.md`](./design.md)
 
 ## 2. Entity & EF migration

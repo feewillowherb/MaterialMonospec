@@ -10,7 +10,7 @@ UrbanManagement 实体与 Service 层对「政府同步状态」存在三种表�
 - Service / Entity 消除全部 `SyncType` 魔法值；`ResetGovSync` 等类型归属方法使用 enum。
 - **Legacy HTTP 业务移除**：`LegacyApiController` / `LegacyGovSyncAppService` 标记 WIP，**不入库**；返回明确未实现响应（**BREAKING**）。
 - **停止 GovSyncData 双写**：移除一切新 `GovSyncData` Insert；Modern 路径仅写 `UrbanWeighingRecord`。
-- Git：**Mode A**（仅 `UrbanManagement` 仓；分支 `refactor-urban-entity-sync-status-enum`，squash 回 trunk）。
+- Git：**Mode B** — initiative 基线 `dev-urban-entity-semantic`（`UrbanManagement` 仓；change 分支 `refactor-urban-entity-sync-status-enum` squash 入 `dev-*`；initiative 收尾再 promote 入 trunk）。
 
 **本 change 不包含**（后续独立 change / intake）：`ProId` required Guid、`SiteType` enum、`IsSyncEnabled` 改名、移除 `FdBuildLicenseNo`、AccessCode 重命名（[INT-005](../../docs/intake/2026-09/INT-005-urban-entity-accesscode-rename.md)）。
 
