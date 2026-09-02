@@ -4,7 +4,7 @@ OpenSpec / BMAD **之前**的种子池。设计权威：`docs/2026-08-27-intake-
 
 | 项 | 值 |
 |----|-----|
-| Next ID | `INT-005` |
+| Next ID | `INT-007` |
 | 机制 topic | `intake-parking` |
 
 ## 目录结构
@@ -65,6 +65,18 @@ docs/intake/
 
 ## 索引（按 theme）
 
+### theme: `urban-weighing`
+
+| ID | 月 | 状态 | kind | priority | 一句话 | 文件 |
+|----|-----|------|------|----------|--------|------|
+| INT-005 | 09 | open | tech-debt | P2 | Entity AccessCode 重命名（挂起） | [2026-09/INT-005-…](./2026-09/INT-005-urban-entity-accesscode-rename.md) |
+
+### theme: `gov-sync`
+
+| ID | 月 | 状态 | kind | priority | 一句话 | 文件 |
+|----|-----|------|------|----------|--------|------|
+| INT-006 | 09 | open | tech-debt | P2 | Legacy HTTP 路径后续重构 | [2026-09/INT-006-…](./2026-09/INT-006-legacy-gov-sync-reimplementation.md) |
+
 ### theme: `xiaoshan-upload`
 
 | ID | 月 | 状态 | kind | priority | 一句话 | parked_until | 文件 |
@@ -79,6 +91,7 @@ docs/intake/
 | 月 | INT 数 | 目录 |
 |----|--------|------|
 | 2026-08 | 4 | [2026-08/](./2026-08/README.md) |
+| 2026-09 | 2 | [2026-09/](./2026-09/README.md) |
 
 ## 平铺速查
 
@@ -88,6 +101,8 @@ docs/intake/
 | INT-002 | 2026-08 | xiaoshan-upload | proposed | 上报配置同步、version 与变更日志 |
 | INT-003 | 2026-08 | xiaoshan-upload | proposed | 萧山三模式多选与字段映射 |
 | INT-004 | 2026-08 | xiaoshan-upload | proposed | 萧山上报配置旧客户端兼容 |
+| INT-005 | 2026-09 | urban-weighing | open | Urban Entity AccessCode 重命名 |
+| INT-006 | 2026-09 | gov-sync | open | Legacy 政务 HTTP 路径重构 |
 
 ## 消化 Checklist
 
