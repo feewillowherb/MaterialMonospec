@@ -3,9 +3,7 @@
 ## Purpose
 
 定义 MaterialClient Urban 桌面应用的功能需求，包括单窗口称重主界面、静态授权检查、以及与 MaterialClient 主应用的架构差异。
-
 ## Requirements
-
 ### Requirement: Urban 应用启动进入唯一主界面
 
 MaterialClient.Urban 应用启动时，在 startup authorization 有效时 MUST 直接显示称重主界面（UrbanAttendedWeighingWindow）。MUST NOT 显示登录窗口或授权码输入窗口。当 startup authorization 无效时，MUST NOT 显示称重主界面，SHALL 显示未授权提示对话框后退出。启动完成后 SHALL 通过 ABP 容器初始化称重管线服务（仅授权成功路径）。
@@ -445,3 +443,20 @@ MaterialClient.Urban periodic upload (`PollingBackgroundService` → `IUrbanServ
 - **WHEN** the user views LRP or camera photos in `UrbanAttendedWeighingViewModel` from local storage
 - **THEN** local preview SHALL continue to use local `AttachmentFile` paths
 - **AND** cloud availability SHALL depend on successful background attachment upload, not on UI display alone
+
+### Requirement: UrbanManagement BaseUrl for local reconcile
+
+MaterialClient.Urban SHALL read UrbanManagement server address from configuration key `UrbanManagement:BaseUrl` for all Refit clients including passage receive. Pipeline reconcile scripts MUST be able to override this value via environment variable `UrbanManagement__BaseUrl` or appsettings overlay without recompiling.
+
+#### Scenario: Local UM reconcile
+
+- **WHEN** an operator runs `urban-passage-um-reconcile` ClientUpload against local UrbanManagement
+- **THEN** the start script MUST set `UrbanManagement:BaseUrl` to the reconcile `umBaseUrl` from graph secrets
+- **AND** passage upload MUST target that host
+
+#### Scenario: Diagnostic host unchanged
+
+- **WHEN** BaseUrl is overridden for reconcile
+- **THEN** MinimalWebHost diagnostic URLs MUST remain on `MinimalWebHost:Urls` (default `http://localhost:9961`)
+- **AND** probe scripts MUST continue to POST test-passage to the diagnostic host
+

@@ -3,9 +3,7 @@
 ## Purpose
 
 定义按项目绑定的萧山上报权威配置：UrbanManagement 存储与 Get/Write API、乐观并发 `configVersion`、结构化 modes/settings 信封，以及 MaterialClient.Urban 在系统设置「城管配置」中的本地镜像。客户端保存 MUST NOT 向 UrbanManagement 推送配置。
-
 ## Requirements
-
 ### Requirement: Server stores authoritative Xiaoshan upload config per project
 
 The system SHALL persist an authoritative Xiaoshan upload configuration bound to a project identifier (`ProjectId` 1:1 with `GovProject`). The configuration SHALL be the source of truth for dual-edit flows. Multi-value types in APIs and persistence mapping SHALL use named records/DTOs, not tuples.
@@ -137,13 +135,14 @@ MaterialClient 系统设置（`SettingsWindow`）SHALL include a navigation item
 
 ### Requirement: 城管配置 panel edits Xiaoshan upload config without configVersion UI
 
-The「城管配置」panel SHALL present structured mode editing (enabled modes and per-mode parameters) **without** displaying `configVersion` as an operator-facing field. Opening the panel SHALL load the local Urban settings mirror. Settings UI MUST NOT pull or refresh from the server on open. The client MUST NOT persist a `XiaoshanUploadConfigCaches` table. Saving settings MUST NOT push Xiaoshan upload config to UrbanManagement.
+The「城管配置」panel SHALL **not** present Weighbridge/Gate/Product enable toggles or per-mode 进出场/场地 parameters. The panel MUST NOT display `configVersion` as an operator-facing field. Opening the panel SHALL load the local Urban settings mirror for any remaining static Urban fields (for example access-code display). Settings UI MUST NOT pull or refresh from the server on open. The client MUST NOT persist a `XiaoshanUploadConfigCaches` table. Saving settings MUST NOT push Xiaoshan upload config to UrbanManagement. Three-mode and in/out/site runtime SHALL come from LPR rows (`lpr-site-type`).
 
 #### Scenario: Panel loads from local Urban settings
 
 - **WHEN** the operator opens or selects「城管配置」
-- **THEN** the client SHALL display configuration from `SettingsEntity.UrbanSettingsJson` (`UrbanSettings.XiaoshanUpload`)
+- **THEN** the client SHALL display remaining configuration from `SettingsEntity.UrbanSettingsJson` (`UrbanSettings.XiaoshanUpload`) if any static fields remain
 - **AND** the panel MUST NOT show `configVersion` as an operator-facing field
+- **AND** the panel MUST NOT show three-mode enable or 进出场/场地 editors
 - **AND** the settings UI MUST NOT fetch UrbanManagement Get solely to populate the panel on open
 
 ### Requirement: Client persists Urban settings in UrbanSettingsJson
@@ -158,23 +157,23 @@ MaterialClient SHALL persist Urban aggregated settings in `SettingsEntity.UrbanS
 
 ### Requirement: Settings persist Xiaoshan mode fields into UrbanSettingsJson
 
-MaterialClient SHALL persist 城管配置 core fields into `SettingsEntity.UrbanSettingsJson` as `UrbanSettings.XiaoshanUpload.ModesJson`. Mapping SHALL use a Common Service and named records (not tuples). `SettingsWindowViewModel` MUST NOT parse Xiaoshan JSON itself and MUST NOT reference the Urban project.
+MaterialClient SHALL persist remaining Urban aggregated settings in `SettingsEntity.UrbanSettingsJson` as `UrbanSettings`. `SettingsWindowViewModel` MUST NOT parse Xiaoshan JSON itself and MUST NOT reference the Urban project. Conversions MUST use named records and type-owned/`From*` methods, not tuples and not a mapper Service.
 
-Core fields SHALL be: Weighbridge/Gate/Product enabled flags; Weighbridge in/out; Gate in/out and site type; Product in/out and site type. Site access code display SHALL use license `AccessCode` and MUST NOT be written to `UrbanSettingsJson`. Local config SHALL store `ModesJson` only.
+Weighbridge/Gate/Product enabled flags, Weighbridge in/out, Gate in/out and site type, and Product in/out and site type MUST NOT be operator-edited in 城管配置 and MUST NOT be the runtime source of truth. Those capabilities live on Urban LPR rows. Site access code display SHALL use license `AccessCode` and MUST NOT be written to `UrbanSettingsJson`. Leftover `ModesJson` enabled or per-mode keys MUST be ignored on load.
 
 This change SHALL NOT require or verify that local Urban settings are synchronized to UrbanManagement.
 
-#### Scenario: Save writes ModesJson from UI
+#### Scenario: Save does not persist three-mode enables from 城管配置
 
-- **WHEN** the operator saves 系统设置 on an Urban host with 城管配置 dirty
-- **THEN** `UrbanSettingsJson` SHALL contain `XiaoshanUpload.ModesJson` reflecting the core UI fields
-- **AND** that save SHALL complete without Xiaoshan LocalEvent, config Facade, or UrbanManagement config Write
+- **WHEN** the operator saves 系统设置 on an Urban host
+- **THEN** the save SHALL complete without Xiaoshan LocalEvent, config Facade, or UrbanManagement config Write
 - **AND** acceptance SHALL NOT include a client-to-server config sync check
+- **AND** the client MUST NOT write 三模式启用 or 进出场/场地 from 城管配置 as the live source for recognition routing
 
-#### Scenario: Reload restores core fields
+#### Scenario: Reload ignores ModesJson mode switches
 
 - **WHEN** settings load applies `UrbanSettings.XiaoshanUpload`
-- **THEN** the ViewModel SHALL obtain the core UI fields via the mapping Service from `ModesJson`
+- **THEN** the ViewModel MUST NOT restore Weighbridge/Gate/Product enabled flags or 进出场/场地 from `ModesJson` into 城管配置
 
 #### Scenario: No client config push
 
@@ -191,3 +190,4 @@ MaterialClient.Urban SHALL NOT expose a separate main-window menu item「上报�
 - **WHEN** an operator views the Urban main window settings/menu strip
 - **THEN** the primary path to edit Xiaoshan upload configuration SHALL be 系统设置 →「城管配置」
 - **AND** a standalone「上报配置」menu button MUST NOT remain as the primary entry
+

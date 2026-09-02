@@ -153,3 +153,30 @@ MaterialClient.Urban SHALL implement tus protocol uploads using a dedicated HTTP
 - **THEN** the request SHALL use tus-required headers and a binary body with definite length semantics
 - **AND** SHALL NOT send a forced `Content-Type: application/json` for that PATCH
 
+### Requirement: Upload passage attachments before passage ingest
+
+When MaterialClient.Urban submits a pending passage record, it SHALL upload associated local capture files via the existing UrbanManagement multipart attachment API and SHALL pass returned Guids on the checkpoint or finished-product ingest DTO. Missing files MUST be skipped with a warning without blocking remaining files.
+
+#### Scenario: Passage with large photo uploads then ingest
+
+- **WHEN** a pending checkpoint passage has a readable large capture file
+- **THEN** the client SHALL multipart-upload that file
+- **AND** SHALL include the returned Guid on checkpoint ingest
+- **AND** SHALL NOT send Xiaoshan Base64 `snapImages` from the client
+
+### Requirement: Upload passage attachments by attachment id
+
+`IUrbanAttachmentSyncService` SHALL support uploading files linked on a passage row by local `AttachmentFile` id (large and optional small capture). The default transport MUST remain multipart binary. Missing local files MUST log a warning and skip that file without aborting other files or the ingest call.
+
+#### Scenario: Large capture upload before ingest
+
+- **WHEN** a pending passage row has `LargeImageAttachmentId` pointing to a readable local file
+- **THEN** the client SHALL multipart-upload that file before passage receive
+- **AND** SHALL pass returned server Guids on the passage submit DTO
+
+#### Scenario: No attachment still ingests metadata
+
+- **WHEN** a pending passage row has no readable attachment files
+- **THEN** the client SHALL still call passage receive with metadata fields
+- **AND** `attachmentIds` MAY be null or empty
+

@@ -3,9 +3,7 @@
 ## Purpose
 
 定义萧山上报配置的 Weighbridge / Gate / Product 多选模式及分模式参数，以及双端结构化编辑（非 raw JSON 主路径）。
-
 ## Requirements
-
 ### Requirement: Upload config supports multi-select Weighbridge Gate Product modes
 
 The Xiaoshan upload configuration SHALL support enabling zero or more of the modes `Weighbridge`, `Gate`, and `Product`. When no mode selection is stored, the system SHALL treat `Weighbridge` as the sole enabled mode. At least one mode MUST remain enabled for a valid persisted configuration under protocol v3.
@@ -42,16 +40,17 @@ For each enabled mode, the configuration SHALL allow setting mode-level paramete
 
 ### Requirement: Dual-end UI exposes structured mode editing
 
-UrbanManagement management UI and MaterialClient.Urban「城管配置」SHALL provide structured controls for mode multi-select and per-mode parameters instead of requiring operators to edit raw JSON as the primary path. Management UI MAY show advanced JSON as read-only diagnostic. MaterialClient SHALL persist structured JSON produced from the form; static fields not shown on the client form SHALL be preserved from the last loaded envelope when pushing.
+UrbanManagement management UI MAY continue to provide structured controls for mode multi-select and per-mode parameters (server authoritative envelope is unchanged in this change). MaterialClient.Urban「城管配置」MUST NOT provide mode multi-select or per-mode 进出场/场地 as the primary path. On the Urban client, Weighbridge/Gate/Product capability SHALL be controlled by LPR `LprSiteType` rows, not by editing `ModesJson` enabled flags. MaterialClient SHALL NOT submit three-mode enables through Xiaoshan upload Write in this change (no upload / no config push).
 
 #### Scenario: Operator toggles modes on server UI
 
-- **WHEN** an operator opens the upload config dialog for a project
+- **WHEN** an operator opens the upload config dialog for a project on UrbanManagement
 - **THEN** the UI SHALL show checkboxes or equivalent for Weighbridge, Gate, and Product
 - **AND** SHALL show parameter fields for each enabled mode
 
-#### Scenario: Client user edits modes structurally
+#### Scenario: Client user does not edit modes in 城管配置
 
 - **WHEN** the Urban client opens 系统设置「城管配置」
-- **THEN** the UI SHALL allow editing enabled modes and their parameters through structured fields
-- **AND** saving 系统设置 with a dirty urban config SHALL submit the structured payload through the write API with protocol version 3
+- **THEN** the UI MUST NOT allow editing Weighbridge/Gate/Product enabled flags or their in/out and site parameters through that panel
+- **AND** saving 系统设置 MUST NOT submit those mode flags through the Xiaoshan write API
+
