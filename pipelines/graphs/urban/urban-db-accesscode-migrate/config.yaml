@@ -1,0 +1,123 @@
+id: urban-db-accesscode-migrate
+created: "2026-09-02"
+graph:
+  product: urban
+  domain: urban
+  family: probe
+  goal: urban-sqlite-accesscode-migrate-verify
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-prod-snapshot
+  end: migrate-use-proved
+cook: new-object
+
+target:
+  # 线上快照原件：只读复制，禁止写回
+  sourceDb: _tmp/UrbanManagement.db
+  workingDbName: UrbanManagement.db
+  umProject: repos/UrbanManagement/src/UrbanManagement.App/UrbanManagement.App.csproj
+  umContentRoot: repos/UrbanManagement/src/UrbanManagement.App
+  baseUrl: http://127.0.0.1:44371
+  healthGet: /
+  weighingListGet: /api/app/urban-weighing-record?MaxResultCount=1&SkipCount=0
+  expectedRenameMigrationId: 20260902100000_RenameEntityBuildLicenseNoToAccessCode
+  openspecChange: openspec/changes/rename-urban-entity-buildlicenseno-to-accesscode/
+  designRef: docs/2026-09-02-urbanmanagement-entity-semantic-analysis/05-AccessCode统一变动清单.md
+  # 启动时关闭出站轮询，避免对线上政府/平台产生副作用
+  disableOutbound:
+    BasePlatformSync__Enabled: "false"
+    BackgroundServices__Polling: "false"
+
+preflight:
+  # 来自 2026-09-02 对 _tmp/UrbanManagement.db 的只读扫表（生成时基线，非验收断言唯一来源）
+  knownBaseline:
+    appliedMigrations: 3
+    hasUrbanPassageRecords: false
+    UrbanWeighingRecords:
+      hasBuildLicenseNo: true
+      hasAccessCode: false
+    GovSyncData:
+      hasBuildLicenseNo: true
+      hasAccessCode: false
+    GovProjects:
+      hasAccessCode: true
+
+expect:
+  - id: source-copied
+    level: L0
+    description: 原件存在且工作副本已写入 runs/<ts>/working/；原件字节未改
+  - id: app-started-migrate-ok
+    level: L0
+    description: UrbanManagement.App 对本机工作副本启动；日志含 Database migration completed successfully
+  - id: schema-accesscode
+    level: L1
+    description: UrbanWeighingRecords / UrbanPassageRecords / GovSyncData 有 AccessCode、无 BuildLicenseNo；称重行数与 pre 快照一致
+  - id: history-rename
+    level: L2
+    description: __EFMigrationsHistory 含 20260902100000_RenameEntityBuildLicenseNoToAccessCode
+  - id: smoke-weighing-list
+    level: L2
+    description: GET / 与 GET weighing-list 可达（列表可非空）；DTO 仍暴露 BuildLicenseNo 键
+  - id: weighing-ui-readable
+    level: L3
+    description: 用户确认 Blazor 称重列表可读、接入码列数据未丢 — 仅用户
+
+steps:
+  - id: bind-config
+    name: 读 config/secrets；建 runs/<ts>/；解析绝对路径
+  - id: copy-source-db
+    name: 复制 sourceDb → working/；写 pre-schema.json（node:sqlite）
+  - id: start-um-migrate
+    name: build + 启动 UrbanManagement.App（ConnectionStrings__Default→工作副本）
+  - id: await-migrate
+    name: 等待 HTTP 就绪与 migrate 成功日志；采证 stdout
+  - id: smoke-http
+    name: GET / 与 weighing-list；写 http/
+  - id: stop-um
+    name: 结束本探针启动的进程（解锁 SQLite）
+  - id: verify-schema
+    name: post-schema.json；断言 AccessCode 列与迁移历史；写 summary/report
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+    note: pre-schema.json / source-hash.txt / copy-meta.json
+  logs:
+    required: true
+    sink: logs/
+  schema:
+    required: true
+    sink: schema/
+  requestResponse:
+    required: true
+    sink: http/
+    redact: []
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-source-db
+  - confirm-local-copy-only
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  invoke:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanDbAccessCodeMigrate.ps1
+    experimental: true
+  schema:
+    mode: node-sqlite
+    script: scripts/verify-schema.mjs
+    experimental: true
