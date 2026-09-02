@@ -1,5 +1,6 @@
 repos/
 _temp/
+_tmp/
 
 # AI pipelines — secrets and immutable run evidence
 pipelines/**/secrets.local.yaml
