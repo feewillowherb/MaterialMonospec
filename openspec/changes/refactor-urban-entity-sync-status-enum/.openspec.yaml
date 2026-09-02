@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-02
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "UrbanManagement 单仓；Entity/DTO/Manager/Legacy WIP/EF migration/Blazor enum JSON"
