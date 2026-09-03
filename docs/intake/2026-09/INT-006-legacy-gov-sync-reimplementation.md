@@ -5,7 +5,7 @@
 | id | INT-006 |
 | slug | legacy-gov-sync-reimplementation |
 | title | Legacy 政务称重 HTTP 路径重构（替代 WIP 占位） |
-| status | open |
+| status | proposed |
 | kind | tech-debt |
 | theme | gov-sync |
 | intake_month | 2026-09 |
@@ -37,10 +37,11 @@
 - 2026-09-03 **已确认**：转换业务核心在 `LegacyGovSyncAppService`（Controller 仅门面；禁 Serve 侧重做映射；禁 GovSyncData 双写）
 - 2026-09-03 **新增**：`UrbanWeighingIngestSource`（Modern/Legacy/Migrated）区分入站；见调研夹 `05`
 - 2026-09-03 历史批迁（原 D5/06）**挂起**为 [INT-007](./INT-007-xiaoshanserve-govsyncdata-migrate.md)；不在本 INT 实现范围
+- 2026-09-03 OpenSpec propose：`openspec/changes/add-urban-legacy-weighing-ingest/`（在线 Legacy；不含 INT-007）
 
 ## 消化后回填
 
 | 字段 | 值 |
 |------|-----|
 | absorbed_into | |
-| change | |
+| change | add-urban-legacy-weighing-ingest |

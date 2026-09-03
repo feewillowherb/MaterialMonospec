@@ -75,7 +75,7 @@ docs/intake/
 
 | ID | 月 | 状态 | kind | priority | 一句话 | 文件 |
 |----|-----|------|------|----------|--------|------|
-| INT-006 | 09 | open | tech-debt | P2 | Legacy HTTP 路径后续重构 | [2026-09/INT-006-…](./2026-09/INT-006-legacy-gov-sync-reimplementation.md) |
+| INT-006 | 09 | proposed | tech-debt | P2 | Legacy HTTP 路径后续重构 | [2026-09/INT-006-…](./2026-09/INT-006-legacy-gov-sync-reimplementation.md) |
 
 ### theme: `xiaoshan-upload`
 
@@ -103,7 +103,7 @@ docs/intake/
 | INT-003 | 2026-08 | xiaoshan-upload | proposed | 萧山三模式多选与字段映射 |
 | INT-004 | 2026-08 | xiaoshan-upload | proposed | 萧山上报配置旧客户端兼容 |
 | INT-005 | 2026-09 | urban-weighing | open | Urban Entity AccessCode 重命名 |
-| INT-006 | 2026-09 | gov-sync | open | Legacy 政务 HTTP 路径重构 |
+| INT-006 | 2026-09 | gov-sync | proposed | Legacy 政务 HTTP 路径重构 |
 | INT-007 | 2026-09 | xiaoshan-upload | open | XiaoShanServe Gov_SyncData 批迁至 UrbanWeighingRecord |
 
 ## 消化 Checklist

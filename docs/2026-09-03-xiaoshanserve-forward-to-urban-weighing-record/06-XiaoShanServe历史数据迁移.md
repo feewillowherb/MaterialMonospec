@@ -101,7 +101,7 @@ public enum UrbanWeighingIngestSource
 
 - 路径中的 `//` 与反斜杠需规范化；文件缺失 → 行可迁业务字段，附件记 warn，或整行失败（Q14）。  
 - 同机可硬链/复制到 UM `Storage` 根，避免两套权威长期并存。  
-- AttachType：与在线一致，默认全部 `UrbanPhoto`（或首张 Lpr）。
+- AttachType：与在线一致，默认全部 **`Lpr`**（D9）。
 
 ## 主键与 `ClientRecordId`（批迁已确认）
 
@@ -115,7 +115,7 @@ public enum UrbanWeighingIngestSource
 
 - 批迁行**不**依赖 `ClientRecordId` 幂等；重跑防重须另做（例如按源库文件指纹 + 已迁行数对账，或迁移工具侧记录「已处理源 Id」清单，**不**进业务表）。
 - **不得**走现有 `ReceiveAsync` 主路径原样插入：现行实现拒绝 `ClientRecordId == Guid.Empty`，且唯一索引会把「多行全 0」打成冲突。批迁应：**专用插入路径**（绕过 Empty 校验 + 允许 Migrated 行 `ClientRecordId` 全 0），或调整唯一索引为「仅非 Empty 唯一」（Filtered unique / 条件索引）。实现时在 OpenSpec design 二选一写死。
-- 在线 Legacy（`IngestSource=Legacy`）仍按 [02](./02-字段映射与缺口.md) / Q2 生成**非空** `ClientRecordId`，与批迁规则分离。
+- 在线 Legacy（`IngestSource=Legacy`）按 [02](./02-字段映射与缺口.md) **方案 A**：每次 `Guid.NewGuid()`（与批迁 `Empty` 分离）。
 
 ## 实施方式（选型）
 
