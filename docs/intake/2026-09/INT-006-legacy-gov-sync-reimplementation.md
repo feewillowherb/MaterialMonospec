@@ -33,6 +33,8 @@
 ## 孵化记录
 
 - 2026-09-02 登记（open）
+- 2026-09-03 同机入站调研：[`docs/2026-09-03-xiaoshanserve-forward-to-urban-weighing-record/`](../../2026-09-03-xiaoshanserve-forward-to-urban-weighing-record/00-调研总览.md)
+- 2026-09-03 **已确认**：转换业务核心在 `LegacyGovSyncAppService`（Controller 仅门面；禁 Serve 侧重做映射；禁 GovSyncData 双写）
 
 ## 消化后回填
 
