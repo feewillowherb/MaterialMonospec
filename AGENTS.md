@@ -308,7 +308,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | no-database-fk | `traits/no-database-fk-trait.md` | 实体 / Fluent / migration / SQL；表间关联与跨 Context 数据组合 |
 | viewmodel-no-repository | `traits/viewmodel-no-repository-trait.md` | ViewModel / Blazor / 界面层访问数据；禁止 UI 注入 Repository 或 DbContext |
 | openspec-git-workflow | `traits/openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash 合入、`dev-*` promote；merge-check |
-| agents-md-only | `traits/agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；禁止 README 作约定入口 |
+| agents-md-only | `traits/agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -387,9 +387,11 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 ### agents-md-only（硬约束摘要）
 
 - 目录说明 / 索引 / 操作指引的唯一入口是 **`AGENTS.md`**；**禁止**新建或推荐 `README.md`（任意大小写）。
+- **专业目录**（顶层如 `pipelines/` / `traits/` / `docs/` / `openspec/` / `scripts/`，以及 `pipelines/graphs/<domain>/`）**MUST** 有同级 `AGENTS.md`；**新建时同批生成**，触达缺失则补建。
+- Graph **slug** / 单条 change 等叶子用 `pipeline.md` / `proposal.md` 即可，勿为每个叶子空拷 AGENTS。
 - 触达仍含 README 的目录说明时：**迁入同级 AGENTS.md 后删除**，勿双轨并存。
 - 本 trait 仅留本仓 `traits/`；**不要**同步到子仓 C# `traits/` 副本。
-- 窄例外：第三方生成物、未授权改的 `repos/*/README.md`、注册表强制 readme 字段（须在 change 中声明）。
+- 窄例外：第三方生成物、未授权改的 `repos/*/README.md`、注册表强制 readme 字段（须在 change 中声明）；**不豁免**专业目录缺 AGENTS.md。
 
 完整规则与检查清单见 `traits/agents-md-only-trait.md`；traits 目录索引见 `traits/AGENTS.md`。
 
@@ -437,4 +439,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **DI 注册遵循 minimal-di；纯逻辑不得注册为 Transient/Singleton；新建 Service 须过注册门槛**（参见「Required traits」）
 - **禁止数据库外键与 EF 关系映射；逻辑 Id + Service 组合**（参见「Required traits」）
 - **OpenSpec 分支与合入遵循 openspec-git-workflow；默认 Mode A + squash 单提交，禁止在目标分支直接开发**（参见「Required traits」）
-- **目录说明仅用 AGENTS.md；禁止 README 作约定入口**（参见「Required traits」· agents-md-only）
+- **目录说明仅用 AGENTS.md；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口**（参见「Required traits」· agents-md-only）

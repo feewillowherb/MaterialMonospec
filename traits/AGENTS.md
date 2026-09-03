@@ -8,7 +8,7 @@
 
 | Trait | 文件 | 何时强制 |
 |-------|------|----------|
-| agents-md-only | `agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引 |
+| agents-md-only | `agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md |
 | openspec-git-workflow | `openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash、`dev-*` promote |
 | effort-token-estimate | `effort-token-estimate-trait.md` | 调研工作量；change `.openspec.yaml` 的 `effort:` |
 | intake-parking | `intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · register · promote |
