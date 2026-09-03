@@ -366,32 +366,34 @@ $summary = [ordered]@{
         L2 = $l2
         L3 = "pending-user"
     }
-    note               = "等待用户验收，尚未通过。"
+    note               = 'pending-user-acceptance'
 } | ConvertTo-Json -Depth 8
-Write-Utf8NoBom (Join-Path $RunDir "summary.json") $summary
+Write-Utf8NoBom (Join-Path $RunDir 'summary.json') $summary
 
-$report = @"
-# urban-db-accesscode-migrate report
-
-- run: ``$RunDir``
-- source: ``$SourceDbPath`` (untouched=$sourceUntouched)
-- working: ``$WorkingDb``
-- baseUrl: ``$baseUrl``
-- migrateOk: $migrateOk / migrateFail: $migrateFail
-- schemaOk: $schemaOk / rowCountOk: $rowCountOk / renameApplied: $renameApplied
-- HTTP / : $($rootEvidence.ok) / weighing-list: $($listEvidence.ok)
-
-| Level | Result |
-|-------|--------|
-| L0 | $($l0App -and $sourceUntouched) |
-| L1 | $l1 |
-| L2 | $l2 |
-| L3 | pending（仅用户） |
-
-等待用户验收，尚未通过。
-请验收：pass / fail + 对象与原因。
-"@
-Write-Utf8NoBom (Join-Path $RunDir "report.md") $report
+$l0Result = ($l0App -and $sourceUntouched)
+$reportLines = @(
+    '# urban-db-accesscode-migrate report',
+    '',
+    "- run: $RunDir",
+    "- source: $SourceDbPath (untouched=$sourceUntouched)",
+    "- working: $WorkingDb",
+    "- baseUrl: $baseUrl",
+    "- migrateOk: $migrateOk / migrateFail: $migrateFail",
+    "- schemaOk: $schemaOk / rowCountOk: $rowCountOk / renameApplied: $renameApplied",
+    "- HTTP / : $($rootEvidence.ok) / weighing-list: $($listEvidence.ok)",
+    '',
+    '| Level | Result |',
+    '|-------|--------|',
+    "| L0 | $l0Result |",
+    "| L1 | $l1 |",
+    "| L2 | $l2 |",
+    '| L3 | pending (user only) |',
+    '',
+    'Waiting for user acceptance.',
+    'Reply: pass / fail + object and reason.'
+)
+$report = $reportLines -join "`n"
+Write-Utf8NoBom (Join-Path $RunDir 'report.md') $report
 
 Write-Host $report
 

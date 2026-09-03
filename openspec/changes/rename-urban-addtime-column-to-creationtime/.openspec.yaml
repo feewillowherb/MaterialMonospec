@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-03
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "UrbanManagement only; RenameColumn four tables + output DTO; MC out of scope"
