@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the sample data provider service that returns hardcoded data for development and demonstration, replacing the need for a live database during initial development.
-
 ## Requirements
-
 ### Requirement: ISampleDataProvider interface defines data access methods
 The system SHALL define `ISampleDataProvider` interface in the Core project with methods: `GetPagedProjectsAsync(int page, int limit)`, `GetPagedSyncDataAsync(int page, int limit)`, `GetSyncLogsAsync(int syncDataId)`, and `GetDashboardStatsAsync()`.
 
@@ -25,15 +23,24 @@ The system SHALL define `ISampleDataProvider` interface in the Core project with
 - **THEN** it SHALL return exactly 2 records and indicate total count is >= 3
 
 ### Requirement: SampleDataProvider returns hardcoded sync data
-`SampleDataProvider` SHALL return at least 5 sample `GovSyncData` records with varied SyncType values (Pending, Success, Failed), associated ProName and BuildLicenseNo.
+
+`SampleDataProvider` SHALL return at least 5 sample `GovSyncData` records with varied SyncType values (Pending, Success, Failed), associated ProName and **AccessCode** (entity property; MUST NOT use entity property name `BuildLicenseNo`).
 
 #### Scenario: Sync data includes various statuses
+
 - **WHEN** `GetPagedSyncDataAsync(1, 10)` is called
 - **THEN** the result SHALL contain records with SyncType values of 0, 1, and 2
 
 #### Scenario: Sync data includes image references
+
 - **WHEN** a sample sync data record is inspected
 - **THEN** `SnapImages` SHALL contain at least one image path (can be placeholder)
+
+#### Scenario: Sync data uses AccessCode on entity
+
+- **WHEN** a sample `GovSyncData` record is constructed
+- **THEN** the access-code field SHALL be set on property `AccessCode`
+- **AND** the entity type MUST NOT expose `BuildLicenseNo`
 
 ### Requirement: SampleDataProvider returns hardcoded sync logs
 `SampleDataProvider` SHALL return at least 2 sample `GovLog` records per sync data entry, with SyncTime, SyncNumber, SyncResult, and SyncMsg fields populated.
@@ -97,3 +104,13 @@ All DTO and entity objects returned by `SampleDataProvider` SHALL use PascalCase
 #### Scenario: 仪表盘最新动态展示
 - **WHEN** 仪表盘页面加载
 - **THEN** 最新动态列表 SHALL 显示硬编码的工人进出记录（中文姓名、时间描述）
+
+### Requirement: GovSyncData entity column AccessCode
+
+The `GovSyncData` entity SHALL persist the site access code as `AccessCode`. The database column MUST be renamed from `BuildLicenseNo` to `AccessCode` with values preserved. Historical rows remain read-only per existing initiative rules; this change MUST NOT resume inserts into `GovSyncData`.
+
+#### Scenario: Column rename preserves values
+
+- **WHEN** migration renames `GovSyncData.BuildLicenseNo` to `AccessCode`
+- **THEN** existing values MUST remain readable via `AccessCode`
+

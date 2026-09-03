@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the domain entities, enum types, and EF Core DbContext configuration migrated from the original SqlSugar-based data model to ABP + EF Core.
-
 ## Requirements
-
 ### Requirement: GovProject entity uses ABP Entity base class
 `GovProject` SHALL inherit from `Entity<Guid>` with properties mapped to PascalCase English names: `Id` (Guid), `ProName` (string), `BuildLicenseNo` (string?), `AddTime` (DateTime?), `SyncStatus` (bool?), `LastSyncTime` (DateTime?), `DeleteStatus` (bool?). The entity SHALL NOT include `FdBuildLicenseNo`. The entity SHALL NOT use SqlSugar annotations.
 
@@ -119,3 +117,19 @@ EF Core mapping for `UrbanWeighingRecord.SiteType` SHALL use non-nullable `Urban
 
 - **WHEN** `UrbanManagementDbContext` configures `GovSyncData`
 - **THEN** it MUST NOT apply string `HasMaxLength` constraints to `SnapTime` or `GoodsWeight`
+
+### Requirement: Audited CreationTime column is CreationTime
+
+UrbanManagement entities that inherit ABP audited bases (`GovProject`, `GovSyncData`, `UrbanWeighingRecord`, `AttachmentFile`) SHALL persist `CreationTime` in a database column named `CreationTime`. The EF model MUST NOT map `CreationTime` to a column named `AddTime`. A migration MUST rename existing `AddTime` columns to `CreationTime` while preserving values. Tables already using column `CreationTime` (including `UrbanPassageRecords`) MUST NOT be renamed.
+
+#### Scenario: Column renamed with data preserved
+
+- **WHEN** the EF migration for this change runs on a database that had column `AddTime` on `GovProjects`, `GovSyncData`, `UrbanWeighingRecords`, or `AttachmentFiles`
+- **THEN** each such column SHALL be named `CreationTime`
+- **AND** existing cell values MUST be preserved
+
+#### Scenario: Fluent mapping has no AddTime alias
+
+- **WHEN** `UrbanManagementDbContext` is inspected
+- **THEN** it MUST NOT call `HasColumnName("AddTime")` on `CreationTime`
+

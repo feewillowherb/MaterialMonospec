@@ -67,12 +67,13 @@ UrbanManagement SHALL 定义 `UrbanWeighingRecord` 实体，映射到 `Urban_Wei
   - PlateNumber (string?)
   - TotalWeight (decimal, 千克)
   - WeighingTime (DateTime)
-  - AddTime (DateTime, 服务端入库时间)
+  - CreationTime (DateTime, 服务端入库时间；ABP `IHasCreationTime`；DB 列名 `CreationTime`)
   - SyncType (int?)
   - IsAnomaly (bool)
   - AnomalyReason (string?)
   - ExtraProperties (ExtraPropertyDictionary, via IHasExtraProperties)
 - **AND** SHALL NOT contain a dedicated `EditHistoryJson` property
+- **AND** MUST NOT expose an `AddTime` property on the entity
 
 #### Scenario: ClientRecordId 唯一约束
 - **WHEN** 插入重复 ClientRecordId 的记录
@@ -104,7 +105,7 @@ UrbanManagement SHALL 提供 `IUrbanWeighingRecordAppService` 处理称重记录
 
 - **WHEN** ReceiveAsync 被调用且 ClientRecordId 不存在
 - **THEN** SHALL 创建新 UrbanWeighingRecord
-- **AND** SHALL 设置 AddTime = DateTime.Now
+- **AND** SHALL 由 ABP 审计填充 `CreationTime`（MUST NOT 手写 `AddTime`）
 - **AND** if input DTO contains `ExtraProperties["EditHistory"]`, SHALL copy the edit history value to the entity's `ExtraProperties["EditHistory"]`
 - **AND** SHALL NOT write to a dedicated `EditHistoryJson` property
 - **AND** SHALL 返回新记录 Id
@@ -115,6 +116,8 @@ The system SHALL provide DTO classes with entity mapping methods for weighing re
 #### Scenario: FromEntity mapping for output
 - **WHEN** calling `UrbanWeighingRecordOutputDto.FromEntity(entity)`
 - **THEN** system creates DTO with all entity properties mapped correctly
+- **AND** the DTO SHALL expose `CreationTime` sourced from `entity.CreationTime`
+- **AND** the DTO MUST NOT expose `AddTime`
 - **AND** the DTO's `ExtraProperties` dictionary MUST contain the entity's ExtraProperties entries (including edit history)
 - **AND** the DTO MUST NOT contain a dedicated `EditHistoryJson` property
 

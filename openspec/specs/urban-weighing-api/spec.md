@@ -4,7 +4,6 @@
 
 Provides the core API for urban weighing record management, supporting extended fields for vehicle information, sync state management, and attachment file associations. (TBD: expand with API design principles)
 ## Requirements
-
 ### Requirement: UrbanWeighingRecord extended fields
 
 The `UrbanWeighingRecord` entity SHALL include extended fields including `SiteType` as **non-nullable `UrbanSiteType`** (default `Construction`), `ProId` as non-nullable `Guid`, sync fields as `SyncStatus` / non-nullable retry counts, and other vehicle/project fields as previously specified. The entity MUST NOT include `FdBuildLicenseNo`. `SnapImages` MUST NOT exist. Property name MUST remain `SiteType` (MUST NOT rename to `UrbanSiteType`).
@@ -224,3 +223,42 @@ UrbanManagement SHALL expose a query API returning records for a `ProId` where `
 - **WHEN** `IUrbanManagementApi` (or equivalent Refit interface) is configured for MaterialClient.Urban
 - **THEN** it SHALL NOT expose `ApproveWeighingRecordAsync` or map to the Approve endpoint for client approval flows
 - **AND** client weighing sync SHALL continue to use `ReceiveWeighingRecordAsync` and attachment upload APIs only
+
+### Requirement: UrbanWeighingRecord persists AccessCode
+
+The `UrbanWeighingRecord` entity SHALL expose the site access code as property `AccessCode` (`string?`). The database column for this property MUST be named `AccessCode` (renamed from legacy `BuildLicenseNo` via migration that preserves existing values). The entity MUST NOT expose a `BuildLicenseNo` property. Receive / submit DTOs MAY continue to use property `BuildLicenseNo` / JSON `buildLicenseNo`; persistence MUST map that value onto `UrbanWeighingRecord.AccessCode`.
+
+#### Scenario: Entity property is AccessCode
+
+- **WHEN** a weighing record is persisted after receive
+- **THEN** the stored entity property SHALL be `AccessCode`
+- **AND** MUST NOT have a `BuildLicenseNo` property on the entity type
+
+#### Scenario: Column renamed with data preserved
+
+- **WHEN** the EF migration for this change runs on a database that had column `BuildLicenseNo`
+- **THEN** the column SHALL be renamed to `AccessCode`
+- **AND** existing cell values MUST be preserved
+
+#### Scenario: DTO BuildLicenseNo maps to entity AccessCode
+
+- **WHEN** receive input provides `buildLicenseNo` / `BuildLicenseNo`
+- **THEN** the persisted `UrbanWeighingRecord.AccessCode` SHALL equal that value
+
+### Requirement: Weighing persist and output use CreationTime
+
+The `UrbanWeighingRecords` table MUST store server ingestion time in column `CreationTime` (renamed from `AddTime` with values preserved). `UrbanWeighingRecordOutputDto` SHALL expose property `CreationTime` (JSON `creationTime`) mapped from `entity.CreationTime`. The output DTO MUST NOT expose `AddTime`. Receive input DTOs are unchanged (they do not carry ingestion time).
+
+#### Scenario: List JSON uses creationTime
+
+- **WHEN** `GetListAsync` returns a weighing record
+- **THEN** the serialized item SHALL include `creationTime`
+- **AND** MUST NOT include `addTime`
+
+#### Scenario: Column rename preserves rows
+
+- **WHEN** the rename migration runs
+- **THEN** `UrbanWeighingRecords.CreationTime` SHALL exist
+- **AND** `UrbanWeighingRecords.AddTime` MUST NOT exist
+- **AND** row count MUST be unchanged
+

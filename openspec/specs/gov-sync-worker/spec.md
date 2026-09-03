@@ -4,7 +4,6 @@
 
 Provides background synchronization capabilities for forwarding urban weighing records to government platforms automatically with retry logic and logging via Serilog. (TBD: expand with architectural overview)
 ## Requirements
-
 ### Requirement: Periodic background sync execution
 The system SHALL run a background worker based on ABP's `AsyncPeriodicBackgroundWorkerBase` that executes every 5 seconds to forward unsynced records to the government platform API.
 
@@ -32,7 +31,7 @@ The government sync worker SHALL select pending weighing records only for projec
 
 ### Requirement: Government API payload assembly via GovSyncData
 
-For each pending UrbanWeighingRecord, the system SHALL assemble an outbound government API payload with field mapping: `PlateNumber→carNo`, `VehicleColor→carColor`, `PlateColor→carNoColor`, `WeighingTime→snapTime` (formatted as `yyyy-MM-dd HH:mm:ss`), `DeviceId→deviceID`, `BuildLicenseNo→buildLicenseNo`, **`SiteType` (`UrbanSiteType`)→`siteType` (Xiaoshan wire string via weighbridge converter)**, `TotalWeight→grossWeight` (numeric kg) and `TotalWeight→goodsWeight` (string kg). The payload SHALL set `carType` to `"大车"` when `TotalWeight > 4500` kg, otherwise `"小车"`. The payload SHALL set `snapImages` to a JSON array of Base64 strings loaded from attachment files via `IFileService.ReadAttachmentFilesAsync`; when no attachments exist, `snapImages` MUST be an empty JSON array `[]`, not a string. Defaults SHALL be `inOutType=0`, `tareWeight=0`, `equipmentNumber=""`, `equipmentType=""`.
+For each pending UrbanWeighingRecord, the system SHALL assemble an outbound government API payload with field mapping: `PlateNumber→carNo`, `VehicleColor→carColor`, `PlateColor→carNoColor`, `WeighingTime→snapTime` (formatted as `yyyy-MM-dd HH:mm:ss`), `DeviceId→deviceID`, **`AccessCode→buildLicenseNo`**, **`SiteType` (`UrbanSiteType`)→`siteType` (Xiaoshan wire string via weighbridge converter)**, `TotalWeight→grossWeight` (numeric kg) and `TotalWeight→goodsWeight` (string kg). The payload SHALL set `carType` to `"大车"` when `TotalWeight > 4500` kg, otherwise `"小车"`. The payload SHALL set `snapImages` to a JSON array of Base64 strings loaded from attachment files via `IFileService.ReadAttachmentFilesAsync`; when no attachments exist, `snapImages` MUST be an empty JSON array `[]`, not a string. Defaults SHALL be `inOutType=0`, `tareWeight=0`, `equipmentNumber=""`, `equipmentType=""`. The outbound JSON key MUST remain `buildLicenseNo` (MUST NOT rename the government wire field).
 
 #### Scenario: Heavy vehicle classification
 
@@ -64,6 +63,11 @@ For each pending UrbanWeighingRecord, the system SHALL assemble an outbound gove
 
 - **WHEN** a pending weighing record with `SiteType = Construction` is assembled for government upload
 - **THEN** the outbound payload `siteType` SHALL be the string `"1"`
+
+#### Scenario: AccessCode maps to wire buildLicenseNo
+
+- **WHEN** a pending weighing record with `AccessCode` set is assembled for government upload
+- **THEN** the outbound payload JSON property `buildLicenseNo` SHALL equal that `AccessCode` value
 
 ### Requirement: HTTP forwarding with Refit and Polly
 
@@ -138,3 +142,4 @@ When forwarding `UrbanWeighingRecord`, the worker SHALL call the weighbridge sav
 - **WHEN** a pending weighing record is processed
 - **THEN** the HTTP call MUST target `lantu/saveRecord`
 - **AND** MUST NOT reuse checkpoint-only field sets as the weighbridge body
+

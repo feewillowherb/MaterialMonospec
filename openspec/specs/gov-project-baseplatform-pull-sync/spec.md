@@ -3,7 +3,6 @@
 ## Purpose
 TBD - created by archiving change sync-gov-project-from-baseplatform-publicapi. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: UrbanManagement periodically pulls project catalog from BasePlatform
 
 UrbanManagement SHALL run a periodic background worker that calls BasePlatform.PublicApi project catalog endpoint to fetch project data over HTTPS. The fetched payload MAY include `fdBuildLicenseNo` in the wire format, but UrbanManagement MUST NOT persist `FdBuildLicenseNo` on `GovProject`. Persisted catalog fields SHALL include `ProId`, `ProName`, `ProAddress`, `ShigongUnitName`, `BuildLicenseNo`, and `AuthEndTime`.
@@ -18,7 +17,7 @@ UrbanManagement SHALL run a periodic background worker that calls BasePlatform.P
 
 ### Requirement: Sync inserts only new GovProject records
 
-UrbanManagement sync logic SHALL insert records whose `ProId` does not already exist in local `GovProject.Id`. For existing records, sync SHALL update all catalog-sourced fields from the API response (`ProName`, `ProAddress`, `ShigongUnitName`, access-code / license fields, `AuthEndTime`) and SHALL NOT update local operational fields (**`IsSyncEnabled`**, `AddTime`, soft-delete state).
+UrbanManagement sync logic SHALL insert records whose `ProId` does not already exist in local `GovProject.Id`. For existing records, sync SHALL update all catalog-sourced fields from the API response (`ProName`, `ProAddress`, `ShigongUnitName`, access-code / license fields, `AuthEndTime`) and SHALL NOT update local operational fields (**`IsSyncEnabled`**, **`CreationTime`**, soft-delete state).
 
 #### Scenario: First pull inserts all unknown projects
 
@@ -31,7 +30,7 @@ UrbanManagement sync logic SHALL insert records whose `ProId` does not already e
 - **WHEN** a subsequent pull receives an existing `ProId` with any changed catalog-sourced field
 - **THEN** the sync SHALL update catalog-sourced fields from the API response
 - **AND** the sync SHALL insert zero new rows for that `ProId`
-- **AND** the sync SHALL NOT modify `IsSyncEnabled`, `AddTime`, `IsDeleted`, or `DeletionTime`
+- **AND** the sync SHALL NOT modify `IsSyncEnabled`, `CreationTime`, `IsDeleted`, or `DeletionTime`
 
 #### Scenario: Repeated pull is idempotent when remote data unchanged
 
@@ -122,3 +121,4 @@ UrbanManagement SHALL persist `ProAddress` and `ShigongUnitName` from the catalo
 - **THEN** `GovProject.ProAddress` SHALL be updated from `proAddress`
 
 - **AND** `GovProject.ShigongUnitName` SHALL be updated from `shigongUnitName`
+

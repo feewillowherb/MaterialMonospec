@@ -4,7 +4,6 @@
 
 Provides real database CRUD operations for project and sync data management in the urban management system, replacing mock implementations with production-ready data access. (TBD: expand with data access strategy details)
 ## Requirements
-
 ### Requirement: Project CRUD with ABP auto-generated API endpoints
 
 The `GovProjectAppService` SHALL use ABP auto-generated REST API endpoints following ABP conventions, replacing custom MVC controller endpoints. Supported operations: paged list query, create new project, update project, **set `IsSyncEnabled`**, and delete project. All endpoints use ABP standard DTOs. The paged list behavior SHALL include records created by external BasePlatform pull sync in addition to manually created records.
@@ -52,7 +51,7 @@ The `SyncInfoController` SHALL use `IRepository<GovSyncData, int>` and `IReposit
 
 #### Scenario: Paged sync data list
 - **WHEN** a POST request is sent to `/SyncInfo/PageList` with page and limit parameters
-- **THEN** the system SHALL query `Gov_SyncData` table from the real database and return paginated results ordered by `AddTime` descending
+- **THEN** the system SHALL query `Gov_SyncData` table from the real database and return paginated results ordered by `CreationTime` descending
 
 #### Scenario: Sync log query
 - **WHEN** a GET request is sent to `/SyncInfo/LogList` with a `SyncId` parameter
@@ -226,3 +225,14 @@ The `GovProject` entity SHALL include nullable `ProAddress` and `ShigongUnitName
 - **WHEN** a `GovProject` is created or loaded
 - **THEN** the entity SHALL expose `ProAddress` and `ShigongUnitName` properties
 - **AND** SHALL NOT expose a `ProductCode` column or property for persistence
+
+### Requirement: Project and sync output DTOs expose CreationTime
+
+`GovProjectDto` and `GovSyncDataDto` SHALL expose `CreationTime` mapped from the entity audited `CreationTime`. They MUST NOT expose `AddTime`. Serialized JSON SHALL use `creationTime`.
+
+#### Scenario: GovProjectDto From entity
+
+- **WHEN** a `GovProject` is mapped to `GovProjectDto`
+- **THEN** `CreationTime` SHALL equal `entity.CreationTime`
+- **AND** the DTO MUST NOT have an `AddTime` property
+
