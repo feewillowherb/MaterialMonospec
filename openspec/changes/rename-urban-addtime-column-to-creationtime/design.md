@@ -27,9 +27,10 @@ F3 已把实体审计时间收到 ABP `IHasCreationTime` / `CreationTime`。四�
 - **替代**：只改列、DTO 仍叫 `AddTime` —— 否决；与「不要再用 AddTime」不符，且注释已承认 DTO 是别名。
 - **理由**：入库时间不是对外政府协议键；消费者主要是 UM 自己的列表 API。
 
-### 2. 手写 RenameColumn + RenameIndex
+### 2. 手写 RenameColumn；索引用 Drop+Create（SQLite）
 
-- **选择**：显式 rename 四列；称重 `IX_UrbanWeighingRecords_AddTime` → `IX_UrbanWeighingRecords_CreationTime`（或删自定义名让 EF 默认）。
+- **选择**：显式 rename 四列；称重索引 `DropIndex(IX_…_AddTime)` + `CreateIndex(IX_…_CreationTime)`。
+- **替代**：`RenameIndex` —— 否决（SQLite provider 抛 `NotSupportedException`）。
 - **替代**：EF scaffold —— 否决（与 AccessCode 同样避免启发式）。
 
 ### 3. Passage 表不动

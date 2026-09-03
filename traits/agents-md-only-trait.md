@@ -15,6 +15,18 @@ Trait: 仅 **AGENTS.md**（禁止 **README.md**）作为目录说明、模块约
 
 **MUST NOT** 使用、新建、更新或引导阅读 **`README.md` / `readme.md` / `ReadMe.md`**（任意大小写变体）作为项目说明或约定入口。
 
+## 只有 README 时的致命缺陷（The Fatal Flaw）
+
+即便 Agent 能认出「这是专业目录」，若缺少**专为机器设计的契约**（如 `AGENTS.md`），行为仍会系统性失真。`README.md` 给人读可以；**单独**当作目录入口对 Agent **不够**。
+
+| 缺陷 | 表现 |
+|------|------|
+| **缺乏执行边界**（Lack of Execution Boundaries） | README 多为**描述性**（Descriptive），如「本项目旨在提升效率」；Agent 需要的是**指令性**（Directive）硬约束，如「严禁在本目录修改路由配置」。无强约束时易越界改不该动的文件。 |
+| **退化为通用模式**（Fallback to Generic Patterns） | 无该目录的 SOP（Standard Operating Procedure）时，Agent 会回退到训练里的「最大公约数」经验，用通用但不符合本仓规范的风格 / 架构生成内容。 |
+| **忽略隐性规则**（Ignoring Implicit Rules） | 人类能从 README 字里行间猜出未写明的规矩；Agent **没有**这种直觉。诸如「新文件必须以特定前缀命名」若不写成机器可读的硬性指令，就会被直接忽略。 |
+
+因此本 trait 要求入口是 **`AGENTS.md`**：以 MUST / MUST NOT、边界、SOP 为主，而不是营销式或仅描述意图的 README。
+
 ## 强制规则
 
 1. **新目录说明**：需要给人 / Agent 看的约定、目录索引、如何运行 → 写 **`AGENTS.md`**，文件名固定，不用其它别名。
