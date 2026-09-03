@@ -1,0 +1,87 @@
+id: gdxs20260520002-weighbridge
+created: "2026-09-03"
+graph:
+  product: urban
+  domain: govsync
+  family: probe
+  goal: gov-gdxs20260520002-weighbridge-save
+  status: active
+environment: shared # 非 local：政府内网地址；run 前须人闸确认
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: endpoint-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  method: POST
+  url: http://191.12.15.58:8899/sapi/v1/inoutRecord/lantu/saveRecord
+  contentType: application/json; charset=utf-8
+  contractRef: docs/SyncDoc/地磅数据上传对接接口（萧山）V1.0.md
+  designRef: docs/2026-08-27-xiaoshan-weighbridge-gate-product-upload-design/01-设计稿.md
+  assetsRef: _temp/GDXS20260520002/
+
+scenario:
+  channel: weighbridge
+  # 来源: _temp/GDXS20260520002/新建 文本文档.txt
+  buildLicenseNo: GDXS20260520002 # 原值 L；地磅不拼接 -02
+  carNo: 浙A12345
+  carNoColor: 黄
+  carType: 大车
+  dataSource: WEIGHBRIDGE_XIAOSHAN
+  inOutType: "0"
+  placeType: "1"
+  goodsWeight: "1475" # 1475kg
+  snapTimeMode: run-now
+  snapImages:
+    source: fixtures/16cfa8c48c427f193da61f7a6903f9d6.png
+    encoding: base64-array
+
+steps:
+  - id: bind-endpoint
+    name: Bind 地磅 saveRecord 端点、夹具与 GDXS20260520002 场景
+  - id: cook-post
+    name: 组装地磅 payload（含 dataSource，无卡口字段）并 POST
+  - id: validate-response
+    name: 记录 HTTP 状态与业务 code/msg
+
+expect:
+  - id: http-reachable
+    level: L0
+    description: 对 target.url 的 POST 得到可解析的 HTTP 响应
+  - id: json-body
+    level: L1
+    description: 响应体可解析为含 code/msg 的 JSON
+  - id: business-success
+    level: L2
+    description: 业务 code == 200
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: [authorization, cookie, snapImages]
+  summary:
+    required: true
+    sink: summary.json
+
+humanGates:
+  - missing-secrets
+  - environment-shared-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-GdxsWeighbridge.ps1
+    experimental: true
+  copyPackage:
+    mode: script-invoke
+    script: scripts/Copy-GdxsWeighbridgePackage.ps1
+    experimental: true
