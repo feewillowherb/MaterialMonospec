@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-03
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "UrbanManagement 单仓 Receive 入参放宽 + static 映射 + 单测；不做 ReceiveV2"
