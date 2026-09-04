@@ -23,4 +23,4 @@
 
 ## 5. Merge
 
-- [ ] 5.1 Mode A squash 单提交入 `Fdsoft.Weight.GovClient` trunk（`master`）并推送；归档前跑 `/opsx-verify-agents`（若适用）
+- [x] 5.1 Mode A squash 单提交入 `Fdsoft.Weight.GovClient` trunk（`master`）并推送；归档前跑 `/opsx-verify-agents`（若适用）
