@@ -38,6 +38,7 @@
 - 2026-09-03 **新增**：`UrbanWeighingIngestSource`（Modern/Legacy/Migrated）区分入站；见调研夹 `05`
 - 2026-09-03 历史批迁（原 D5/06）**挂起**为 [INT-007](./INT-007-xiaoshanserve-govsyncdata-migrate.md)；不在本 INT 实现范围
 - 2026-09-03 OpenSpec propose：`openspec/changes/add-urban-legacy-weighing-ingest/`（在线 Legacy；不含 INT-007）
+- 2026-09-04 **proposed → applied**：change 同名分支实装（LegacyGovSyncAppService + `IngestSource` + 拒收暂存表 + AllowAnonymous），单测 173 通过；切流运维见 change `ops-notes.md`
 
 ## 消化后回填
 
