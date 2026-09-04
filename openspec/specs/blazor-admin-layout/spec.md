@@ -3,15 +3,14 @@
 ## Purpose
 
 定义 UrbanManagement Blazor 应用的管理员布局组件，包括侧边栏导航、顶部工具栏、标签页栏和内容区域。该布局组件替代原有的 Layui + iframe 架构，使用纯 Blazor 组件实现多页面标签页管理。
-
 ## Requirements
-
 ### Requirement: Admin layout sidebar navigation
 `AdminLayout.razor` SHALL render a fixed left sidebar with navigation links to all primary pages. The sidebar SHALL display the application title and a copyright footer.
 
 #### Scenario: Sidebar navigation links
 - **WHEN** `AdminLayout.razor` renders
-- **THEN** the sidebar SHALL contain navigation links for: 仪表盘 (`/`), 项目管理 (`/projects`), 称重记录 (`/weighing`)
+- **THEN** the sidebar SHALL contain navigation links for: 项目管理 (`/`), 称重记录 (`/weighing`), and other primary app pages already present in the layout
+- **AND** MUST NOT contain a「仪表盘」navigation link
 - **AND** the currently active link SHALL have a distinct visual style
 
 #### Scenario: Sidebar structure
@@ -34,7 +33,8 @@
 
 #### Scenario: Home tab is persistent
 - **WHEN** the layout renders
-- **THEN** a "首页" tab SHALL always be present and SHALL NOT have a close button
+- **THEN** a home tab for `/` SHALL always be present and SHALL NOT have a close button
+- **AND** the home tab title SHALL represent project management（「项目管理」或「首页」指向项目管理）
 
 #### Scenario: Tab state reflects current URL
 - **WHEN** the user navigates via browser URL bar or back/forward buttons
@@ -72,3 +72,4 @@
 - **WHEN** `AdminLayout.razor` renders
 - **THEN** it SHALL use CSS class names compatible with the existing `admin.css` definitions
 - **AND** SHALL NOT load the Layui CSS/JS library
+
