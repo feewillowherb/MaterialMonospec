@@ -7,6 +7,7 @@
 
 - 同机异端口：Client → XiaoShanServe:`{portA}` `/Api/Post` → **纯 HTTP 转发** → UrbanManagement:`{portB}` `/Api/Post`。
 - Serve 不做映射、不落盘、不写 `GovSyncData`、不出站（D7/D8）；转换只在 UM。
+- **2026-09-04 替代方案**：现场不可装反代时，转发改由 Serve **代码内极薄转发**实现（change `update-xiaoshanserve-forward-to-um`）；本节反代/portproxy 方式作废，其余步骤（停出站、验证、回滚）不变，出站停用改为 `EnableGovExport` 配置开关（默认 false）。
 
 ## 切流当日动作（Q5：停 Serve 出站，默认是）
 
