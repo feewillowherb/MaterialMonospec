@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-04
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "单仓遗留代码最小侵入（Post 重写 + 配置 + 开关），无测试基建，验证靠构建+联调"
