@@ -1,0 +1,88 @@
+id: xiaoshan-serve-apipost
+created: "2026-09-04"
+graph:
+  product: urban
+  domain: govsync
+  family: probe
+  goal: gov-xiaoshan-serve-api-post
+  status: active
+environment: shared # 现场 XiaoShanServe；run 前须人闸确认
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: endpoint-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  method: POST
+  url: http://191.12.234.212:8899/Api/Post
+  contentType: application/json; charset=utf-8
+  contractRef: repos/Fdsoft.Weight.GovClient/FdSoft.MaterialSys.Gov.XiaoShanServe/Models/mGovRequestWeight.cs
+  designRef: docs/2026-09-03-xiaoshanserve-forward-to-urban-weighing-record/02-字段映射与缺口.md
+  notes: "Serve ApiController 原样转发 body；UM LegacyApiController 按 mGov 键名解析；响应 { success, msg, code }"
+
+# scenario 对齐 mGovRequestWeight + LegacyApiController 键名（含 deviceID 大小写）
+scenario:
+  channel: legacy-weigh
+  carNo: 浙A12345
+  carColor: 绿 # 可选
+  carNoColor: 黄
+  buildLicenseNo: XNXS20250819001 # 城管接入码；忽略 fdBuildLicenseNo（D12）
+  inOutType: 0 # 进场地称重：0；出场地称重：1（JSON number）
+  equipmentNumber: "WB-01"
+  equipmentType: "SCALE"
+  grossWeight: 20000 # kg；>0 时覆盖 goodsWeight → TotalWeight
+  tareWeight: 0
+  goodsWeight: "20000" # string kg
+  carType: 大车
+  deviceID: "01" # JSON 键必须是 deviceID（非 deviceId）
+  siteType: "1" # 1=工地 2=消纳场
+  snapTimeMode: run-now
+  snapImages:
+    source: fixtures/test_pic.jpg
+    encoding: base64-array # string[]；本 demo 单帧夹具复制为 1 元数组
+
+steps:
+  - id: bind-endpoint
+    name: Bind Serve /Api/Post、夹具与 mGovRequestWeight 场景参数
+  - id: cook-post
+    name: 组装 legacy-weigh payload 并 POST 到 XiaoShanServe（转发 UM）
+  - id: validate-response
+    name: 记录 HTTP 状态与旧版 success/code/msg
+
+expect:
+  - id: http-reachable
+    level: L0
+    description: 对 target.url 的 POST 得到可解析的 HTTP 响应
+  - id: json-body
+    level: L1
+    description: 响应体可解析为含 success 和/或 code/msg 的 JSON
+  - id: business-success
+    level: L2
+    description: 业务 code == 200（且若有 success 字段则为 true）
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: [authorization, cookie, snapImages]
+  summary:
+    required: true
+    sink: summary.json
+
+humanGates:
+  - missing-secrets
+  - environment-shared-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-XiaoshanServeApiPost.ps1
+    experimental: true

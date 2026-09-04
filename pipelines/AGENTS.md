@@ -179,6 +179,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | gov-xnxs20240725003-weighbridge-save | probe | `graphs/govsync/xnxs20240725003-weighbridge/` | active |
 | gov-gdxs20260520002-weighbridge-save | probe | `graphs/govsync/gdxs20260520002-weighbridge/` | active |
 | gov-xiaoshan-gate-save | probe | `graphs/govsync/xiaoshan-gate/` | active |
+| gov-xiaoshan-serve-api-post | probe | `graphs/govsync/xiaoshan-serve-apipost/` | active |
 | gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
