@@ -7,18 +7,49 @@
 | `dataNo` | **Recycle 同构**：`fl-{outTime:yyyyMMddHHmmss}-{当日序号:D4}`（Sending / `Waybill.GenerateOrderNo`）；按日对车次排序后编号；重跑相同 → 平台幂等（Q7） |
 | `dataStatus` | `0` |
 | `pointNumber` | dryRun 可用占位；**真实 POST 前由用户输入**（Q3） |
-| `carNo` | 车牌池循环/哈希 |
+| `carNo` | **Q9**：文一西路池 `PlateNumber`；与同条 `outPhotos` 绑定 |
 | `carrierCompanyName` | 可选；可省略 |
 | `productName` | 固定 **`沙加石`**（Q4） |
-| `netWeight` | 19–23 t（Q5） |
-| `tareWeight` | 13–14.5 t（Q5） |
-| `grossWeight` | `net+tare`，目标 33–37 t（Q5） |
-| `outTime` | 2026 任意日；主窗口 **06:00–17:30**，**允许**少量边界外（Q1/Q2） |
-| `outPhotos` | 夹具 Base64（无 Data URL 头） |
+| `netWeight` | 19–23 t（Q5）；**不读池** `TotalWeight` |
+| `tareWeight` | 13–14.5 t（Q5）；不读池 |
+| `grossWeight` | `net+tare`，目标 33–37 t（Q5）；不读池 |
+| `outTime` | 2026 任意日；主窗口 **06:00–17:30**，**允许**少量边界外（Q1/Q2）；**且** `dayPart` 须与所绑池图 `captureClock` 同档（Q9） |
+| `outPhotos` | **Q9**：池内 `ResolvedPhotoPath` → Base64（无 Data URL 头）；禁止再用单一夹具图冒充全量 |
 | `consignee` | 月表收货公司全名（Q8） |
 | `consigneeAddress` / `receivingTime` / `receivingProof` / `saleContractNo` / `unitPrice` / `payAmount` | **不传**（Q6） |
 
-**禁止**把月表「序号」当 `dataNo`；**禁止**使用 `sl-` 前缀（进场 Receiving）。
+**禁止**把月表「序号」当 `dataNo`；**禁止**使用 `sl-` 前缀（进场 Receiving）。  
+**禁止**白天抓拍配夜晚 `outTime`（或相反）；**禁止**用池重量覆盖 Q5。
+
+### Q9 · 池抽样顺序（实现约束）
+
+```text
+load pool from recycle-wenyixilu-export CSV
+  (join records↔attachments↔files; photoFound=true)
+  → captureClock from filename or AddDate
+  → dayPart ∈ {day:06:00–18:00, night:else}
+for each trip after net/tare/gross + calendar day chosen:
+  propose outTime (Q2 window / soft margin)
+  sample pool where dayPart(captureClock)==dayPart(outTime)
+       prefer |H_out−H_cap|≤2
+  bind carNo=plate, outPhotos=file→base64
+  if no candidate: resample outTime within same calendar day to other hour in needed dayPart
+     or reuse same-dayPart pool entry (still plate+photo bound)
+```
+
+配置指针示例：
+
+```yaml
+platePhotoPool:
+  csvDir: pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv
+  requirePhotoFound: true
+  preferAttachTypes: [2, 5]   # ExitPhoto, Lpr
+  dayPart:
+    dayStart: "06:00"
+    dayEnd: "18:00"
+  hourProximityHours: 2
+  ignorePoolWeight: true      # Q9：重量始终 Q5
+```
 
 ### 示例（单条，照片省略）
 
@@ -96,7 +127,8 @@ _tools/sand-addbatch-mock/                              # 可选实现目录（�
   config.example.yaml
   secrets.local.yaml          # gitignore
   seeds/monthly-totals.yaml
-  fixtures/truck.jpg
+  # 车牌/图池：指向 recycle-wenyixilu-export out/latest/csv（Q9）
+  # 勿把现场 jpg 提交进 git；运行时读 ResolvedPhotoPath
   out/
     dry-run/
       2026-01-腾满.part000.json
@@ -114,6 +146,7 @@ _tools/sand-addbatch-mock/                              # 可选实现目录（�
 - [ ] `productName` 均为 `沙加石`；`consignee` 为月表收货公司名称；无收货完成字段
 - [ ] `dataNo` 形如 `fl-yyyyMMddHHmmss-0001`；同日序号递增
 - [ ] `outTime` 多数在 06:00–17:30，允许少量边界外；任意日历日
+- [ ] **Q9**：抽查 `carNo`+图来自文一西路池；`dayPart(outTime)==dayPart(captureClock)`；净/皮/毛**未**抄池重量
 - [ ] 净/皮/毛落在 Q5 区间且 `gross≈net+tare`
 - [ ] `dryRun` 抽查 JSON；**pointNumber 由用户提供后再**试跑 POST
 - [ ] 全量 `summary` 与 518065.31 对齐
