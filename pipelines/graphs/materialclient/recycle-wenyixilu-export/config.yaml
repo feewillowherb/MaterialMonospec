@@ -1,0 +1,91 @@
+id: recycle-wenyixilu-export
+created: "2026-09-08"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: transform
+  goal: recycle-site-db-export
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-site-raw
+  end: csv-with-photo-index
+cook: new-object
+
+target:
+  # Absolute paths preferred in secrets.local.yaml (Chinese path OK for copy step).
+  # Defaults below are placeholders; Invoke reads secrets override first.
+  sourceDb: ""
+  photoRoot: ""
+  tables:
+    - WeighingRecords
+    - WeighingRecordAttachments
+    - AttachmentFiles
+  # AttachmentFiles.LocalPath often starts with Lpr\; resolve under photoRoot.
+  photoPathPrefixesToStrip:
+    - "Lpr\\"
+    - "Lpr/"
+  # Disk may nest an extra 2026 under photoRoot.
+  tryNestedYearDir: true
+  # Last resort: recursive FileName lookup under photoRoot.
+  fallbackByFileName: true
+
+scenario:
+  siteLabel: 文一西路
+  weighingModeExpected: 301 # Recycle
+
+steps:
+  - id: bind-paths
+    name: 解析 sourceDb / photoRoot；拷贝 DB 到 ASCII 工作副本
+  - id: cook-export
+    name: 导出三表 CSV；解析 AttachmentFiles → 2026 图片路径
+  - id: validate-counts
+    name: 校验 CSV 行数 = 表 COUNT；写 photo-resolve-report
+
+expect:
+  - id: db-reachable
+    level: L0
+    description: MaterialClient.db 可打开且含三张目标表
+  - id: csv-row-parity
+    level: L1
+    description: WeighingRecords / WeighingRecordAttachments / AttachmentFiles CSV 行数与库表一致
+  - id: photo-index
+    level: L2
+    description: AttachmentFiles.csv 含 ResolvedPhotoPath + photoFound；report 含命中/缺失统计
+  - id: business-ok
+    level: L3
+    description: 用户抽几条称重记录打开对应图片确认 — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  csv:
+    required: true
+    sink: csv/
+  photoReport:
+    required: true
+    sink: photo-resolve-report.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-paths
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  transform:
+    mode: script-invoke
+    script: scripts/Invoke-RecycleWenyixiluExport.ps1
+    experimental: true
+    nodeTool: scripts/export-csv.mjs

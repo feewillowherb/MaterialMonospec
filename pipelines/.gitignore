@@ -3,6 +3,8 @@
 **/secrets.local.*
 **/runs/
 !**/runs/.gitkeep
+**/out/
+!**/out/.gitignore
 **/node_modules/
 **/dist/
 **/bin/
