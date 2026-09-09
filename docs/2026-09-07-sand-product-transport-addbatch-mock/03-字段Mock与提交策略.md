@@ -17,13 +17,30 @@
 | `outPhotos` | **Q9**：池内 `ResolvedPhotoPath` → Base64（无 Data URL 头）；禁止再用单一夹具图冒充全量 |
 | `consignee` | 月表收货公司全名（Q8） |
 | `consigneeAddress` | 查表 [06-收货方到货地址.md](./06-收货方到货地址.md)；首次可暂不传（Q6），**按 `dataNo` 补报/更新时必传** |
-| `receivingTime` / `receivingProof` / `saleContractNo` / `unitPrice` / `payAmount` | 首次不传（Q6）；补报时再定 |
+| `receivingTime` | **Q10**：`outTime` + **均匀随机 1.5h～2.5h**（见下节）；格式同 `outTime`（`yyyy-MM-dd HH:mm:ss`）；补报/收货完成载荷必填 |
+| `receivingProof` / `saleContractNo` / `unitPrice` / `payAmount` | 首次不传（Q6）；`receivingProof` 补报时再定 |
 
 **禁止**把月表「序号」当 `dataNo`；**禁止**使用 `sl-` 前缀（进场 Receiving）。  
 **禁止**省略 `pointNumber` 小写段（不得退回纯 `fl-{时间}-{序号}`）。  
 **禁止**白天抓拍配夜晚 `outTime`（或相反）；**禁止**用池重量覆盖 Q5。  
 **禁止**再使用 `沙加石` 作为 `productName`（已废止，见 Q4）。  
-**禁止**对已落盘/已提交车次重新生成新的 `dataNo`（见 Q7 持久化）。
+**禁止**对已落盘/已提交车次重新生成新的 `dataNo`（见 Q7 持久化）。  
+**禁止** `receivingTime` ≤ `outTime`，或偏移落在 **1.5h～2.5h** 之外（Q10）。
+
+### Q10 · `receivingTime`（硬约束）
+
+```text
+receivingTime = outTime + Δ
+Δ ∼ Uniform[1.5h, 2.5h]   # 含端点；实现可用分钟：90～150 分钟整数或等价秒级
+格式：yyyy-MM-dd HH:mm:ss（与 outTime 同形）
+```
+
+| 要求 | 说明 |
+|------|------|
+| 基点 | 必须以该车次 **`outTime`** 为起点，禁止另抽无关日历时刻 |
+| 区间 | 偏移 **≥ 1.5 小时且 ≤ 2.5 小时**（典型在途/卸货到达） |
+| 跨日 | 允许跨自然日（如出场 23:00 → 收货次日 01:00 仍合法，只要 Δ∈[1.5h,2.5h]） |
+| 重放 | 同一 `dataNo` / 同一 seed 下 `receivingTime` 应稳定（写入台账或由确定性 RNG 复算） |
 
 ### Q7 · `dataNo` 持久化（硬约束）
 
@@ -182,7 +199,8 @@ _tools/sand-addbatch-mock/                              # 可选实现目录（�
 ## 5. 验收清单
 
 - [ ] 每收货公司每月 `Σ netWeight` 与 `_tmp/data.md` 差 ≤ 0.01
-- [ ] `productName` 仅为 `再生细骨料` / `再生粉料`，同月车次近似 1:1；`consignee` 为月表收货公司名称；无收货完成字段
+- [ ] `productName` 仅为 `再生细骨料` / `再生粉料`，同月车次近似 1:1；`consignee` 为月表收货公司名称
+- [ ] **Q10**：若含 `receivingTime`，则相对同条 `outTime` 偏移 ∈ **[1.5h, 2.5h]**
 - [ ] `dataNo` 形如 `fl-{pointNumber小写}-yyyyMMddHHmmss-0001`（例 `fl-xnyh20251113001-…`）；同日序号递增
 - [ ] **Q7**：存在持久化 `dataNo` 台账；重跑不改已落盘号；可按台账组装更新载荷
 - [ ] 五家 `consignee` 均可在 [06](./06-收货方到货地址.md) 查到 `consigneeAddress`
