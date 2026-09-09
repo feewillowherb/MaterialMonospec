@@ -16,6 +16,7 @@ sockets:
 cook: new-object
 
 # HARD: default off. Do not POST until user flips this and passes human gate.
+# Smoke one-shot: set true + Invoke -AllowPost -Mode smoke -SmokeDataNo ...
 submitEnabled: false
 
 target:
@@ -43,6 +44,8 @@ scenario:
   batchSize: 100
   requestIntervalMs: 200
   skipPosted: true
+  # Durable skip ledger (gitignored): state/submit-state.jsonl
+  durableStateRel: state/submit-state.jsonl
   embedOutPhotosFromPath: true
   stripOutPhotosPath: true
   # Prefer recycle-hmac-auth for empty-array auth probe before first smoke
@@ -50,13 +53,13 @@ scenario:
 
 steps:
   - id: bind-source-run
-    name: 校验冻结源 run / ledger / submit-meta / secrets 模板
+    name: 校验冻结源 run / ledger / submit-meta / secrets
   - id: gate-submit-enabled
     name: submitEnabled=false 则停止且零 HTTP
   - id: cook-post-batches
-    name: （未启用）embed 照片并分批 HMAC POST；写 submit-state/log
+    name: embed 照片并分批 HMAC POST；写 state/submit-state.jsonl + run 证据
   - id: validate-response
-    name: （未启用）记录 HTTP 与平台 code/msg
+    name: 记录 HTTP 与平台 code/msg；已 posted/smoke-posted 在 skipPosted 时跳过
 
 expect:
   - id: source-readable

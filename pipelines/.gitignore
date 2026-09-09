@@ -5,6 +5,7 @@
 !**/runs/.gitkeep
 **/out/
 !**/out/.gitignore
+**/state/
 **/node_modules/
 **/dist/
 **/bin/

@@ -92,10 +92,19 @@ flowchart LR
 powershell -ExecutionPolicy Bypass -File `
   pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-submit/scripts/Invoke-SandAddbatchSubmit.ps1
 
-# 真正 POST 前必须：config.submitEnabled=true 且显式 -AllowPost（脚本内仍再闸）
+# 烟测 1 条（需 config.submitEnabled=true + -AllowPost）
+powershell -ExecutionPolicy Bypass -File `
+  pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-submit/scripts/Invoke-SandAddbatchSubmit.ps1 `
+  -AllowPost -Mode smoke `
+  -SmokeDataNo "fl-xnyh20251113001-20260107061109-0001" `
+  -SmokePartFile "2026-01-jinqiu.part000.json"
 ```
 
-命令：`/run-pipeline govsync/XNYH20251113001/sand-addbatch-submit`（当前仅 bind/校验）
+持久化跳过账：`state/submit-state.jsonl`（gitignore；`status=smoke-posted|posted` + `postedAt`；`skipPosted: true` 时全量会跳过）。
+
+平台现网要求 **`saleContractNo` 非空**（与文档「可选」不一致）；脚本按 `XSHT{yyyyMMdd}{seq}` 生成。
+
+命令：`/run-pipeline govsync/XNYH20251113001/sand-addbatch-submit`
 
 ## 人闸 / Gate
 
