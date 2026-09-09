@@ -10,9 +10,9 @@
 | `carNo` | **Q9**：文一西路池 `PlateNumber`；与同条 `outPhotos` 绑定 |
 | `carrierCompanyName` | 可选；可省略 |
 | `productName` | **`再生细骨料`** / **`再生粉料`**，同 consignee×月车次 **1:1**（Q4） |
-| `netWeight` | 19–23 t（Q5）；**不读池** `TotalWeight` |
-| `tareWeight` | 13–14.5 t（Q5）；不读池 |
-| `grossWeight` | `net+tare`，目标 33–37 t（Q5）；不读池 |
+| `netWeight` | 48–52 t（Q5 · 约 50）；**不读池** `TotalWeight` |
+| `tareWeight` | 19–21 t（Q5 · 约 20）；不读池 |
+| `grossWeight` | `net+tare`，目标 67–73 t（Q5 · 约 70）；不读池 |
 | `outTime` | 2026 任意日；主窗口 **06:00–17:30**，**允许**少量边界外（Q1/Q2）；**且** `dayPart` 须与所绑池图 `captureClock` 同档（Q9） |
 | `outPhotos` | **Q9**：池内 `ResolvedPhotoPath` → Base64（无 Data URL 头）；禁止再用单一夹具图冒充全量 |
 | `consignee` | 月表收货公司全名（Q8） |

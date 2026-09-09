@@ -1,0 +1,24 @@
+{
+  "purpose": "January 2026 already-posted trips under OLD Q5 weights (net~21 / tare~13.5 / gross~35)",
+  "month": "2026-01",
+  "pointNumber": "XNYH20251113001",
+  "sourceRun": "sand-addbatch-submit/seeds/2026-01/source-run/2026-09-09T152356",
+  "durableState": "sand-addbatch-submit/state/2026-01/submit-state.jsonl",
+  "archivedAt": "2026-09-09T08:45:33.995Z",
+  "q5Old": {
+    "tripNet": "19-23",
+    "tare": "13-14.5",
+    "gross": "33-37"
+  },
+  "tripCount": 298,
+  "netTotal": 6251.73,
+  "perConsignee": [
+    {
+      "consignee": "浙江锦秋建材有限公司",
+      "trips": 298,
+      "netWeight": 6251.73,
+      "dataNoSample": "fl-xnyh20251113001-20260107061109-0001"
+    }
+  ],
+  "note": "Do not re-POST these dataNo. Keep when regenerating pending under new Q5 (~50/20/70)."
+}

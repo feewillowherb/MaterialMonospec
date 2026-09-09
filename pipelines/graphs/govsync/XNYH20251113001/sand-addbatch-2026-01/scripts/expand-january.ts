@@ -4,6 +4,10 @@
  *
  * pnpm exec tsx expand-january.ts --outDir <runDir> --seeds <yaml> --csvDir <pool>
  *   [--addresses <yaml>] [--pointNumber <id>] [--seed <n>]
+ *   [--preserveState <submit-state.jsonl> --existingJsonDir <jsonDir>]
+ *
+ * Preserve mode: keep posted|smoke-posted trips; delete pending; regenerate
+ * remaining tonnage with current Q5 (net~50 / tare~20 / gross~70). Month Σnet conserved.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -56,8 +60,54 @@ function parseArgs(argv: string[]) {
     else if (a === "--addresses") o.addresses = argv[++i];
     else if (a === "--seed") o.seed = Number(argv[++i]);
     else if (a === "--pointNumber") o.pointNumber = argv[++i];
+    else if (a === "--preserveState") o.preserveState = argv[++i];
+    else if (a === "--existingJsonDir") o.existingJsonDir = argv[++i];
   }
   return o;
+}
+
+function loadPostedDataNos(statePath: string): Set<string> {
+  const keep = new Set<string>();
+  if (!fs.existsSync(statePath)) {
+    throw new Error(`Missing preserve state: ${statePath}`);
+  }
+  for (const line of fs.readFileSync(statePath, "utf8").split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const o = JSON.parse(line) as { dataNo?: string; status?: string };
+    if (
+      o.dataNo &&
+      (o.status === "posted" || o.status === "smoke-posted")
+    ) {
+      keep.add(o.dataNo);
+    }
+  }
+  return keep;
+}
+
+function loadTripsFromJsonDir(jsonDir: string): TripRecord[] {
+  if (!fs.existsSync(jsonDir)) {
+    throw new Error(`Missing existingJsonDir: ${jsonDir}`);
+  }
+  const trips: TripRecord[] = [];
+  for (const name of fs.readdirSync(jsonDir).filter((f) => f.endsWith(".json"))) {
+    const arr = JSON.parse(
+      fs.readFileSync(path.join(jsonDir, name), "utf8"),
+    ) as TripRecord[];
+    if (!Array.isArray(arr)) {
+      throw new Error(`Expected trip array in ${name}`);
+    }
+    trips.push(...arr);
+  }
+  return trips;
+}
+
+function dayKeyOf(outTime: string) {
+  return outTime.slice(0, 10);
+}
+
+function seqFromDataNo(dataNo: string) {
+  const m = dataNo.match(/-(\d{4})$/);
+  return m ? Number(m[1]) : 0;
 }
 
 /** @param {number} seed */
@@ -627,7 +677,13 @@ function main() {
   const args = parseArgs(process.argv);
   if (!args.outDir || !args.seeds || !args.csvDir) {
     console.error(
-      "Usage: pnpm exec tsx expand-january.ts --outDir <dir> --seeds <yaml> --csvDir <dir> [--addresses <yaml>] [--pointNumber <id>]",
+      "Usage: pnpm exec tsx expand-january.ts --outDir <dir> --seeds <yaml> --csvDir <dir> [--addresses <yaml>] [--pointNumber <id>] [--preserveState <jsonl> --existingJsonDir <jsonDir>]",
+    );
+    process.exit(2);
+  }
+  if (Boolean(args.preserveState) !== Boolean(args.existingJsonDir)) {
+    console.error(
+      "Preserve mode requires both --preserveState and --existingJsonDir",
     );
     process.exit(2);
   }
@@ -635,12 +691,12 @@ function main() {
   const cfg = {
     year: 2026,
     month: 1,
-    tripNetMin: 19,
-    tripNetMax: 23,
-    tareMin: 13,
-    tareMax: 14.5,
-    grossMin: 33,
-    grossMax: 37,
+    tripNetMin: 48,
+    tripNetMax: 52,
+    tareMin: 19,
+    tareMax: 21,
+    grossMin: 67,
+    grossMax: 73,
     epsilon: 0.01,
     dayWeightJitter: 0.15,
     outOfWindowRate: 0.08,
@@ -691,6 +747,45 @@ function main() {
     );
   }
 
+  const preserveMode = Boolean(args.preserveState && args.existingJsonDir);
+  const keptByConsignee = new Map<string, TripRecord[]>();
+  const keptDataNos = new Set<string>();
+  const daySeqFloor = new Map<string, number>();
+  let keptTripCount = 0;
+  let keptNetTotal = 0;
+  if (preserveMode) {
+    const keepSet = loadPostedDataNos(String(args.preserveState));
+    const existing = loadTripsFromJsonDir(String(args.existingJsonDir));
+    const byDataNo = new Map(existing.map((t) => [t.dataNo, t]));
+    const missing: string[] = [];
+    for (const dataNo of keepSet) {
+      const trip = byDataNo.get(dataNo);
+      if (!trip) {
+        missing.push(dataNo);
+        continue;
+      }
+      keptDataNos.add(dataNo);
+      const list = keptByConsignee.get(trip.consignee) || [];
+      list.push(trip);
+      keptByConsignee.set(trip.consignee, list);
+      keptTripCount++;
+      keptNetTotal = round2(keptNetTotal + trip.netWeight);
+      const dk = dayKeyOf(trip.outTime);
+      daySeqFloor.set(
+        dk,
+        Math.max(daySeqFloor.get(dk) || 0, seqFromDataNo(trip.dataNo)),
+      );
+    }
+    if (missing.length) {
+      throw new Error(
+        `Preserve state references ${missing.length} missing dataNo (e.g. ${missing[0]})`,
+      );
+    }
+    console.log(
+      `[preserve] keep=${keptTripCount} net=${keptNetTotal} pendingDropped=${existing.length - keptTripCount}`,
+    );
+  }
+
   console.log("[pool] loading...");
   const { byPart, stats: poolStats } = loadPool(String(args.csvDir));
   console.log(
@@ -716,6 +811,18 @@ function main() {
     cfg.quietWeekendCountMax,
     cfg.quietWeekendZeroProbability,
   );
+  // Preserve: do not mark a day as site-wide zero if kept (already-posted) trips exist on it.
+  if (preserveMode && keptTripCount > 0) {
+    const keptDays = new Set<number>();
+    for (const list of keptByConsignee.values()) {
+      for (const t of list) keptDays.add(Number(t.outTime.slice(8, 10)));
+    }
+    for (const q of quietWeekends) {
+      if (q.mode === "zero" && keptDays.has(q.day)) {
+        q.mode = "low";
+      }
+    }
+  }
   const profiles = buildCompanyProfiles(
     seeds.rows.map((r) => r.consignee),
     cfg.companyActiveDayRates,
@@ -762,20 +869,33 @@ function main() {
     const profile = profileByConsignee.get(row.consignee);
     if (!profile) throw new Error(`Missing Q11 profile for ${row.consignee}`);
 
-    const companyRand = mulberry32(cfg.seed ^ hashString(row.consignee));
-    const dayTons = splitDayTonsSparse(
-      T,
-      days,
-      cfg.year,
-      cfg.month,
-      profile,
-      quietWeekends,
-      companyRand,
-      cfg.dayWeightJitter,
-      cfg.quietWeekendLowFactor,
+    const kept = (keptByConsignee.get(row.consignee) || []).slice().sort((a, b) =>
+      a.outTime < b.outTime ? -1 : a.outTime > b.outTime ? 1 : 0,
     );
-    const activeDays = dayTons.filter((t) => t > 0).length;
-    const zeroDays = dayTons.filter((t) => t <= 0).length;
+    const keptNet = round2(kept.reduce((a, r) => a + r.netWeight, 0));
+    const T_gen = round2(T - keptNet);
+    if (T_gen < -cfg.epsilon) {
+      throw new Error(
+        `Kept net ${keptNet} exceeds month target ${T} for ${row.consignee}`,
+      );
+    }
+
+    const companyRand = mulberry32(cfg.seed ^ hashString(row.consignee));
+    const dayTons =
+      T_gen > cfg.epsilon
+        ? splitDayTonsSparse(
+            T_gen,
+            days,
+            cfg.year,
+            cfg.month,
+            profile,
+            quietWeekends,
+            companyRand,
+            cfg.dayWeightJitter,
+            cfg.quietWeekendLowFactor,
+          )
+        : days.map(() => 0);
+    const activeDaysNew = dayTons.filter((t) => t > 0).length;
     const trips: {
       consignee: string;
       net: number;
@@ -832,21 +952,39 @@ function main() {
     }
 
     trips.sort((a, b) => (a.outTime < b.outTime ? -1 : a.outTime > b.outTime ? 1 : 0));
-    const daySeq = new Map<string, number>();
-    const records: TripRecord[] = [];
+    const daySeq = new Map<string, number>(daySeqFloor);
+    const newRecords: TripRecord[] = [];
     const productCounts: Record<string, number> = { 再生细骨料: 0, 再生粉料: 0 };
     const productTons: Record<string, number> = { 再生细骨料: 0, 再生粉料: 0 };
+    for (const k of kept) {
+      productCounts[k.productName] = (productCounts[k.productName] || 0) + 1;
+      productTons[k.productName] = round2(
+        (productTons[k.productName] || 0) + k.netWeight,
+      );
+    }
+
+    // Prefer the product that is currently behind so overall stays ~1:1 after merge.
+    const pickProduct = () => {
+      const a = productCounts["再生细骨料"] || 0;
+      const b = productCounts["再生粉料"] || 0;
+      return a <= b ? "再生细骨料" : "再生粉料";
+    };
+
     for (let ti = 0; ti < trips.length; ti++) {
       const t = trips[ti];
-      const productName = cfg.productNames[ti % cfg.productNames.length];
+      const productName = pickProduct();
       productCounts[productName] = (productCounts[productName] || 0) + 1;
       productTons[productName] = round2((productTons[productName] || 0) + t.net);
 
-      const dayKey = t.outTime.slice(0, 10);
+      const dayKey = dayKeyOf(t.outTime);
       const seq = (daySeq.get(dayKey) || 0) + 1;
       daySeq.set(dayKey, seq);
+      daySeqFloor.set(dayKey, Math.max(daySeqFloor.get(dayKey) || 0, seq));
       const stamp = t.outTime.replace(/[-: ]/g, "").slice(0, 14);
       const dataNo = `fl-${pointSlug}-${stamp}-${String(seq).padStart(4, "0")}`;
+      if (keptDataNos.has(dataNo)) {
+        throw new Error(`Generated dataNo collides with kept posted trip: ${dataNo}`);
+      }
       const receivingTime = addReceivingTime(t.outTime, companyRand);
 
       const rec: TripRecord = {
@@ -866,7 +1004,7 @@ function main() {
         consigneeAddress,
         receivingTime,
       };
-      records.push(rec);
+      newRecords.push(rec);
       ledgerLines.push(
         JSON.stringify({
           dataNo,
@@ -895,10 +1033,53 @@ function main() {
       );
     }
 
+    for (const rec of kept) {
+      ledgerLines.push(
+        JSON.stringify({
+          dataNo: rec.dataNo,
+          consignee: rec.consignee,
+          consigneeAddress: rec.consigneeAddress,
+          outTime: rec.outTime,
+          receivingTime: rec.receivingTime,
+          productName: rec.productName,
+          netWeight: rec.netWeight,
+          carNo: rec.carNo,
+          submitStatus: "already-posted-preserved",
+        }),
+      );
+      manifestLines.push(
+        JSON.stringify({
+          dataNo: rec.dataNo,
+          carNo: rec.carNo,
+          productName: rec.productName,
+          photoPath: rec.outPhotosPath,
+          captureClock: null,
+          outTime: rec.outTime,
+          dayPartOut: "day",
+          dayPartPool: "day",
+          dayPartAligned: true,
+          preserved: true,
+        }),
+      );
+    }
+
+    const records = [...kept, ...newRecords].sort((a, b) =>
+      a.outTime < b.outTime ? -1 : a.outTime > b.outTime ? 1 : 0,
+    );
+
     const sumNet = round2(records.reduce((a, r) => a + r.netWeight, 0));
     const delta = round2(sumNet - T);
     const countA = productCounts["再生细骨料"] || 0;
     const countB = productCounts["再生粉料"] || 0;
+    // Active-day stats: union of kept days + newly generated active days
+    const keptDaysSet = new Set(kept.map((r) => Number(r.outTime.slice(8, 10))));
+    const newActiveDaysSet = new Set<number>();
+    for (let di = 0; di < days.length; di++) {
+      if (dayTons[di] > 0) newActiveDaysSet.add(days[di]);
+    }
+    const activeDaysUnion = new Set([...keptDaysSet, ...newActiveDaysSet]);
+    const activeDays = activeDaysUnion.size || activeDaysNew;
+    const zeroDays = dim - activeDays;
     perConsignee.push({
       consignee: row.consignee,
       target: T,
@@ -912,6 +1093,10 @@ function main() {
       activeDays,
       activeDayRate: profile.activeDayRate,
       zeroDays,
+      keptTrips: kept.length,
+      newTrips: newRecords.length,
+      keptNet,
+      genTarget: T_gen,
     });
     const slug = shortConsignee(row.consignee);
     for (let i = 0; i < records.length; i += cfg.batchSize) {
@@ -926,7 +1111,7 @@ function main() {
 
     allRecords.push(...records);
     console.log(
-      `[expand] ${slug}: trips=${records.length} activeDays=${activeDays}/${dim} rate=${profile.activeDayRate} sumNet=${sumNet} target=${T} delta=${delta}`,
+      `[expand] ${slug}: kept=${kept.length} new=${newRecords.length} trips=${records.length} activeDays=${activeDays}/${dim} rate=${profile.activeDayRate} sumNet=${sumNet} target=${T} delta=${delta} (genTarget=${T_gen})`,
     );
   }
 

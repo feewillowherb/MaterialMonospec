@@ -48,12 +48,12 @@ scenario:
   businessHours: ["06:00", "17:30"]
   businessHoursSoftMarginMinutes: 30
   outOfWindowRate: 0.08
-  tripNetMin: 19
-  tripNetMax: 23
-  tareMin: 13
-  tareMax: 14.5
-  grossMin: 33
-  grossMax: 37
+  tripNetMin: 48
+  tripNetMax: 52
+  tareMin: 19
+  tareMax: 21
+  grossMin: 67
+  grossMax: 73
   epsilon: 0.01
   dayWeightJitter: 0.15
   # Q11: company activity differentiation + quiet weekends

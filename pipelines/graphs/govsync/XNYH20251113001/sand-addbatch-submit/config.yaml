@@ -42,9 +42,11 @@ scenario:
   pointNumber: XNYH20251113001
   mode: validate-only # validate-only | smoke | resume | full
   smokeMaxTrips: 1
-  batchSize: 100
+  # Photos ~0.5MB each → keep batch small (5 caused gateway 504)
+  batchSize: 1
   requestIntervalMs: 200
   skipPosted: true
+  stopOnBatchError: false
   # Durable skip ledger per month (gitignored): state/<yyyy-MM>/submit-state.jsonl
   durableStateRel: state/2026-01/submit-state.jsonl
   embedOutPhotosFromPath: true
