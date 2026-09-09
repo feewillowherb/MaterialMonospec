@@ -390,22 +390,31 @@ function pad2(n: number) {
   return String(n).padStart(2, "0");
 }
 
-/** Q10: receivingTime = outTime + Uniform[1.5h, 2.5h] (90–150 minutes inclusive). */
+/** Q10: receivingTime = outTime + Uniform[1.5h, 2.5h]; seconds MUST differ from outTime. */
 function addReceivingTime(outTime: string, rand: () => number): string {
   const m = outTime.match(
     /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
   );
   if (!m) throw new Error(`Bad outTime for receivingTime: ${outTime}`);
+  const outSs = Number(m[6]);
   const dt = new Date(
     Number(m[1]),
     Number(m[2]) - 1,
     Number(m[3]),
     Number(m[4]),
     Number(m[5]),
-    Number(m[6]),
+    outSs,
   );
-  const deltaMin = 90 + Math.floor(rand() * 61); // 90..150 inclusive
-  dt.setMinutes(dt.getMinutes() + deltaMin);
+  // Second-level Δ ∈ [5400, 9000] so mm:ss naturally vary; then force ss ≠ outSs.
+  let deltaSec = 5400 + Math.floor(rand() * 3601);
+  dt.setSeconds(dt.getSeconds() + deltaSec);
+  if (dt.getSeconds() === outSs) {
+    if (deltaSec < 9000) {
+      dt.setSeconds(dt.getSeconds() + 1);
+    } else {
+      dt.setSeconds(dt.getSeconds() - 1);
+    }
+  }
   return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}:${pad2(dt.getSeconds())}`;
 }
 
@@ -994,6 +1003,8 @@ function main() {
   const l2 =
     allRecords.every((r) => {
       const offsetH = receivingOffsetHours(r.outTime, r.receivingTime);
+      const outSs = r.outTime.slice(-2);
+      const recvSs = r.receivingTime.slice(-2);
       return (
         allowed.has(r.productName) &&
         dataNoRe.test(r.dataNo) &&
@@ -1003,7 +1014,8 @@ function main() {
         addressByConsignee.get(r.consignee) === r.consigneeAddress &&
         !!r.receivingTime &&
         offsetH >= 1.5 - 1e-9 &&
-        offsetH <= 2.5 + 1e-9
+        offsetH <= 2.5 + 1e-9 &&
+        outSs !== recvSs
       );
     }) &&
     perConsignee.every((x) => x.productRatioOk) &&

@@ -31,14 +31,16 @@
 
 ```text
 receivingTime = outTime + Δ
-Δ ∼ Uniform[1.5h, 2.5h]   # 含端点；实现可用分钟：90～150 分钟整数或等价秒级
+Δ ∼ Uniform[1.5h, 2.5h]   # 含端点；实现用**秒级**偏移（5400～9000 秒）
 格式：yyyy-MM-dd HH:mm:ss（与 outTime 同形）
+**禁止** receivingTime 与 outTime 的「秒」字段相同（避免整分钟相加导致 :ss 克隆）
 ```
 
 | 要求 | 说明 |
 |------|------|
 | 基点 | 必须以该车次 **`outTime`** 为起点，禁止另抽无关日历时刻 |
 | 区间 | 偏移 **≥ 1.5 小时且 ≤ 2.5 小时**（典型在途/卸货到达） |
+| 秒位 | **`ss(receivingTime) ≠ ss(outTime)`** |
 | 跨日 | 允许跨自然日（如出场 23:00 → 收货次日 01:00 仍合法，只要 Δ∈[1.5h,2.5h]） |
 | 重放 | 同一 `dataNo` / 同一 seed 下 `receivingTime` 应稳定（写入台账或由确定性 RNG 复算） |
 
@@ -200,7 +202,7 @@ _tools/sand-addbatch-mock/                              # 可选实现目录（�
 
 - [ ] 每收货公司每月 `Σ netWeight` 与 `_tmp/data.md` 差 ≤ 0.01
 - [ ] `productName` 仅为 `再生细骨料` / `再生粉料`，同月车次近似 1:1；`consignee` 为月表收货公司名称
-- [ ] **Q10**：若含 `receivingTime`，则相对同条 `outTime` 偏移 ∈ **[1.5h, 2.5h]**
+- [ ] **Q10**：若含 `receivingTime`，则相对同条 `outTime` 偏移 ∈ **[1.5h, 2.5h]**，且 **秒位不同**
 - [ ] `dataNo` 形如 `fl-{pointNumber小写}-yyyyMMddHHmmss-0001`（例 `fl-xnyh20251113001-…`）；同日序号递增
 - [ ] **Q7**：存在持久化 `dataNo` 台账；重跑不改已落盘号；可按台账组装更新载荷
 - [ ] 五家 `consignee` 均可在 [06](./06-收货方到货地址.md) 查到 `consigneeAddress`
