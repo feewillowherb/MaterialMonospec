@@ -30,8 +30,8 @@ target:
 
 source:
   # Frozen copy of transform run (do not auto-overwrite)
-  runId: "2026-09-09T145649"
-  runDirRel: seeds/source-run/2026-09-09T145649
+  runId: "2026-09-09T152356"
+  runDirRel: seeds/source-run/2026-09-09T152356
   jsonGlob: json/*.json
   ledgerRel: ledgers/dataNo-ledger.jsonl
   submitMetaRel: submit-meta.json

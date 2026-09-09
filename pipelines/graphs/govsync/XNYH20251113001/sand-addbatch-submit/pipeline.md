@@ -31,7 +31,7 @@ Status: **active**（骨架已落；**默认禁止自动 POST**）
 
 - `./config.yaml`（`submitEnabled: false`）
 - `./secrets.example.yaml` → `secrets.local.yaml`
-- 冻结输入：`./seeds/source-run/2026-09-09T145649/`（自 transform run 拷贝）
+- 冻结输入：`./seeds/source-run/2026-09-09T152356/`（自 transform run 拷贝）
 - 方案：[docs/2026-09-07-sand-product-transport-addbatch-mock](../../../../../docs/2026-09-07-sand-product-transport-addbatch-mock/00-调研总览.md)
 
 ## Sockets
@@ -81,9 +81,9 @@ flowchart LR
 
 | 字段 | 值 |
 |------|-----|
-| sourceRunId | `2026-09-09T145649` |
-| 路径 | `seeds/source-run/2026-09-09T145649/` |
-| 来源 | `../sand-addbatch-2026-01/runs/2026-09-09T145649/` |
+| sourceRunId | `2026-09-09T152356` |
+| 路径 | `seeds/source-run/2026-09-09T152356/` |
+| 来源 | `../sand-addbatch-2026-01/runs/2026-09-09T152356/` |
 
 ## Invoke
 

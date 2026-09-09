@@ -19,7 +19,7 @@ $ErrorActionPreference = "Stop"
 $GraphRoot = Split-Path -Parent $PSScriptRoot
 $ConfigPath = Join-Path $GraphRoot "config.yaml"
 $SecretsPath = Join-Path $GraphRoot "secrets.local.yaml"
-$SourceRunRelDefault = "seeds\source-run\2026-09-09T145649"
+$SourceRunRelDefault = "seeds\source-run\2026-09-09T152356"
 
 function Get-YamlScalar {
     param([string] $Text, [string] $Key)
@@ -41,7 +41,7 @@ if (-not (Test-Path -LiteralPath $ConfigPath)) { throw "Missing config: $ConfigP
 $configText = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::UTF8)
 $submitEnabled = Get-YamlScalar -Text $configText -Key "submitEnabled"
 $runId = Get-YamlScalar -Text $configText -Key "runId"
-if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "2026-09-09T145649" }
+if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "2026-09-09T152356" }
 $sourceRel = Get-YamlScalar -Text $configText -Key "runDirRel"
 if ([string]::IsNullOrWhiteSpace($sourceRel)) { $sourceRel = $SourceRunRelDefault.Replace("\", "/") }
 

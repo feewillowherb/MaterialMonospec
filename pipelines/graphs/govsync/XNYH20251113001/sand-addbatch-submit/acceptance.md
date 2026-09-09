@@ -6,7 +6,7 @@ Agent 不得将本文件改为通过。用户回复 `pass` / `fail` 后，只改
 
 | 项 | 值 |
 |----|-----|
-| sourceRunId | `2026-09-09T145649` |
+| sourceRunId | `2026-09-09T152356` |
 | submitEnabled | **false**（默认） |
 | run | |
 | L0 | pending |
