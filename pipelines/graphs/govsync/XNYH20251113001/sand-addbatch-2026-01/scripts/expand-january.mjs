@@ -1,20 +1,19 @@
 /**
- * experimental — sand-addbatch-2026-01
- * Expand Jan 2026 monthly sand tonnage → §2.2 addBatch JSON (dryRun).
+ * experimental — sand-addbatch-2026-01 (XNYH20251113001)
+ * Expand Jan 2026 monthly tonnage → §2.2 addBatch **review JSON** (NO POST).
  *
- * node expand-january.mjs --outDir <runDir> --seeds <yaml> --csvDir <pool> [--embedPhotos]
+ * node expand-january.mjs --outDir <runDir> --seeds <yaml> --csvDir <pool> [--pointNumber <id>]
  */
 import fs from "node:fs";
 import path from "node:path";
 
 function parseArgs(argv) {
-  const o = { embedPhotos: false };
+  const o = {};
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--outDir") o.outDir = argv[++i];
     else if (a === "--seeds") o.seeds = argv[++i];
     else if (a === "--csvDir") o.csvDir = argv[++i];
-    else if (a === "--embedPhotos") o.embedPhotos = true;
     else if (a === "--seed") o.seed = Number(argv[++i]);
     else if (a === "--pointNumber") o.pointNumber = argv[++i];
   }
@@ -37,7 +36,7 @@ function round2(n) {
 }
 
 function parseSimpleYamlTotals(text) {
-  const yearMatch = text.match(/(?m)^year:\s*(\d+)/);
+  const yearMatch = text.match(/^year:\s*(\d+)/m);
   const year = yearMatch ? Number(yearMatch[1]) : 2026;
   const productNames = ["再生细骨料", "再生粉料"];
   const rows = [];
@@ -309,7 +308,7 @@ function main() {
   const args = parseArgs(process.argv);
   if (!args.outDir || !args.seeds || !args.csvDir) {
     console.error(
-      "Usage: node expand-january.mjs --outDir <dir> --seeds <yaml> --csvDir <dir> [--embedPhotos]",
+      "Usage: node expand-january.mjs --outDir <dir> --seeds <yaml> --csvDir <dir> [--pointNumber <id>]",
     );
     process.exit(2);
   }
@@ -329,16 +328,18 @@ function main() {
     batchSize: 100,
     hourProximityHours: 2,
     seed: args.seed || 20260908,
-    pointNumber: args.pointNumber || "",
+    pointNumber: args.pointNumber || "XNYH20251113001",
     productNames: ["再生细骨料", "再生粉料"],
-    embedPhotos: !!args.embedPhotos,
   };
 
   const outDir = path.resolve(args.outDir);
-  const dryDir = path.join(outDir, "dry-run");
+  const jsonDir = path.join(outDir, "json");
   const prepareDir = path.join(outDir, "prepare");
-  fs.mkdirSync(dryDir, { recursive: true });
+  fs.mkdirSync(jsonDir, { recursive: true });
   fs.mkdirSync(prepareDir, { recursive: true });
+
+  // HARD: this transform Graph never submits.
+  const submitEnabled = false;
 
   const seeds = parseSimpleYamlTotals(fs.readFileSync(args.seeds, "utf8"));
   cfg.productNames = seeds.productNames || cfg.productNames;
@@ -434,26 +435,19 @@ function main() {
       const stamp = t.outTime.replace(/[-: ]/g, "").slice(0, 14);
       const dataNo = `fl-${stamp}-${String(seq).padStart(4, "0")}`;
 
-      let outPhotos = "";
-      if (cfg.embedPhotos) {
-        try {
-          outPhotos = fs.readFileSync(t.photoPath).toString("base64");
-        } catch {
-          outPhotos = "";
-        }
-      }
-
       const rec = {
         dataNo,
         dataStatus: 0,
-        pointNumber: cfg.pointNumber || "<user-provided-after-dryRun>",
+        pointNumber: cfg.pointNumber,
         carNo: t.plate,
         productName,
         netWeight: t.net,
         tareWeight: t.tare,
         grossWeight: t.gross,
         outTime: t.outTime,
-        outPhotos,
+        // Review JSON: path for acceptance; base64 only in a future submit Graph
+        outPhotos: null,
+        outPhotosPath: t.photoPath,
         consignee: t.consignee,
       };
       records.push(rec);
@@ -487,13 +481,13 @@ function main() {
       productTons,
       productRatioOk: Math.abs(countA - countB) <= 1,
     });
-    // write batches
+    // write JSON batches for parameter review (no POST)
     const slug = shortConsignee(row.consignee);
     for (let i = 0; i < records.length; i += cfg.batchSize) {
       const chunk = records.slice(i, i + cfg.batchSize);
       const part = String(Math.floor(i / cfg.batchSize)).padStart(3, "0");
       const file = path.join(
-        dryDir,
+        jsonDir,
         `${cfg.year}-${pad2(cfg.month)}-${slug}.part${part}.json`,
       );
       fs.writeFileSync(file, JSON.stringify(chunk, null, 2), "utf8");
@@ -511,6 +505,32 @@ function main() {
     "utf8",
   );
 
+  const submitMeta = {
+    submitEnabled: false,
+    note: "This Graph only writes review JSON. Do not POST from here.",
+    method: "POST",
+    baseUrl:
+      "https://gzt.cgw.hangzhou.gov.cn/muckmanage/addmtd0p1q/api/zhztc-module-exapi",
+    path: "/dataCenter/resourcePlace/productTransportRecord/v1/addBatch",
+    pointNumber: cfg.pointNumber,
+    productNames: cfg.productNames,
+    year: cfg.year,
+    month: cfg.month,
+    tripCount: allRecords.length,
+    outPhotos: "null in review JSON; use outPhotosPath; embed base64 only in submit Graph",
+    hmacHeaders: [
+      "X-AKZTJG-HMAC-ACCESS-KEY",
+      "X-AKZTJG-HMAC-ALGORITHM",
+      "X-AKZTJG-HMAC-SIGNATURE",
+      "X-AKZTJG-HMAC-DATE",
+    ],
+  };
+  fs.writeFileSync(
+    path.join(outDir, "submit-meta.json"),
+    JSON.stringify(submitMeta, null, 2),
+    "utf8",
+  );
+
   const monthTarget = round2(perConsignee.reduce((a, x) => a + x.target, 0));
   const monthSum = round2(perConsignee.reduce((a, x) => a + x.sumNet, 0));
   const aligned = manifestLines.filter((l) => JSON.parse(l).dayPartAligned).length;
@@ -519,18 +539,25 @@ function main() {
   const allowed = new Set(cfg.productNames);
   const l2 =
     allRecords.every(
-      (r) => allowed.has(r.productName) && /^fl-\d{14}-\d{4}$/.test(r.dataNo),
+      (r) =>
+        allowed.has(r.productName) &&
+        /^fl-\d{14}-\d{4}$/.test(r.dataNo) &&
+        r.outPhotos === null &&
+        !!r.outPhotosPath,
     ) &&
     perConsignee.every((x) => x.productRatioOk) &&
-    aligned === manifestLines.length;
+    aligned === manifestLines.length &&
+    submitEnabled === false;
 
   const summary = {
     graph: "sand-addbatch-2026-01",
     goal: "gov-sand-product-addbatch-2026-01",
+    site: "XNYH20251113001",
     year: cfg.year,
     month: cfg.month,
-    dryRun: true,
-    embedPhotos: cfg.embedPhotos,
+    submitEnabled: false,
+    outputFormat: "json",
+    socketEnd: "submit-params-json-ready",
     seed: cfg.seed,
     poolStats,
     perConsignee,
@@ -545,9 +572,9 @@ function main() {
       L0: l0 ? "pass" : "fail",
       L1: l1 ? "pass" : "fail",
       L2: l2 ? "pass" : "fail",
-      L3: "pending-user",
+      L3: "pending-user-params-review",
     },
-    message: "等待用户验收，尚未通过。",
+    message: "等待用户验收拟提交 JSON 参数，尚未通过。本图禁止 POST。",
   };
   fs.writeFileSync(
     path.join(outDir, "summary.json"),
@@ -558,18 +585,20 @@ function main() {
   const report = [
     "# sand-addbatch-2026-01 report",
     "",
+    `- submitEnabled: **false** (no POST)`,
     `- month: ${cfg.year}-${pad2(cfg.month)}`,
+    `- pointNumber: ${cfg.pointNumber}`,
     `- trips: ${allRecords.length}`,
     `- monthSum: ${monthSum} / target ${monthTarget}`,
     `- pool: ${poolStats.total} (day=${poolStats.day}, night=${poolStats.night})`,
     `- dayPart aligned: ${aligned}/${manifestLines.length}`,
-    `- embedPhotos: ${cfg.embedPhotos}`,
+    `- output: json/ + submit-meta.json`,
     "",
     "## Per consignee",
     "",
     ...perConsignee.map(
       (x) =>
-        `- ${x.consignee}: sum=${x.sumNet} target=${x.target} delta=${x.delta} trips=${x.tripCount} ok=${x.ok}`,
+        `- ${x.consignee}: sum=${x.sumNet} target=${x.target} delta=${x.delta} trips=${x.tripCount} ok=${x.ok} products=${JSON.stringify(x.productCounts)}`,
     ),
     "",
     "## Levels",
@@ -579,13 +608,13 @@ function main() {
     `- L2: ${summary.levels.L2}`,
     `- L3: ${summary.levels.L3}`,
     "",
-    "等待用户验收，尚未通过。",
+    "等待用户验收拟提交 JSON 参数，尚未通过。本图禁止 POST。",
     "",
   ].join("\n");
   fs.writeFileSync(path.join(outDir, "report.md"), report, "utf8");
 
   console.log(
-    `[done] trips=${allRecords.length} L0=${summary.levels.L0} L1=${summary.levels.L1} L2=${summary.levels.L2}`,
+    `[done] submitEnabled=false trips=${allRecords.length} L0=${summary.levels.L0} L1=${summary.levels.L1} L2=${summary.levels.L2}`,
   );
   if (!l0 || !l1 || !l2) process.exit(1);
 }

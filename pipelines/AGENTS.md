@@ -45,7 +45,7 @@ pipelines/graphs/
 | `materialclient` | MaterialClient（Avalonia 称重桌面） | `attended-list-observe` |
 | `urban` | UrbanManagement（城管 Web） | `weighing-list-observe` |
 | `baseplatform` | FdSoft.BasePlatform | `login-smoke` |
-| `govsync` | 政府平台出站/对接探测与采证 | `xiaoshan-gate` |
+| `govsync` | 政府平台出站/对接探测与采证 | `xiaoshan-gate`；站点图可用 `graphs/govsync/<PointNumber>/<slug>/`（如 `XNYH20251113001/sand-addbatch-2026-01`） |
 | `platform` | 跨产品运维：表导入导出、库同步、冒烟等 | `sqlite-reconcile` |
 
 新增 domain **MUST** 先改本文件词表，再落盘。
@@ -103,6 +103,7 @@ graph:
 2. 从用户意图抽取 `product` / `domain` / `family` / `goal`（缺则 Ask，**禁止猜**）。
 3. 候选范围：
    - 优先：`graphs/<domain>/*/` 且 `graph.status: active`（及元数据匹配）；
+   - 亦扫：`graphs/<domain>/<site-or-point>/*/`（如 govsync 下 PointNumber 站点根）；
    - 兼容：仍存在的平铺 `graphs/<slug>/` 或极旧 `pipelines/<slug>/`（见 §6）。
 4. 过滤 `family` / `goal`；列出命中路径。
 5. **0 命中** → Ask 是否新建（走 `/gen-*-pipeline` 或手写模板）。  
@@ -182,7 +183,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | gov-xiaoshan-serve-api-post | probe | `graphs/govsync/xiaoshan-serve-apipost/` | active |
 | gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
 | gov-recycle-hmac-auth | probe | `graphs/govsync/recycle-hmac-auth/` | active |
-| gov-sand-product-addbatch-2026-01 | transform | `graphs/govsync/sand-addbatch-2026-01/` | active |
+| gov-sand-product-addbatch-2026-01 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 | urban-passage-lpr-probe | probe | `graphs/urban/urban-passage-probe/` | active |

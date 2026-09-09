@@ -6,15 +6,20 @@ graph:
   family: transform
   goal: gov-sand-product-addbatch-2026-01
   status: active
+  site: XNYH20251113001
 environment: local
 stopOnError: true
 secretsRef: secrets.local.yaml
 sockets:
   start: monthly-tonnage-raw
-  end: addbatch-json-ready
+  end: submit-params-json-ready
 cook: new-object
 
+# HARD: this Graph never POSTs. User accepts JSON params first; submit is a separate Graph/step.
+submitEnabled: false
+
 target:
+  baseUrl: https://gzt.cgw.hangzhou.gov.cn/muckmanage/addmtd0p1q/api/zhztc-module-exapi
   path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
   method: POST
   docsRef: docs/2026-09-07-sand-product-transport-addbatch-mock/01-数据源与目标接口.md
@@ -22,7 +27,6 @@ target:
   fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
   contractRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
   seedsRel: seeds/monthly-totals.yaml
-  # Q9 plate/photo pool (relative to MaterialMonospec root)
   platePhotoPool:
     csvDirRel: pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv
     requirePhotoFound: true
@@ -52,18 +56,18 @@ scenario:
   dayWeightJitter: 0.15
   batchSize: 100
   seed: 20260908
-  pointNumber: "" # Q3: fill after dryRun acceptance (secrets or -PointNumber)
-  # dryRun: write JSON only; do NOT POST. outPhotos deferred to path in _meta (avoid multi-GB runs)
-  dryRun: true
-  embedPhotos: false
+  pointNumber: XNYH20251113001
+  # Review JSON only: API fields + outPhotosPath; outPhotos base64 omitted until a submit Graph
+  outputFormat: json
+  includeOutPhotosBase64: false
 
 steps:
   - id: bind-inputs
-    name: 加载 1 月吨位种子 + Q9 车牌/图池 CSV
-  - id: cook-expand
-    name: 月→日→车次→outTime；按 dayPart 绑池；写 dry-run JSON + manifest
+    name: 加载 1 月吨位种子 + Q9 车牌/图池 CSV + PointNumber
+  - id: cook-expand-json
+    name: 拆分车次；写出拟提交参数 JSON（禁止 POST）
   - id: validate-conservation
-    name: 校验 ΣnetWeight vs 月表；dataNo/fl-；昼夜同档抽样统计
+    name: 校验吨位守恒 / dataNo / 产品 1:1 / 昼夜同档
 
 expect:
   - id: seeds-readable
@@ -74,18 +78,21 @@ expect:
     description: 每收货公司 1 月 ΣnetWeight 与种子差 ≤ 0.01；全月合计 ≈ 123344.32
   - id: shape-and-daypart
     level: L2
-    description: dataNo 为 fl-…；productName∈{再生细骨料,再生粉料} 且约 1:1；池绑定 dayPart 对齐；重量落在 Q5（不抄池）
-  - id: business-ok
+    description: JSON 含 §2.2 拟提交字段；productName 1:1；dayPart 对齐；无 HTTP 调用
+  - id: params-review
     level: L3
-    description: 用户抽查 JSON/manifest 后 pass — 仅用户
+    description: 用户验收拟提交参数（pointNumber/carNo/重量/outTime/产品/consignee/图路径）— 仅用户
 
 capture:
   prepare:
     required: true
     sink: prepare/
-  dryRun:
+  json:
     required: true
-    sink: dry-run/
+    sink: json/
+  submitMeta:
+    required: true
+    sink: submit-meta.json
   manifest:
     required: true
     sink: photo-manifest.jsonl
@@ -98,7 +105,7 @@ capture:
 
 humanGates:
   - missing-pool-csv
-  - acceptance
+  - params-acceptance
 
 failurePolicy:
   retries: 0
@@ -110,3 +117,5 @@ adapters:
     script: scripts/Invoke-SandAddbatch202601.ps1
     experimental: true
     nodeTool: scripts/expand-january.mjs
+    # secrets reserved for a future submit Graph; unused while submitEnabled=false
+    secretsKeys: [accessKey, secretKey]
