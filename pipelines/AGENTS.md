@@ -117,9 +117,11 @@ Invoke 路径示例（分层后）：
 # 相对仓库根
 powershell -ExecutionPolicy Bypass -File pipelines/graphs/govsync/xiaoshan-gate/scripts/Invoke-XiaoshanUpload.ps1
 
-# 若日后启用 TS observe（可选）
+# TS cook / observe：在 pipelines/ 下经 pnpm + tsx（见 §4.1）
 cd pipelines
-pnpm observe -- ./graphs/<domain>/<slug>
+pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
+# 若启用 observe runner（可选）
+# pnpm observe -- ./graphs/<domain>/<slug>
 # 相对 _shared：从 graphs/<domain>/<slug>/ 为 ../../../_shared/...
 ```
 
@@ -139,7 +141,26 @@ pnpm observe -- ./graphs/<domain>/<slug>
 
 密钥：仅 `secrets.local.yaml`（gitignore）。**MUST NOT** 把密码写进 `pipeline.md` / `config.yaml`。
 
-**Node/TS runtime**：`pipelines/package.json` + pnpm（共享 ingest 工具，如 `_shared/urban/tools/upsert-license-info/`）；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。**MUST NOT** 在 pipeline 中引入 C# 小工具（避免 `bin/`/`obj/` 产物）；SQLite ingest 用 Node ≥ 22.5 内置 `node:sqlite`。
+**Node/TS runtime**：`pipelines/package.json` + pnpm；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。**MUST NOT** 在 pipeline 中引入 C# 小工具（避免 `bin/`/`obj/` 产物）；SQLite 用 Node ≥ 22.5 内置 `node:sqlite`。
+
+### 4.1 Cook 脚本语言选型（Node）
+
+编排入口仍是 **PowerShell**；下列约束仅针对 Graph / `_shared` 下的 Node cook 内核。
+
+| 场景 | **MUST** | 调用 |
+|------|----------|------|
+| **复杂逻辑**（多模块、强数据结构、守恒/拆分/校验、可复用 transform/ingest） | **TypeScript**（`.ts`） | `pnpm exec tsx`（挂 `pipelines/package.json` scripts；首次需 `pnpm install`） |
+| **跨 Graph 复用**工具 | **TypeScript**，放 `_shared/` | 同上 |
+| **短探针 / 一次性**、仅 stdlib、逻辑一目了然 | 允许 `.mjs` + 裸 `node` | `& node $ToolPath` |
+
+硬约束：
+
+- **新建**复杂 cook：**MUST** 用 `.ts`，**MUST NOT** 新开大型 `.mjs`「图内核」。
+- 复杂脚本 **MUST** 落在根 `pipelines/` workspace（**MUST NOT** 为单 Graph 另建 `package.json`）。
+- Invoke **MUST** 与 `solidwaste-pair-ingest` 对齐：检测 `tsx` → 必要时 `pnpm install` → `pnpm exec tsx …`。
+- 存量 `.mjs`（如 `expand-january.mjs`、`export-csv.mjs`）**不强制**本 change 迁 TS；**触及重写或大幅扩展时 MUST 迁为 `.ts`**。
+
+参考：`graphs/materialclient/solidwaste-pair-ingest/scripts/ingest-pair.ts`、`_shared/urban/tools/upsert-license-info/`。
 
 ---
 
@@ -152,6 +173,7 @@ pnpm observe -- ./graphs/<domain>/<slug>
 - [ ] 共享引用深度正确（分层：`../../../_shared/...`）
 - [ ] 同 `goal` 无第二个 `active`
 - [ ] 脚本只放该 Graph 的 `scripts/`，标 `experimental`
+- [ ] 复杂 Node cook 用 `.ts` + `tsx`（见 §4.1）；短探针才允许 `.mjs`
 
 **退役**
 
@@ -194,6 +216,8 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
+
+Retired：`graphs/_retired/2026-09/sand-addbatch-2026-01/`（前任 1 月 sand addBatch；继任同 path 重建）。
 
 Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）。
 

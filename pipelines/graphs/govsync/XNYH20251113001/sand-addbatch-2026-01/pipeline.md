@@ -2,15 +2,16 @@
 
 ## 目的 / Goal
 
-生成 **2026 年 1 月** §2.2 `addBatch` **拟提交参数 JSON**，供用户验收字段后再决定是否另图 POST。
+生成 **2026 年 1 月** §2.2 `addBatch` **待 POST JSON**（含 `consigneeAddress`、持久化 `dataNo` 台账），供用户验收后再另图提交。
 
 - **本图禁止提交**（`submitEnabled: false`；脚本不得 HTTP）
-- 产物为 JSON（车次 Array + `submit-meta.json`）
-- 照片：JSON 内写 `outPhotosPath`；**不**写 Base64（避免超大文件）
+- 产物：`json/*.json` + `ledgers/dataNo-ledger.jsonl` + `submit-meta.json`
+- `dataNo`：`fl-{pointNumber小写}-{yyyyMMddHHmmss}-{seq}`（例 `fl-xnyh20251113001-…`）
+- 照片：JSON 内写 `outPhotosPath`；**不**写 Base64（正式 POST 另图 embed）
 
 Goal 槽：`gov-sand-product-addbatch-2026-01`
 
-Status: **active**
+Status: **active**（2026-09-09 重建；前任见 `_retired/2026-09/sand-addbatch-2026-01/`）
 
 路径：`pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/`
 
@@ -30,14 +31,15 @@ Status: **active**
 
 - `./config.yaml`（`submitEnabled: false`，`outputFormat: json`）
 - `./seeds/monthly-totals.yaml`
+- `./seeds/consignee-addresses.yaml`
 - Q9 池：`pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv/`
 - `./secrets.local.yaml`（仅预留；本图不用）
-- Node：`./scripts/expand-january.mjs`（experimental）
+- Node/TS：`./scripts/expand-january.ts`（experimental；`pnpm exec tsx`）
 - Invoke：`./scripts/Invoke-SandAddbatch202601.ps1`（experimental）
 
 ## 前置
 
-1. Node.js 22.5+
+1. Node.js 22.5+；`pipelines/` 下可 `pnpm exec tsx`
 2. 已跑过 `recycle-wenyixilu-export`，`out/latest/csv` 存在
 
 ## Sockets
@@ -51,7 +53,7 @@ Status: **active**
 ## Context
 
 - 指针：`target.baseUrl` + `pointNumber=XNYH20251113001`
-- 验收对象：JSON 内 `dataNo` / `carNo` / `productName` / 净皮毛 / `outTime` / `consignee` / `outPhotosPath`
+- 验收：`dataNo` / `carNo` / `productName` / 净皮毛 / `outTime` / `consignee` / `consigneeAddress` / `outPhotosPath` / 台账
 
 ## 状态机 / Cook chain
 
@@ -64,27 +66,26 @@ flowchart LR
   BindN -->|"monthly-tonnage-raw"| CookN -->|"submit-params-json-ready"| ValN --> GateN
 ```
 
-1. **bind-inputs** — 种子 + 池 + PointNumber
-2. **cook-expand-json** — 拆分并写 `json/*.json` + `submit-meta.json`（**无 HTTP**）
+1. **bind-inputs** — 种子 + 地址 + 池 + PointNumber
+2. **cook-expand-json** — 拆分并写 `json/` + `ledgers/` + `submit-meta.json`（**无 HTTP**）
 3. **validate-conservation** — L0–L2
-4. **Gate** — 用户验收拟提交参数
+4. **Gate** — 用户验收待 POST 参数
 
-## 证据包（JSON 产物）
+## 证据包
 
 相对 `runs/<yyyy-MM-ddTHHmmss>/`：
 
 | collector | sink | 说明 |
 |-----------|------|------|
 | prepare | `prepare/` | 工作副本 |
-| json | `json/` | 拟提交车次 Array（按收货公司分片） |
-| submitMeta | `submit-meta.json` | URL/method/pointNumber；`submitEnabled:false` |
+| json | `json/` | 待 POST 车次 Array（按收货公司分片） |
+| ledger | `ledgers/dataNo-ledger.jsonl` | Q7 持久化 `dataNo` |
+| submitMeta | `submit-meta.json` | URL/method；`submitEnabled:false` |
 | manifest | `photo-manifest.jsonl` | 图路径与昼夜对齐 |
 | summary | `summary.json` | |
 | report | `report.md` | |
 
 镜像：`out/latest/`（gitignore）。
-
-单条 JSON 字段（验收用）：`dataNo` `dataStatus` `pointNumber` `carNo` `productName` `netWeight` `tareWeight` `grossWeight` `outTime` `consignee` `outPhotosPath`；`outPhotos` 固定 `null`（正式提交前再 embed）。
 
 ## Invoke
 
@@ -97,18 +98,18 @@ powershell -ExecutionPolicy Bypass -File `
 
 ## 人闸 / Gate
 
-请验收拟提交参数：`pass` / `fail` + 对象与原因。  
+请验收待 POST 参数：`pass` / `fail` + 对象与原因。  
 通过后另开 submit Graph（本图永不自动 POST）。
 
 ## 判定级别
 
 | 级 | 谁判 |
 |----|------|
-| L0 种子/池可达 | Agent |
+| L0 种子/地址/池可达 | Agent |
 | L1 吨位守恒 | Agent 提示 |
-| L2 JSON 形态 + 昼夜 | Agent 提示 |
+| L2 JSON 形态 + dataNo + 台账 + 昼夜 | Agent 提示 |
 | L3 参数可提交性 | **用户** |
 
 ## Handoff
 
-Output：`submit-params-json-ready`。下游 submit Graph 读取本 run 的 `json/`，再 HMAC POST。
+Output：`submit-params-json-ready`。下游 submit Graph 读取本 run 的 `json/` + `ledgers/`，embed `outPhotos` 后 HMAC POST。

@@ -1,0 +1,13 @@
+# seeds — consignee → consigneeAddress
+# Source: docs/2026-09-07-sand-product-transport-addbatch-mock/06-收货方到货地址.md
+addresses:
+  - consignee: 安吉起陆建材有限公司
+    consigneeAddress: 金杭区闲林街道闲泰路二期道路工程
+  - consignee: 浙江锦秋建材有限公司
+    consigneeAddress: 余杭街道竹园村下舍圩
+  - consignee: 杭州临平腾满建筑材料商行（个体工商户）
+    consigneeAddress: 浙江省杭州市余杭区博园路13号
+  - consignee: 杭州三野建材有限公司
+    consigneeAddress: 余杭区径山镇漕桥村杭州径山茶业有限公司内2幢
+  - consignee: 杭州永武建材有限公司
+    consigneeAddress: 余杭街道义桥村新庵前100号

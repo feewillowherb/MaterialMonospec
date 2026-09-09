@@ -4,8 +4,10 @@
 
 | Graph | Family | Goal | 说明 |
 |-------|--------|------|------|
-| `sand-addbatch-2026-01/` | transform | `gov-sand-product-addbatch-2026-01` | **禁止 POST**；产出拟提交 JSON 供验收 |
+| `sand-addbatch-2026-01/` | transform | `gov-sand-product-addbatch-2026-01` | **禁止 POST**；产出待 POST JSON + `dataNo` 台账 |
 
 路径约定见 [`pipelines/AGENTS.md`](../../../AGENTS.md)（`graphs/govsync/<PointNumber>/<slug>/`）。
 
 **MUST NOT** 在本目录提交 `secrets.local.yaml` / `runs/` / `out/`。
+
+Retired：`graphs/_retired/2026-09/sand-addbatch-2026-01/`（前任实现）。

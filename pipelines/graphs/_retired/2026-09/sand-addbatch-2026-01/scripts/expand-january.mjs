@@ -331,6 +331,7 @@ function main() {
     pointNumber: args.pointNumber || "XNYH20251113001",
     productNames: ["再生细骨料", "再生粉料"],
   };
+  const pointSlug = String(cfg.pointNumber).toLowerCase();
 
   const outDir = path.resolve(args.outDir);
   const jsonDir = path.join(outDir, "json");
@@ -417,7 +418,7 @@ function main() {
       }
     }
 
-    // Assign fl- dataNo by day order; productName 1:1 alternate (Q4)
+    // Assign fl-{pointNumber_lower}-… dataNo by day order; productName 1:1 alternate (Q4)
     trips.sort((a, b) => (a.outTime < b.outTime ? -1 : a.outTime > b.outTime ? 1 : 0));
     const daySeq = new Map();
     const records = [];
@@ -433,7 +434,7 @@ function main() {
       const seq = (daySeq.get(dayKey) || 0) + 1;
       daySeq.set(dayKey, seq);
       const stamp = t.outTime.replace(/[-: ]/g, "").slice(0, 14);
-      const dataNo = `fl-${stamp}-${String(seq).padStart(4, "0")}`;
+      const dataNo = `fl-${pointSlug}-${stamp}-${String(seq).padStart(4, "0")}`;
 
       const rec = {
         dataNo,
@@ -541,7 +542,9 @@ function main() {
     allRecords.every(
       (r) =>
         allowed.has(r.productName) &&
-        /^fl-\d{14}-\d{4}$/.test(r.dataNo) &&
+        new RegExp(`^fl-${pointSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-\\d{14}-\\d{4}$`).test(
+          r.dataNo,
+        ) &&
         r.outPhotos === null &&
         !!r.outPhotosPath,
     ) &&

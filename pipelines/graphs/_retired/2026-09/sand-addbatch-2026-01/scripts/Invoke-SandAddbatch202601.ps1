@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Experimental cook: expand 2026-01 sand totals to pending-POST JSON (NO HTTP).
+  Experimental cook: expand 2026-01 sand totals to review JSON (NO POST).
   Graph: pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/
 #>
 [CmdletBinding()]
@@ -14,13 +14,10 @@ $ErrorActionPreference = "Stop"
 
 $GraphRoot = Split-Path -Parent $PSScriptRoot
 $RepoRoot = (Resolve-Path (Join-Path $GraphRoot "..\..\..\..\..")).Path
-$PipelinesRoot = (Resolve-Path (Join-Path $GraphRoot "..\..\..\..")).Path
 $ConfigPath = Join-Path $GraphRoot "config.yaml"
 $SecretsPath = Join-Path $GraphRoot "secrets.local.yaml"
-$ToolRel = "scripts/expand-january.ts"
-$ToolPath = Join-Path $GraphRoot $ToolRel
+$ToolPath = Join-Path $GraphRoot "scripts\expand-january.mjs"
 $SeedsPath = Join-Path $GraphRoot "seeds\monthly-totals.yaml"
-$AddressesPath = Join-Path $GraphRoot "seeds\consignee-addresses.yaml"
 
 function Get-YamlScalar {
     param([string] $Text, [string] $Key)
@@ -35,12 +32,11 @@ function Get-YamlScalar {
     return $null
 }
 
-Write-Host "[sand-addbatch-2026-01] starting (submitEnabled=false, pending-POST JSON only)..."
+Write-Host "[sand-addbatch-2026-01] starting (submitEnabled=false, JSON review only)..."
 
 if (-not (Test-Path -LiteralPath $ConfigPath)) { throw "Missing config: $ConfigPath" }
 if (-not (Test-Path -LiteralPath $ToolPath)) { throw "Missing tool: $ToolPath" }
 if (-not (Test-Path -LiteralPath $SeedsPath)) { throw "Missing seeds: $SeedsPath" }
-if (-not (Test-Path -LiteralPath $AddressesPath)) { throw "Missing addresses: $AddressesPath" }
 
 $configText = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::UTF8)
 $submitFlag = Get-YamlScalar -Text $configText -Key "submitEnabled"
@@ -68,36 +64,16 @@ if ([string]::IsNullOrWhiteSpace($RunDir)) {
 }
 New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
 
-$pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-if (-not $pnpm) { throw "pnpm not found on PATH (pipelines workspace)." }
-
-$tsxPkg = Join-Path $PipelinesRoot "node_modules\tsx\package.json"
-if (-not (Test-Path -LiteralPath $tsxPkg)) {
-    Write-Host "[bind] tsx missing — running pnpm install in pipelines/"
-    Push-Location $PipelinesRoot
-    try {
-        & pnpm install
-        if ($LASTEXITCODE -ne 0) { throw "pnpm install failed with exit $LASTEXITCODE" }
-    }
-    finally { Pop-Location }
-}
+$node = Get-Command node -ErrorAction SilentlyContinue
+if (-not $node) { throw "Node.js not found on PATH (need 22.5+)." }
 
 Write-Host "[bind] pointNumber=$pointNumber"
 Write-Host "[bind] submitEnabled=false (no HTTP)"
 
-Push-Location $PipelinesRoot
-try {
-    & pnpm exec tsx $ToolPath `
-        --outDir $RunDir `
-        --seeds $SeedsPath `
-        --csvDir $csvDir `
-        --addresses $AddressesPath `
-        --pointNumber $pointNumber
-    if ($LASTEXITCODE -ne 0) {
-        throw "expand-january.ts failed with exit $LASTEXITCODE"
-    }
+& node $ToolPath --outDir $RunDir --seeds $SeedsPath --csvDir $csvDir --pointNumber $pointNumber
+if ($LASTEXITCODE -ne 0) {
+    throw "expand-january.mjs failed with exit $LASTEXITCODE"
 }
-finally { Pop-Location }
 
 $outLatest = Join-Path $GraphRoot "out\latest"
 if (Test-Path -LiteralPath $outLatest) {
@@ -105,7 +81,6 @@ if (Test-Path -LiteralPath $outLatest) {
 }
 New-Item -ItemType Directory -Force -Path $outLatest | Out-Null
 Copy-Item -LiteralPath (Join-Path $RunDir "json") -Destination (Join-Path $outLatest "json") -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $RunDir "ledgers") -Destination (Join-Path $outLatest "ledgers") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $RunDir "submit-meta.json") -Destination $outLatest -Force
 Copy-Item -LiteralPath (Join-Path $RunDir "photo-manifest.jsonl") -Destination $outLatest -Force
 Copy-Item -LiteralPath (Join-Path $RunDir "summary.json") -Destination $outLatest -Force
@@ -113,5 +88,5 @@ Copy-Item -LiteralPath (Join-Path $RunDir "report.md") -Destination $outLatest -
 
 Write-Host "[done] runDir=$RunDir"
 Write-Host "[done] mirrored -> $outLatest"
-Write-Host "Gate: review pending-POST JSON params, reply pass / fail + object + reason."
+Write-Host "Gate: review JSON params, reply pass / fail + object + reason."
 Write-Host "NOTE: this Graph never POSTs."
