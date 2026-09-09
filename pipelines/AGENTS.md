@@ -181,6 +181,8 @@ pnpm observe -- ./graphs/<domain>/<slug>
 | gov-xiaoshan-gate-save | probe | `graphs/govsync/xiaoshan-gate/` | active |
 | gov-xiaoshan-serve-api-post | probe | `graphs/govsync/xiaoshan-serve-apipost/` | active |
 | gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
+| gov-recycle-hmac-auth | probe | `graphs/govsync/recycle-hmac-auth/` | active |
+| gov-sand-product-addbatch-2026-01 | transform | `graphs/govsync/sand-addbatch-2026-01/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
 | urban-passage-lpr-probe | probe | `graphs/urban/urban-passage-probe/` | active |

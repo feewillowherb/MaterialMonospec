@@ -9,7 +9,7 @@
 | `pointNumber` | dryRun 可用占位；**真实 POST 前由用户输入**（Q3） |
 | `carNo` | **Q9**：文一西路池 `PlateNumber`；与同条 `outPhotos` 绑定 |
 | `carrierCompanyName` | 可选；可省略 |
-| `productName` | 固定 **`沙加石`**（Q4） |
+| `productName` | **`再生细骨料`** / **`再生粉料`**，同 consignee×月车次 **1:1**（Q4） |
 | `netWeight` | 19–23 t（Q5）；**不读池** `TotalWeight` |
 | `tareWeight` | 13–14.5 t（Q5）；不读池 |
 | `grossWeight` | `net+tare`，目标 33–37 t（Q5）；不读池 |
@@ -19,7 +19,38 @@
 | `consigneeAddress` / `receivingTime` / `receivingProof` / `saleContractNo` / `unitPrice` / `payAmount` | **不传**（Q6） |
 
 **禁止**把月表「序号」当 `dataNo`；**禁止**使用 `sl-` 前缀（进场 Receiving）。  
-**禁止**白天抓拍配夜晚 `outTime`（或相反）；**禁止**用池重量覆盖 Q5。
+**禁止**白天抓拍配夜晚 `outTime`（或相反）；**禁止**用池重量覆盖 Q5。  
+**禁止**再使用 `沙加石` 作为 `productName`（已废止，见 Q4）。
+
+### Q4 · 产品 1:1（实现约束）
+
+```text
+对每个 consignee × month 的车次列表（按 outTime 排序后）:
+  偶数序 → productName = 再生细骨料
+  奇数序 → productName = 再生粉料
+  （或等价：交替赋值，使两种产品车次数差 ≤ 1）
+守恒仍对「全部车次 Σ netWeight = 月表吨位」；
+另验收：两种产品车次数近似 1:1，吨位差不超过约一车净重量级。
+```
+
+### 示例（单条，照片省略）
+
+```json
+{
+  "dataNo": "fl-20260203061722-0042",
+  "dataStatus": 0,
+  "pointNumber": "<user-provided-after-dryRun>",
+  "carNo": "浙A12B34",
+  "productName": "再生细骨料",
+  "netWeight": 21.30,
+  "tareWeight": 14.20,
+  "grossWeight": 35.50,
+  "outTime": "2026-02-03 06:17:22",
+  "outPhotos": "<base64>",
+  "consignee": "杭州三野建材有限公司"
+}
+```
+
 
 ### Q9 · 池抽样顺序（实现约束）
 
@@ -51,24 +82,6 @@ platePhotoPool:
   ignorePoolWeight: true      # Q9：重量始终 Q5
 ```
 
-### 示例（单条，照片省略）
-
-```json
-{
-  "dataNo": "fl-20260203061722-0042",
-  "dataStatus": 0,
-  "pointNumber": "<user-provided-after-dryRun>",
-  "carNo": "浙A12B34",
-  "productName": "沙加石",
-  "netWeight": 21.30,
-  "tareWeight": 14.20,
-  "grossWeight": 35.50,
-  "outTime": "2026-02-03 06:17:22",
-  "outPhotos": "<base64>",
-  "consignee": "杭州三野建材有限公司"
-}
-```
-
 ## 2. 配置与密钥
 
 ```yaml
@@ -76,7 +89,8 @@ platePhotoPool:
 apiBaseUrl: https://{host}
 path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
 pointNumber: ""          # Q3：dryRun 验收后由用户填写
-productName: 沙加石       # Q4 强制
+productNames: [再生细骨料, 再生粉料]  # Q4
+productRatio: "1:1"      # 同 consignee×月车次交替
 year: 2026
 workCalendar: all-days
 businessHours: ["06:00", "17:30"]  # 主窗口；允许少量越界
@@ -143,7 +157,7 @@ _tools/sand-addbatch-mock/                              # 可选实现目录（�
 ## 5. 验收清单
 
 - [ ] 每收货公司每月 `Σ netWeight` 与 `_tmp/data.md` 差 ≤ 0.01
-- [ ] `productName` 均为 `沙加石`；`consignee` 为月表收货公司名称；无收货完成字段
+- [ ] `productName` 仅为 `再生细骨料` / `再生粉料`，同月车次近似 1:1；`consignee` 为月表收货公司名称；无收货完成字段
 - [ ] `dataNo` 形如 `fl-yyyyMMddHHmmss-0001`；同日序号递增
 - [ ] `outTime` 多数在 06:00–17:30，允许少量边界外；任意日历日
 - [ ] **Q9**：抽查 `carNo`+图来自文一西路池；`dayPart(outTime)==dayPart(captureClock)`；净/皮/毛**未**抄池重量

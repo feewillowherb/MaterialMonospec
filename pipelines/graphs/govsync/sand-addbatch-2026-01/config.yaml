@@ -1,0 +1,112 @@
+id: sand-addbatch-2026-01
+created: "2026-09-08"
+graph:
+  product: materialclient
+  domain: govsync
+  family: transform
+  goal: gov-sand-product-addbatch-2026-01
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: monthly-tonnage-raw
+  end: addbatch-json-ready
+cook: new-object
+
+target:
+  path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
+  method: POST
+  docsRef: docs/2026-09-07-sand-product-transport-addbatch-mock/01-数据源与目标接口.md
+  algorithmRef: docs/2026-09-07-sand-product-transport-addbatch-mock/02-按天按时拆分算法.md
+  fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
+  contractRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
+  seedsRel: seeds/monthly-totals.yaml
+  # Q9 plate/photo pool (relative to MaterialMonospec root)
+  platePhotoPool:
+    csvDirRel: pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv
+    requirePhotoFound: true
+    preferAttachTypes: [2, 5]
+    dayPart:
+      dayStart: "06:00"
+      dayEnd: "18:00"
+    hourProximityHours: 2
+    ignorePoolWeight: true
+
+scenario:
+  year: 2026
+  month: 1
+  productNames: [再生细骨料, 再生粉料]
+  productRatio: "1:1"
+  workCalendar: all-days
+  businessHours: ["06:00", "17:30"]
+  businessHoursSoftMarginMinutes: 30
+  outOfWindowRate: 0.08
+  tripNetMin: 19
+  tripNetMax: 23
+  tareMin: 13
+  tareMax: 14.5
+  grossMin: 33
+  grossMax: 37
+  epsilon: 0.01
+  dayWeightJitter: 0.15
+  batchSize: 100
+  seed: 20260908
+  pointNumber: "" # Q3: fill after dryRun acceptance (secrets or -PointNumber)
+  # dryRun: write JSON only; do NOT POST. outPhotos deferred to path in _meta (avoid multi-GB runs)
+  dryRun: true
+  embedPhotos: false
+
+steps:
+  - id: bind-inputs
+    name: 加载 1 月吨位种子 + Q9 车牌/图池 CSV
+  - id: cook-expand
+    name: 月→日→车次→outTime；按 dayPart 绑池；写 dry-run JSON + manifest
+  - id: validate-conservation
+    name: 校验 ΣnetWeight vs 月表；dataNo/fl-；昼夜同档抽样统计
+
+expect:
+  - id: seeds-readable
+    level: L0
+    description: monthly-totals.yaml 与池 CSV 可读；month=1 五行吨位齐全
+  - id: conservation
+    level: L1
+    description: 每收货公司 1 月 ΣnetWeight 与种子差 ≤ 0.01；全月合计 ≈ 123344.32
+  - id: shape-and-daypart
+    level: L2
+    description: dataNo 为 fl-…；productName∈{再生细骨料,再生粉料} 且约 1:1；池绑定 dayPart 对齐；重量落在 Q5（不抄池）
+  - id: business-ok
+    level: L3
+    description: 用户抽查 JSON/manifest 后 pass — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  dryRun:
+    required: true
+    sink: dry-run/
+  manifest:
+    required: true
+    sink: photo-manifest.jsonl
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-pool-csv
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  transform:
+    mode: script-invoke
+    script: scripts/Invoke-SandAddbatch202601.ps1
+    experimental: true
+    nodeTool: scripts/expand-january.mjs

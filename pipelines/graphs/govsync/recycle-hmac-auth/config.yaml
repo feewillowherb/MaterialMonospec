@@ -1,0 +1,75 @@
+id: recycle-hmac-auth
+created: "2026-09-08"
+graph:
+  product: materialclient
+  domain: govsync
+  family: probe
+  goal: gov-recycle-hmac-auth
+  status: active
+environment: shared # 杭州市渣土监管 exapi 现网；run 前须人闸确认
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: endpoint-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  method: POST
+  baseUrl: https://gzt.cgw.hangzhou.gov.cn/muckmanage/addmtd0p1q/api/zhztc-module-exapi
+  path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
+  contentType: application/json; charset=utf-8
+  bodyMode: empty-array # JSON Array []；不提交车次，仅探测 HMAC
+  contractRef: repos/MaterialClient/src/MaterialClient.Recycle/Api/IRecycleDataApi.cs
+  hmacRef: repos/MaterialClient/src/MaterialClient.Common/Utils/ResourcePlaceHmacSigner.cs
+  specRef: openspec/specs/recycle-hmac-authentication/spec.md
+  docsRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
+  notes: "签名与 RecycleHmacDelegatingHandler 一致：POST + 空 query + HMAC-SHA256 Base64；四个 X-AKZTJG-* Header。空数组预期不入库。"
+
+scenario:
+  channel: recycle-hmac-auth
+  pointNumber: XNYH20251113001 # 厂标识；HMAC 不签名此字段，本 probe 不证明其绑定
+
+steps:
+  - id: bind-endpoint
+    name: Bind RecycleSync ApiUrl、HMAC secrets、§2.2 addBatch 路径
+  - id: cook-post
+    name: 计算 HMAC 并 POST 空 JSON Array
+  - id: validate-response
+    name: 记录 HTTP 与业务 code/msg；判定鉴权是否被平台接受
+
+expect:
+  - id: http-reachable
+    level: L0
+    description: 对 target.baseUrl+path 的 POST 得到可解析的 HTTP 响应
+  - id: json-body
+    level: L1
+    description: 响应体可解析为含 code 和/或 msg 的 JSON
+  - id: hmac-accepted
+    level: L2
+    description: 响应不是鉴权拒绝（HTTP/业务 401/403，或 msg 含签名/鉴权/密钥等）；空数组业务校验失败仍算 HMAC 可用
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: [accessKey, secretKey, X-AKZTJG-HMAC-ACCESS-KEY, X-AKZTJG-HMAC-SIGNATURE]
+  summary:
+    required: true
+    sink: summary.json
+
+humanGates:
+  - missing-secrets
+  - environment-shared-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-RecycleHmacAuth.ps1
+    experimental: true
+    secretsKeys: [accessKey, secretKey]
