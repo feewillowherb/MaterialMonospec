@@ -23,9 +23,8 @@ $ErrorActionPreference = "Stop"
 $GraphRoot = Split-Path -Parent $PSScriptRoot
 $ConfigPath = Join-Path $GraphRoot "config.yaml"
 $SecretsPath = Join-Path $GraphRoot "secrets.local.yaml"
-$StateDir = Join-Path $GraphRoot "state"
-$DurableStatePath = Join-Path $StateDir "submit-state.jsonl"
-$SourceRunRelDefault = "seeds\source-run\2026-09-09T152356"
+$SourceRunRelDefault = "seeds\2026-01\source-run\2026-09-09T152356"
+$DurableStateRelDefault = "state\2026-01\submit-state.jsonl"
 
 function Write-Utf8NoBom {
     param([string] $Path, [string] $Content)
@@ -233,10 +232,18 @@ catch { }
 
 $configText = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::UTF8)
 $submitEnabled = Get-YamlScalar -Text $configText -Key "submitEnabled"
+$month = Get-YamlScalar -Text $configText -Key "month"
+if ([string]::IsNullOrWhiteSpace($month)) { $month = "2026-01" }
 $runId = Get-YamlScalar -Text $configText -Key "runId"
 if ([string]::IsNullOrWhiteSpace($runId)) { $runId = "2026-09-09T152356" }
 $sourceRel = Get-YamlScalar -Text $configText -Key "runDirRel"
 if ([string]::IsNullOrWhiteSpace($sourceRel)) { $sourceRel = $SourceRunRelDefault.Replace("\", "/") }
+$durableRel = Get-YamlScalar -Text $configText -Key "durableStateRel"
+if ([string]::IsNullOrWhiteSpace($durableRel)) {
+    $durableRel = ("state/{0}/submit-state.jsonl" -f $month)
+}
+$DurableStatePath = Join-Path $GraphRoot (($durableRel -replace "/", "\"))
+$StateDir = Split-Path -Parent $DurableStatePath
 $cfgMode = Get-YamlScalar -Text $configText -Key "mode"
 if ([string]::IsNullOrWhiteSpace($Mode)) {
     if ([string]::IsNullOrWhiteSpace($cfgMode)) { $Mode = "validate-only" }
@@ -269,9 +276,10 @@ if (-not (Test-Path -LiteralPath $submitMeta)) { throw "Missing submit-meta: $su
 $partFiles = @(Get-ChildItem -LiteralPath $jsonDir -Filter "*.json" -File | Sort-Object Name)
 $partCount = $partFiles.Count
 $ledgerLines = @(Get-Content -LiteralPath $ledger | Where-Object { $_.Trim().Length -gt 0 }).Count
-Write-Host "[bind] sourceRunId=$runId"
+Write-Host "[bind] month=$month sourceRunId=$runId"
 Write-Host "[bind] parts=$partCount ledgerRows=$ledgerLines"
 Write-Host "[bind] submitEnabled=$submitEnabled AllowPost=$($AllowPost.IsPresent) mode=$Mode"
+Write-Host "[bind] durableState=$DurableStatePath"
 
 if ([string]::IsNullOrWhiteSpace($RunDir)) {
     $stamp = Get-Date -Format "yyyy-MM-ddTHHmmss"
@@ -290,6 +298,7 @@ $summary = [ordered]@{
     graph          = "sand-addbatch-submit"
     goal           = "gov-sand-product-addbatch-submit"
     site           = "XNYH20251113001"
+    month          = $month
     submitEnabled  = ($submitEnabled -eq "true")
     allowPost      = [bool]$AllowPost
     mode           = $Mode

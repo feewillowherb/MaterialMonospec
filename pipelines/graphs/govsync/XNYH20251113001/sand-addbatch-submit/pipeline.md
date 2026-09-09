@@ -31,7 +31,8 @@ Status: **active**（骨架已落；**默认禁止自动 POST**）
 
 - `./config.yaml`（`submitEnabled: false`）
 - `./secrets.example.yaml` → `secrets.local.yaml`
-- 冻结输入：`./seeds/source-run/2026-09-09T152356/`（自 transform run 拷贝）
+- 冻结输入：按月分仓 `./seeds/<yyyy-MM>/source-run/<runId>/`（当前 **2026-01** → `2026-09-09T152356`）
+- 月索引：`./seeds/SOURCE.md`；2–5 月目录已预留，分开执行
 - 方案：[docs/2026-09-07-sand-product-transport-addbatch-mock](../../../../../docs/2026-09-07-sand-product-transport-addbatch-mock/00-调研总览.md)
 
 ## Sockets
@@ -45,9 +46,9 @@ Status: **active**（骨架已落；**默认禁止自动 POST**）
 ## Context
 
 - 指针：`target.baseUrl` + `path`（与 transform `submit-meta.json` 一致）
-- 输入：`seeds/source-run/<runId>/json/*.json` + `ledgers/dataNo-ledger.jsonl`
+- 输入：`seeds/<yyyy-MM>/source-run/<runId>/json/*.json` + `ledgers/dataNo-ledger.jsonl`
 - 预处理（仅当真正 POST）：`outPhotosPath` → Base64 → `outPhotos`；剥掉 `outPhotosPath`
-- 状态：`status ∈ {pending, smoke-posted, posted, failed, skipped}` + `attemptedAt`
+- 状态：`state/<yyyy-MM>/submit-state.jsonl`；`status ∈ {pending, smoke-posted, posted, failed, skipped}` + `postedAt`
 
 ## 状态机 / Cook chain
 
@@ -77,13 +78,15 @@ flowchart LR
 | `submit-log.jsonl` | 每次 HTTP 尝试 |
 | `summary.json` / `report.md` | |
 
-## 已冻结源 run
+## 已冻结源 run（按月）
 
 | 字段 | 值 |
 |------|-----|
+| month | `2026-01` |
 | sourceRunId | `2026-09-09T152356` |
-| 路径 | `seeds/source-run/2026-09-09T152356/` |
+| 路径 | `seeds/2026-01/source-run/2026-09-09T152356/` |
 | 来源 | `../sand-addbatch-2026-01/runs/2026-09-09T152356/` |
+| 其它月 | `seeds/2026-02` … `2026-05` 已占位；拷贝后改 config 再跑 |
 
 ## Invoke
 
@@ -100,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File `
   -SmokePartFile "2026-01-jinqiu.part000.json"
 ```
 
-持久化跳过账：`state/submit-state.jsonl`（gitignore；`status=smoke-posted|posted` + `postedAt`；`skipPosted: true` 时全量会跳过）。
+持久化跳过账：`state/<yyyy-MM>/submit-state.jsonl`（gitignore；`status=smoke-posted|posted` + `postedAt`；`skipPosted: true` 时全量会跳过）。
 
 平台现网要求 **`saleContractNo` 非空**（与文档「可选」不一致）；脚本按 `XSHT{yyyyMMdd}{seq}` 生成。
 

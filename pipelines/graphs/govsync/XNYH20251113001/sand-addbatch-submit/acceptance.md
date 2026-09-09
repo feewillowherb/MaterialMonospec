@@ -6,9 +6,10 @@ Agent 不得将本文件改为通过。用户回复 `pass` / `fail` 后，只改
 
 | 项 | 值 |
 |----|-----|
+| month | `2026-01` |
 | sourceRunId | `2026-09-09T152356` |
 | submitEnabled | **false**（默认；烟测后已关回） |
-| smoke | `fl-xnyh20251113001-20260107061109-0001` → **smoke-posted** @ `2026-09-09T15:33:05+08:00`（`state/submit-state.jsonl`） |
+| smoke | `fl-xnyh20251113001-20260107061109-0001` → **smoke-posted** @ `2026-09-09T15:33:05+08:00`（`state/2026-01/submit-state.jsonl`） |
 | run | `runs/2026-09-09T153305` |
 | L0 | pending |
 | L1 | pending（无 HTTP） |

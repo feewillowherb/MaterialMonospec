@@ -114,6 +114,6 @@ powershell -ExecutionPolicy Bypass -File `
 
 ## Handoff
 
-Output：`submit-params-json-ready`。下游 **`sand-addbatch-submit`** 读取冻结源 run（当前：`../sand-addbatch-submit/seeds/source-run/2026-09-09T145649/`），再 embed `outPhotos` 后 HMAC POST（submit 图默认 `submitEnabled: false`，**不自动执行**）。
+Output：`submit-params-json-ready`。下游 **`sand-addbatch-submit`** 按月读取冻结源（当前 1 月：`../sand-addbatch-submit/seeds/2026-01/source-run/2026-09-09T152356/`），再 embed `outPhotos` 后 HMAC POST（submit 图默认 `submitEnabled: false`，**不自动执行**；2–5 月另仓另跑）。
 
 接口空数组通路探测：另图 `govsync/recycle-hmac-auth`。

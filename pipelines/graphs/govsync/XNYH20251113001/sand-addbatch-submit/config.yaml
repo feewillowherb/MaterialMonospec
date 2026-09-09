@@ -30,9 +30,10 @@ target:
   hmacProbeGraph: graphs/govsync/recycle-hmac-auth
 
 source:
-  # Frozen copy of transform run (do not auto-overwrite)
+  # Per-month frozen transform run (execute months separately)
+  month: "2026-01"
   runId: "2026-09-09T152356"
-  runDirRel: seeds/source-run/2026-09-09T152356
+  runDirRel: seeds/2026-01/source-run/2026-09-09T152356
   jsonGlob: json/*.json
   ledgerRel: ledgers/dataNo-ledger.jsonl
   submitMetaRel: submit-meta.json
@@ -44,8 +45,8 @@ scenario:
   batchSize: 100
   requestIntervalMs: 200
   skipPosted: true
-  # Durable skip ledger (gitignored): state/submit-state.jsonl
-  durableStateRel: state/submit-state.jsonl
+  # Durable skip ledger per month (gitignored): state/<yyyy-MM>/submit-state.jsonl
+  durableStateRel: state/2026-01/submit-state.jsonl
   embedOutPhotosFromPath: true
   stripOutPhotosPath: true
   # Prefer recycle-hmac-auth for empty-array auth probe before first smoke
@@ -53,18 +54,18 @@ scenario:
 
 steps:
   - id: bind-source-run
-    name: 校验冻结源 run / ledger / submit-meta / secrets
+    name: 校验当月冻结源 run / ledger / submit-meta / secrets
   - id: gate-submit-enabled
     name: submitEnabled=false 则停止且零 HTTP
   - id: cook-post-batches
-    name: embed 照片并分批 HMAC POST；写 state/submit-state.jsonl + run 证据
+    name: embed 照片并分批 HMAC POST；写 state/<month>/submit-state.jsonl + run 证据
   - id: validate-response
     name: 记录 HTTP 与平台 code/msg；已 posted/smoke-posted 在 skipPosted 时跳过
 
 expect:
   - id: source-readable
     level: L0
-    description: seeds/source-run/<runId> 含 json/、ledger、submit-meta
+    description: seeds/<yyyy-MM>/source-run/<runId> 含 json/、ledger、submit-meta
   - id: no-http-when-disabled
     level: L1
     description: submitEnabled=false 时脚本退出 0 且未发起 HTTP
