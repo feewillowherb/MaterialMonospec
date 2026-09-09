@@ -855,6 +855,10 @@ function main() {
     activeDays: number;
     activeDayRate: number;
     zeroDays: number;
+    keptTrips: number;
+    newTrips: number;
+    keptNet: number;
+    genTarget: number;
   }[] = [];
   let dayPartMismatch = 0;
   let poolReuse = 0;
@@ -1223,6 +1227,9 @@ function main() {
     outputFormat: "json",
     socketEnd: "submit-params-json-ready",
     seed: cfg.seed,
+    preserveMode,
+    preservedTrips: keptTripCount,
+    preservedNet: keptNetTotal,
     dataNoPattern: submitMeta.dataNoPattern,
     q11: {
       quietWeekends,

@@ -32,8 +32,8 @@ target:
 source:
   # Per-month frozen transform run (execute months separately)
   month: "2026-01"
-  runId: "2026-09-09T152356"
-  runDirRel: seeds/2026-01/source-run/2026-09-09T152356
+  runId: "2026-09-09T165250"
+  runDirRel: seeds/2026-01/source-run/2026-09-09T165250
   jsonGlob: json/*.json
   ledgerRel: ledgers/dataNo-ledger.jsonl
   submitMetaRel: submit-meta.json
