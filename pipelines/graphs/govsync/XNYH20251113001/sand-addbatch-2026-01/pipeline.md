@@ -2,7 +2,7 @@
 
 ## 目的 / Goal
 
-生成 **2026 年 1 月** §2.2 `addBatch` **待 POST JSON**（含 `consigneeAddress`、持久化 `dataNo` 台账），供用户验收后再另图提交。
+生成 **2026 年 1 月** §2.2 `addBatch` **待 POST JSON**（含 `consigneeAddress`、`receivingTime` Q10、持久化 `dataNo` 台账），供用户验收后再另图提交。
 
 - **本图禁止提交**（`submitEnabled: false`；脚本不得 HTTP）
 - 产物：`json/*.json` + `ledgers/dataNo-ledger.jsonl` + `submit-meta.json`
@@ -53,7 +53,7 @@ Status: **active**（2026-09-09 重建；前任见 `_retired/2026-09/sand-addbat
 ## Context
 
 - 指针：`target.baseUrl` + `pointNumber=XNYH20251113001`
-- 验收：`dataNo` / `carNo` / `productName` / 净皮毛 / `outTime` / `consignee` / `consigneeAddress` / `outPhotosPath` / 台账
+- 验收：`dataNo` / `carNo` / `productName` / 净皮毛 / `outTime` / `receivingTime`(Q10) / `consignee` / `consigneeAddress` / `outPhotosPath` / 台账
 
 ## 状态机 / Cook chain
 
@@ -112,4 +112,6 @@ powershell -ExecutionPolicy Bypass -File `
 
 ## Handoff
 
-Output：`submit-params-json-ready`。下游 submit Graph 读取本 run 的 `json/` + `ledgers/`，embed `outPhotos` 后 HMAC POST。
+Output：`submit-params-json-ready`。下游 **`sand-addbatch-submit`** 读取冻结源 run（当前：`../sand-addbatch-submit/seeds/source-run/2026-09-09T145649/`），再 embed `outPhotos` 后 HMAC POST（submit 图默认 `submitEnabled: false`，**不自动执行**）。
+
+接口空数组通路探测：另图 `govsync/recycle-hmac-auth`。

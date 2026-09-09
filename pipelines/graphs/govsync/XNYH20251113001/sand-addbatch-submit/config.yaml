@@ -1,0 +1,109 @@
+id: sand-addbatch-submit
+created: "2026-09-09"
+graph:
+  product: materialclient
+  domain: govsync
+  family: probe
+  goal: gov-sand-product-addbatch-submit
+  status: active
+  site: XNYH20251113001
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: submit-params-json-ready
+  end: submit-recorded
+cook: new-object
+
+# HARD: default off. Do not POST until user flips this and passes human gate.
+submitEnabled: false
+
+target:
+  method: POST
+  baseUrl: https://gzt.cgw.hangzhou.gov.cn/muckmanage/addmtd0p1q/api/zhztc-module-exapi
+  path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
+  contentType: application/json; charset=utf-8
+  docsRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
+  fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
+  upstreamGraph: graphs/govsync/XNYH20251113001/sand-addbatch-2026-01
+  hmacProbeGraph: graphs/govsync/recycle-hmac-auth
+
+source:
+  # Frozen copy of transform run (do not auto-overwrite)
+  runId: "2026-09-09T145649"
+  runDirRel: seeds/source-run/2026-09-09T145649
+  jsonGlob: json/*.json
+  ledgerRel: ledgers/dataNo-ledger.jsonl
+  submitMetaRel: submit-meta.json
+
+scenario:
+  pointNumber: XNYH20251113001
+  mode: validate-only # validate-only | smoke | resume | full
+  smokeMaxTrips: 1
+  batchSize: 100
+  requestIntervalMs: 200
+  skipPosted: true
+  embedOutPhotosFromPath: true
+  stripOutPhotosPath: true
+  # Prefer recycle-hmac-auth for empty-array auth probe before first smoke
+  preferHmacProbeFirst: true
+
+steps:
+  - id: bind-source-run
+    name: 校验冻结源 run / ledger / submit-meta / secrets 模板
+  - id: gate-submit-enabled
+    name: submitEnabled=false 则停止且零 HTTP
+  - id: cook-post-batches
+    name: （未启用）embed 照片并分批 HMAC POST；写 submit-state/log
+  - id: validate-response
+    name: （未启用）记录 HTTP 与平台 code/msg
+
+expect:
+  - id: source-readable
+    level: L0
+    description: seeds/source-run/<runId> 含 json/、ledger、submit-meta
+  - id: no-http-when-disabled
+    level: L1
+    description: submitEnabled=false 时脚本退出 0 且未发起 HTTP
+  - id: http-ok
+    level: L2
+    description: （启用后）响应可解析；非鉴权拒绝
+  - id: acceptance
+    level: L3
+    description: 用户验收提交结果 — 仅用户
+
+capture:
+  http:
+    required: false
+    sink: http/
+    redact: [accessKey, secretKey, outPhotos, X-AKZTJG-HMAC-ACCESS-KEY, X-AKZTJG-HMAC-SIGNATURE]
+  submitState:
+    required: false
+    sink: submit-state.jsonl
+  submitLog:
+    required: false
+    sink: submit-log.jsonl
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - submit-enabled-confirm
+  - environment-shared-confirm
+  - smoke-or-full-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-SandAddbatchSubmit.ps1
+    experimental: true
+    secretsKeys: [accessKey, secretKey]

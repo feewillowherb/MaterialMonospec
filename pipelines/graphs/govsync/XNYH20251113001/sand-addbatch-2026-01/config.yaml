@@ -65,6 +65,10 @@ scenario:
   outputFormat: json
   includeOutPhotosBase64: false
   includeConsigneeAddress: true
+  includeReceivingTime: true
+  # Q10: receivingTime = outTime + Uniform[1.5h, 2.5h]
+  receivingOffsetHoursMin: 1.5
+  receivingOffsetHoursMax: 2.5
   persistDataNoLedger: true
 
 steps:
@@ -73,7 +77,7 @@ steps:
   - id: cook-expand-json
     name: 拆分车次；写出待 POST JSON + dataNo 台账（禁止 HTTP）
   - id: validate-conservation
-    name: 校验吨位守恒 / dataNo / 地址 / 产品 1:1 / 昼夜同档
+    name: 校验吨位守恒 / dataNo / 地址 / receivingTime(Q10) / 产品 1:1 / 昼夜同档
 
 expect:
   - id: seeds-readable
@@ -84,7 +88,7 @@ expect:
     description: 每收货公司 1 月 ΣnetWeight 与种子差 ≤ 0.01；全月合计 ≈ 123344.32
   - id: shape-and-daypart
     level: L2
-    description: JSON 含 §2.2 待 POST 字段；fl-{point小写}-… dataNo；台账行数=车次；无 HTTP
+    description: JSON 含 §2.2 待 POST 字段；fl-{point小写}-… dataNo；receivingTime∈outTime+1.5h～2.5h；台账行数=车次；无 HTTP
   - id: params-review
     level: L3
     description: 用户验收待 POST 参数 — 仅用户

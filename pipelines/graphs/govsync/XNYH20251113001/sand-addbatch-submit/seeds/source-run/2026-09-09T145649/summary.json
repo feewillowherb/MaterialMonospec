@@ -1,0 +1,119 @@
+{
+  "graph": "sand-addbatch-2026-01",
+  "goal": "gov-sand-product-addbatch-2026-01",
+  "site": "XNYH20251113001",
+  "year": 2026,
+  "month": 1,
+  "submitEnabled": false,
+  "outputFormat": "json",
+  "socketEnd": "submit-params-json-ready",
+  "seed": 20260909,
+  "dataNoPattern": "fl-xnyh20251113001-{yyyyMMddHHmmss}-{seq:D4}",
+  "poolStats": {
+    "total": 3402,
+    "day": 2582,
+    "night": 820
+  },
+  "perConsignee": [
+    {
+      "consignee": "杭州临平腾满建筑材料商行（个体工商户）",
+      "target": 56331.1,
+      "sumNet": 56331.1,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 2684,
+      "productCounts": {
+        "再生细骨料": 1342,
+        "再生粉料": 1342
+      },
+      "productTons": {
+        "再生细骨料": 28142.32,
+        "再生粉料": 28188.78
+      },
+      "productRatioOk": true
+    },
+    {
+      "consignee": "杭州三野建材有限公司",
+      "target": 18109.28,
+      "sumNet": 18109.28,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 865,
+      "productCounts": {
+        "再生细骨料": 433,
+        "再生粉料": 432
+      },
+      "productTons": {
+        "再生细骨料": 9052.75,
+        "再生粉料": 9056.53
+      },
+      "productRatioOk": true
+    },
+    {
+      "consignee": "杭州永武建材有限公司",
+      "target": 15468.33,
+      "sumNet": 15468.33,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 741,
+      "productCounts": {
+        "再生细骨料": 371,
+        "再生粉料": 370
+      },
+      "productTons": {
+        "再生细骨料": 7765.46,
+        "再生粉料": 7702.87
+      },
+      "productRatioOk": true
+    },
+    {
+      "consignee": "安吉起陆建材有限公司",
+      "target": 15445.25,
+      "sumNet": 15445.25,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 744,
+      "productCounts": {
+        "再生细骨料": 372,
+        "再生粉料": 372
+      },
+      "productTons": {
+        "再生细骨料": 7673.97,
+        "再生粉料": 7771.28
+      },
+      "productRatioOk": true
+    },
+    {
+      "consignee": "浙江锦秋建材有限公司",
+      "target": 17990.36,
+      "sumNet": 17990.36,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 866,
+      "productCounts": {
+        "再生细骨料": 433,
+        "再生粉料": 433
+      },
+      "productTons": {
+        "再生细骨料": 8978.42,
+        "再生粉料": 9011.94
+      },
+      "productRatioOk": true
+    }
+  ],
+  "monthTarget": 123344.32,
+  "monthSum": 123344.32,
+  "tripCount": 5900,
+  "ledgerCount": 5900,
+  "dayPartAligned": 5900,
+  "dayPartTotal": 5900,
+  "dayPartMismatch": 0,
+  "poolReuse": 0,
+  "levels": {
+    "L0": "pass",
+    "L1": "pass",
+    "L2": "pass",
+    "L3": "pending-user-params-review"
+  },
+  "message": "等待用户验收待 POST JSON 参数，尚未通过。本图禁止 POST。"
+}

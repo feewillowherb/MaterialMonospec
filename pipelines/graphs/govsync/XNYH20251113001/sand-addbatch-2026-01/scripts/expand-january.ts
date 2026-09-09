@@ -43,6 +43,7 @@ type TripRecord = {
   outPhotosPath: string;
   consignee: string;
   consigneeAddress: string;
+  receivingTime: string;
 };
 
 function parseArgs(argv: string[]) {
@@ -163,6 +164,41 @@ function daysInMonth(year: number, month: number) {
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
+}
+
+/** Q10: receivingTime = outTime + Uniform[1.5h, 2.5h] (90–150 minutes inclusive). */
+function addReceivingTime(outTime: string, rand: () => number): string {
+  const m = outTime.match(
+    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+  );
+  if (!m) throw new Error(`Bad outTime for receivingTime: ${outTime}`);
+  const dt = new Date(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    Number(m[4]),
+    Number(m[5]),
+    Number(m[6]),
+  );
+  const deltaMin = 90 + Math.floor(rand() * 61); // 90..150 inclusive
+  dt.setMinutes(dt.getMinutes() + deltaMin);
+  return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}:${pad2(dt.getSeconds())}`;
+}
+
+function receivingOffsetHours(outTime: string, receivingTime: string): number {
+  const parse = (s: string) => {
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!m) return NaN;
+    return new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4]),
+      Number(m[5]),
+      Number(m[6]),
+    ).getTime();
+  };
+  return (parse(receivingTime) - parse(outTime)) / 3_600_000;
 }
 
 function dayPartFromHm(h: number, m: number): DayPart {
@@ -534,6 +570,7 @@ function main() {
       daySeq.set(dayKey, seq);
       const stamp = t.outTime.replace(/[-: ]/g, "").slice(0, 14);
       const dataNo = `fl-${pointSlug}-${stamp}-${String(seq).padStart(4, "0")}`;
+      const receivingTime = addReceivingTime(t.outTime, rand);
 
       const rec: TripRecord = {
         dataNo,
@@ -550,6 +587,7 @@ function main() {
         outPhotosPath: t.photoPath,
         consignee: t.consignee,
         consigneeAddress,
+        receivingTime,
       };
       records.push(rec);
       ledgerLines.push(
@@ -558,6 +596,7 @@ function main() {
           consignee: t.consignee,
           consigneeAddress,
           outTime: t.outTime,
+          receivingTime,
           productName,
           netWeight: t.net,
           carNo: t.plate,
@@ -637,6 +676,7 @@ function main() {
     tripCount: allRecords.length,
     ledger: "ledgers/dataNo-ledger.jsonl",
     outPhotos: "null in pending JSON; use outPhotosPath; embed base64 only in submit Graph",
+    receivingTime: "Q10: outTime + Uniform[1.5h, 2.5h]",
     hmacHeaders: [
       "X-AKZTJG-HMAC-ACCESS-KEY",
       "X-AKZTJG-HMAC-ALGORITHM",
@@ -663,15 +703,20 @@ function main() {
   const l1 = perConsignee.every((x) => x.ok) && Math.abs(monthSum - monthTarget) <= cfg.epsilon;
   const allowed = new Set(cfg.productNames);
   const l2 =
-    allRecords.every(
-      (r) =>
+    allRecords.every((r) => {
+      const offsetH = receivingOffsetHours(r.outTime, r.receivingTime);
+      return (
         allowed.has(r.productName) &&
         dataNoRe.test(r.dataNo) &&
         r.outPhotos === null &&
         !!r.outPhotosPath &&
         !!r.consigneeAddress &&
-        addressByConsignee.get(r.consignee) === r.consigneeAddress,
-    ) &&
+        addressByConsignee.get(r.consignee) === r.consigneeAddress &&
+        !!r.receivingTime &&
+        offsetH >= 1.5 - 1e-9 &&
+        offsetH <= 2.5 + 1e-9
+      );
+    }) &&
     perConsignee.every((x) => x.productRatioOk) &&
     aligned === manifestLines.length &&
     ledgerLines.length === allRecords.length &&
