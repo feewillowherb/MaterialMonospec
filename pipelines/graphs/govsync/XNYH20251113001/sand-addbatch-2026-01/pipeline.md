@@ -19,6 +19,8 @@ Status: **active**（2026-09-09 重建；前任见 `_retired/2026-09/sand-addbat
 
 方案：[docs/2026-09-07-sand-product-transport-addbatch-mock](../../../../../docs/2026-09-07-sand-product-transport-addbatch-mock/00-调研总览.md)
 
+**Q11**：五家 `activeDayRate` 档位互异；每月抽 **2～4** 个周末日全场低/零活跃（非「每家每天都有」）。
+
 ## 非目标
 
 - **禁止**对本图目标 URL 做任何 POST / HMAC 实发

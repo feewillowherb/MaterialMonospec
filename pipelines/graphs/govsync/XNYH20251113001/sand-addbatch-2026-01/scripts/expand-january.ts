@@ -158,6 +158,230 @@ function parseCsv(text: string) {
   });
 }
 
+function hashString(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function shuffleInPlace<T>(arr: T[], rand: () => number) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+/** JS Date: month 1-12; returns 0=Sun .. 6=Sat */
+function dayOfWeek(year: number, month: number, day: number) {
+  return new Date(year, month - 1, day).getDay();
+}
+
+function isWeekend(year: number, month: number, day: number) {
+  const d = dayOfWeek(year, month, day);
+  return d === 0 || d === 6;
+}
+
+type QuietWeekend = { day: number; mode: "zero" | "low" };
+
+function pickQuietWeekends(
+  year: number,
+  month: number,
+  days: number[],
+  rand: () => number,
+  countMin: number,
+  countMax: number,
+  zeroProbability: number,
+): QuietWeekend[] {
+  const weekends = days.filter((d) => isWeekend(year, month, d));
+  if (!weekends.length) return [];
+  const span = Math.max(0, countMax - countMin);
+  let k = countMin + Math.floor(rand() * (span + 1));
+  k = Math.min(k, weekends.length);
+  const pool = [...weekends];
+  shuffleInPlace(pool, rand);
+  return pool.slice(0, k).map((day) => ({
+    day,
+    mode: rand() < zeroProbability ? ("zero" as const) : ("low" as const),
+  }));
+}
+
+type CompanyProfile = {
+  consignee: string;
+  activeDayRate: number;
+  weekdayBias: number;
+  burstiness: number;
+};
+
+function buildCompanyProfiles(
+  consignees: string[],
+  rates: number[],
+  rand: () => number,
+  weekdayBiasMin: number,
+  weekdayBiasMax: number,
+  burstinessMin: number,
+  burstinessMax: number,
+): CompanyProfile[] {
+  if (rates.length < consignees.length) {
+    throw new Error(
+      `companyActiveDayRates length ${rates.length} < consignees ${consignees.length}`,
+    );
+  }
+  const unique = new Set(rates.map((r) => round2(r)));
+  if (unique.size < consignees.length) {
+    throw new Error("companyActiveDayRates must be mutually distinct for Q11");
+  }
+  const shuffledRates = rates.slice(0, consignees.length);
+  shuffleInPlace(shuffledRates, rand);
+  return consignees.map((consignee, i) => {
+    const crand = mulberry32(hashString(`${consignee}:${i}`) ^ Math.floor(rand() * 1e9));
+    const weekdayBias =
+      weekdayBiasMin + crand() * (weekdayBiasMax - weekdayBiasMin);
+    const burstiness =
+      burstinessMin + crand() * (burstinessMax - burstinessMin);
+    return {
+      consignee,
+      activeDayRate: shuffledRates[i],
+      weekdayBias,
+      burstiness,
+    };
+  });
+}
+
+/**
+ * Q11 sparse allocation: quiet weekends (site-wide) + per-company active-day masks.
+ */
+function splitDayTonsSparse(
+  T: number,
+  days: number[],
+  year: number,
+  month: number,
+  profile: CompanyProfile,
+  quietWeekends: QuietWeekend[],
+  rand: () => number,
+  jitter: number,
+  lowFactor: number,
+): number[] {
+  const quietMap = new Map(quietWeekends.map((q) => [q.day, q.mode]));
+  const weights = new Array(days.length).fill(0);
+
+  // Candidates excluding forced-zero quiet weekends
+  const candidateIdx: number[] = [];
+  for (let i = 0; i < days.length; i++) {
+    const day = days[i];
+    const mode = quietMap.get(day);
+    if (mode === "zero") {
+      weights[i] = 0;
+      continue;
+    }
+    if (mode === "low") {
+      weights[i] = lowFactor * (1 + (rand() * 2 - 1) * jitter);
+      continue;
+    }
+    candidateIdx.push(i);
+  }
+
+  // Score candidates: weekdayBias raises Mon–Fri; weekends get (1 - bias) relative pull
+  const scored = candidateIdx.map((i) => {
+    const day = days[i];
+    const weekend = isWeekend(year, month, day);
+    const bias = profile.weekdayBias;
+    const base = weekend ? Math.max(0.05, 1 - Math.max(0, bias)) : 1 + Math.max(0, bias);
+    return { i, score: base };
+  });
+
+  // Select active set with burstiness: higher → prefer consecutive clusters
+  const targetCount = Math.max(
+    1,
+    Math.min(
+      scored.length,
+      Math.round(scored.length * profile.activeDayRate),
+    ),
+  );
+  const selected = new Set<number>();
+  if (scored.length > 0) {
+    if (profile.burstiness >= 0.55) {
+      // Cluster: pick a start then grow a run, then maybe another run
+      const starts = [...scored].sort((a, b) => b.score - a.score);
+      let guard = 0;
+      while (selected.size < targetCount && guard < scored.length * 3) {
+        guard++;
+        const pivot = starts[Math.floor(rand() * Math.min(starts.length, 5))] || starts[0];
+        let cur = pivot.i;
+        const runLen = Math.max(
+          1,
+          Math.ceil(targetCount * (0.3 + rand() * 0.5)),
+        );
+        for (let step = 0; step < runLen && selected.size < targetCount; step++) {
+          if (candidateIdx.includes(cur) && !selected.has(cur)) selected.add(cur);
+          cur = Math.min(days.length - 1, cur + 1);
+          if (!candidateIdx.includes(cur)) break;
+        }
+        if (selected.size < targetCount) {
+          // seed another cluster from remaining
+          const remain = scored.filter((s) => !selected.has(s.i));
+          if (!remain.length) break;
+          const pick = remain[Math.floor(rand() * remain.length)];
+          selected.add(pick.i);
+        }
+      }
+    } else {
+      // Scattered: weighted sample without replacement
+      const pool = scored.map((s) => ({ ...s }));
+      while (selected.size < targetCount && pool.length) {
+        const sum = pool.reduce((a, p) => a + p.score, 0);
+        let r = rand() * sum;
+        let pick = 0;
+        for (let j = 0; j < pool.length; j++) {
+          r -= pool[j].score;
+          if (r <= 0) {
+            pick = j;
+            break;
+          }
+        }
+        selected.add(pool[pick].i);
+        pool.splice(pick, 1);
+      }
+    }
+  }
+
+  for (const i of selected) {
+    weights[i] = 1 + (rand() * 2 - 1) * jitter;
+  }
+
+  // Ensure at least one positive weight if T > 0
+  if (T > 0 && weights.every((w) => w <= 0)) {
+    const fallback =
+      candidateIdx[Math.floor(rand() * candidateIdx.length)] ??
+      days.findIndex((_, i) => quietMap.get(days[i]) !== "zero");
+    if (fallback >= 0) weights[fallback] = 1;
+  }
+
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (sum <= 0) {
+    return days.map(() => 0);
+  }
+  const tons = weights.map((w) => round2((T * w) / sum));
+  // Put residual on last positive-weight day
+  let lastPos = -1;
+  for (let i = tons.length - 1; i >= 0; i--) {
+    if (weights[i] > 0) {
+      lastPos = i;
+      break;
+    }
+  }
+  if (lastPos >= 0) {
+    const drift = round2(T - tons.reduce((a, b) => a + b, 0));
+    tons[lastPos] = round2(tons[lastPos] + drift);
+  }
+  return tons;
+}
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
@@ -297,15 +521,6 @@ function sampleTripWeights(rand: () => number, cfg: Record<string, number>) {
   return { net, tare, gross: round2(net + tare) };
 }
 
-function splitDayTons(T: number, days: number[], rand: () => number, jitter: number) {
-  const raw = days.map(() => 1 + (rand() * 2 - 1) * jitter);
-  const sum = raw.reduce((a, b) => a + b, 0);
-  const tons = raw.map((r) => round2((T * r) / sum));
-  const drift = round2(T - tons.reduce((a, b) => a + b, 0));
-  tons[tons.length - 1] = round2(tons[tons.length - 1] + drift);
-  return tons;
-}
-
 function emitTripsForDayTon(t_d: number, rand: () => number, cfg: Record<string, number>) {
   const trips: { net: number; tare: number; gross: number }[] = [];
   let remain = round2(t_d);
@@ -420,6 +635,15 @@ function main() {
     epsilon: 0.01,
     dayWeightJitter: 0.15,
     outOfWindowRate: 0.08,
+    quietWeekendCountMin: 2,
+    quietWeekendCountMax: 4,
+    quietWeekendLowFactor: 0.08,
+    quietWeekendZeroProbability: 0.5,
+    companyActiveDayRates: [0.4, 0.52, 0.65, 0.78, 0.9],
+    companyWeekdayBiasMin: -0.15,
+    companyWeekdayBiasMax: 0.25,
+    companyBurstinessMin: 0.2,
+    companyBurstinessMax: 0.8,
     batchSize: 100,
     hourProximityHours: 2,
     seed: Number(args.seed) || 20260909,
@@ -474,6 +698,31 @@ function main() {
   const dim = daysInMonth(cfg.year, cfg.month);
   const days = Array.from({ length: dim }, (_, i) => i + 1);
 
+  const quietWeekends = pickQuietWeekends(
+    cfg.year,
+    cfg.month,
+    days,
+    rand,
+    cfg.quietWeekendCountMin,
+    cfg.quietWeekendCountMax,
+    cfg.quietWeekendZeroProbability,
+  );
+  const profiles = buildCompanyProfiles(
+    seeds.rows.map((r) => r.consignee),
+    cfg.companyActiveDayRates,
+    rand,
+    cfg.companyWeekdayBiasMin,
+    cfg.companyWeekdayBiasMax,
+    cfg.companyBurstinessMin,
+    cfg.companyBurstinessMax,
+  );
+  const profileByConsignee = new Map(profiles.map((p) => [p.consignee, p]));
+  console.log(
+    `[Q11] quietWeekends=${JSON.stringify(quietWeekends)} profiles=${profiles
+      .map((p) => `${shortConsignee(p.consignee)}:rate=${p.activeDayRate}`)
+      .join(", ")}`,
+  );
+
   const allRecords: TripRecord[] = [];
   const ledgerLines: string[] = [];
   const manifestLines: string[] = [];
@@ -487,6 +736,9 @@ function main() {
     productCounts: Record<string, number>;
     productTons: Record<string, number>;
     productRatioOk: boolean;
+    activeDays: number;
+    activeDayRate: number;
+    zeroDays: number;
   }[] = [];
   let dayPartMismatch = 0;
   let poolReuse = 0;
@@ -498,8 +750,23 @@ function main() {
     if (!consigneeAddress) {
       throw new Error(`No consigneeAddress for consignee: ${row.consignee}`);
     }
+    const profile = profileByConsignee.get(row.consignee);
+    if (!profile) throw new Error(`Missing Q11 profile for ${row.consignee}`);
 
-    const dayTons = splitDayTons(T, days, rand, cfg.dayWeightJitter);
+    const companyRand = mulberry32(cfg.seed ^ hashString(row.consignee));
+    const dayTons = splitDayTonsSparse(
+      T,
+      days,
+      cfg.year,
+      cfg.month,
+      profile,
+      quietWeekends,
+      companyRand,
+      cfg.dayWeightJitter,
+      cfg.quietWeekendLowFactor,
+    );
+    const activeDays = dayTons.filter((t) => t > 0).length;
+    const zeroDays = dayTons.filter((t) => t <= 0).length;
     const trips: {
       consignee: string;
       net: number;
@@ -516,19 +783,20 @@ function main() {
 
     for (let di = 0; di < days.length; di++) {
       const day = days[di];
-      const dayTripWeights = emitTripsForDayTon(dayTons[di], rand, cfg);
+      if (dayTons[di] <= 0) continue;
+      const dayTripWeights = emitTripsForDayTon(dayTons[di], companyRand, cfg);
       for (const w of dayTripWeights) {
-        let ot = pickOutTime(cfg.year, cfg.month, day, rand, cfg, "day");
+        let ot = pickOutTime(cfg.year, cfg.month, day, companyRand, cfg, "day");
         let entry = pickPoolEntry(
           byPart,
           ot.dayPart,
           ot.hh,
-          rand,
+          companyRand,
           cfg.hourProximityHours,
         );
         if (!entry) {
           entry =
-            pickPoolEntry(byPart, "day", ot.hh, rand, 24) ||
+            pickPoolEntry(byPart, "day", ot.hh, companyRand, 24) ||
             byPart.day[0] ||
             byPart.night[0];
           poolReuse++;
@@ -536,7 +804,7 @@ function main() {
         if (!entry) throw new Error("Pool exhausted unexpectedly");
 
         if (entry.dayPart !== ot.dayPart) {
-          ot = pickOutTime(cfg.year, cfg.month, day, rand, cfg, entry.dayPart);
+          ot = pickOutTime(cfg.year, cfg.month, day, companyRand, cfg, entry.dayPart);
           if (entry.dayPart !== ot.dayPart) dayPartMismatch++;
         }
 
@@ -570,7 +838,7 @@ function main() {
       daySeq.set(dayKey, seq);
       const stamp = t.outTime.replace(/[-: ]/g, "").slice(0, 14);
       const dataNo = `fl-${pointSlug}-${stamp}-${String(seq).padStart(4, "0")}`;
-      const receivingTime = addReceivingTime(t.outTime, rand);
+      const receivingTime = addReceivingTime(t.outTime, companyRand);
 
       const rec: TripRecord = {
         dataNo,
@@ -632,6 +900,9 @@ function main() {
       productCounts: { 再生细骨料: countA, 再生粉料: countB },
       productTons,
       productRatioOk: Math.abs(countA - countB) <= 1,
+      activeDays,
+      activeDayRate: profile.activeDayRate,
+      zeroDays,
     });
     const slug = shortConsignee(row.consignee);
     for (let i = 0; i < records.length; i += cfg.batchSize) {
@@ -646,7 +917,7 @@ function main() {
 
     allRecords.push(...records);
     console.log(
-      `[expand] ${slug}: trips=${records.length} sumNet=${sumNet} target=${T} delta=${delta}`,
+      `[expand] ${slug}: trips=${records.length} activeDays=${activeDays}/${dim} rate=${profile.activeDayRate} sumNet=${sumNet} target=${T} delta=${delta}`,
     );
   }
 
@@ -702,6 +973,24 @@ function main() {
     addressByConsignee.size >= 5;
   const l1 = perConsignee.every((x) => x.ok) && Math.abs(monthSum - monthTarget) <= cfg.epsilon;
   const allowed = new Set(cfg.productNames);
+  // Q11: zero quiet weekends must have no trips site-wide
+  const zeroQuietDays = new Set(
+    quietWeekends.filter((q) => q.mode === "zero").map((q) => q.day),
+  );
+  const quietZeroOk = allRecords.every((r) => {
+    const day = Number(r.outTime.slice(8, 10));
+    return !zeroQuietDays.has(day);
+  });
+  const rates = profiles.map((p) => p.activeDayRate);
+  const ratesDistinct = new Set(rates).size === rates.length;
+  const notFullCoverage = perConsignee.every((x) => x.activeDays < dim);
+  const activeSpreadOk =
+    ratesDistinct &&
+    notFullCoverage &&
+    Math.max(...perConsignee.map((x) => x.activeDays)) -
+      Math.min(...perConsignee.map((x) => x.activeDays)) >=
+      1;
+
   const l2 =
     allRecords.every((r) => {
       const offsetH = receivingOffsetHours(r.outTime, r.receivingTime);
@@ -720,7 +1009,12 @@ function main() {
     perConsignee.every((x) => x.productRatioOk) &&
     aligned === manifestLines.length &&
     ledgerLines.length === allRecords.length &&
-    submitEnabled === false;
+    submitEnabled === false &&
+    quietWeekends.length >= cfg.quietWeekendCountMin &&
+    quietWeekends.length <= cfg.quietWeekendCountMax &&
+    quietZeroOk &&
+    ratesDistinct &&
+    activeSpreadOk;
 
   const summary = {
     graph: "sand-addbatch-2026-01",
@@ -733,6 +1027,15 @@ function main() {
     socketEnd: "submit-params-json-ready",
     seed: cfg.seed,
     dataNoPattern: submitMeta.dataNoPattern,
+    q11: {
+      quietWeekends,
+      profiles: profiles.map((p) => ({
+        consignee: p.consignee,
+        activeDayRate: p.activeDayRate,
+        weekdayBias: round2(p.weekdayBias),
+        burstiness: round2(p.burstiness),
+      })),
+    },
     poolStats,
     perConsignee,
     monthTarget,
@@ -769,13 +1072,15 @@ function main() {
     `- monthSum: ${monthSum} / target ${monthTarget}`,
     `- pool: ${poolStats.total} (day=${poolStats.day}, night=${poolStats.night})`,
     `- dayPart aligned: ${aligned}/${manifestLines.length}`,
+    `- Q11 quietWeekends: ${JSON.stringify(quietWeekends)}`,
+    `- Q11 rateDistinct=${ratesDistinct} activeSpreadOk=${activeSpreadOk} quietZeroOk=${quietZeroOk}`,
     `- output: json/ + ledgers/dataNo-ledger.jsonl + submit-meta.json`,
     "",
     "## Per consignee",
     "",
     ...perConsignee.map(
       (x) =>
-        `- ${x.consignee}: sum=${x.sumNet} target=${x.target} delta=${x.delta} trips=${x.tripCount} ok=${x.ok} products=${JSON.stringify(x.productCounts)}`,
+        `- ${x.consignee}: sum=${x.sumNet} target=${x.target} delta=${x.delta} trips=${x.tripCount} activeDays=${x.activeDays}/${dim} rate=${x.activeDayRate} ok=${x.ok} products=${JSON.stringify(x.productCounts)}`,
     ),
     "",
     "## Levels",

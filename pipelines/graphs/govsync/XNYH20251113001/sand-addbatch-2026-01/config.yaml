@@ -56,6 +56,17 @@ scenario:
   grossMax: 37
   epsilon: 0.01
   dayWeightJitter: 0.15
+  # Q11: company activity differentiation + quiet weekends
+  quietWeekendCountMin: 2
+  quietWeekendCountMax: 4
+  quietWeekendLowFactor: 0.08
+  quietWeekendZeroProbability: 0.5
+  # Distinct active-day rates for 5 consignees (shuffled by seed); must stay spaced
+  companyActiveDayRates: [0.40, 0.52, 0.65, 0.78, 0.90]
+  companyWeekdayBiasMin: -0.15
+  companyWeekdayBiasMax: 0.25
+  companyBurstinessMin: 0.2
+  companyBurstinessMax: 0.8
   batchSize: 100
   seed: 20260909
   pointNumber: XNYH20251113001
