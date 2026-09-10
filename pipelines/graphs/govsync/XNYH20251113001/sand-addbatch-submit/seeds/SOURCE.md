@@ -5,7 +5,7 @@
 | 月份 | 目录 | 状态 |
 |------|------|------|
 | 2026-01 | `seeds/2026-01/` | **active** — run `2026-09-09T165250` |
-| 2026-02 | `seeds/2026-02/` | pending（待拷贝 transform run） |
+| 2026-02 | `seeds/2026-02/` | pending（transform：`sand-addbatch-2026-02`） |
 | 2026-03 | `seeds/2026-03/` | pending |
 | 2026-04 | `seeds/2026-04/` | pending |
 | 2026-05 | `seeds/2026-05/` | pending |

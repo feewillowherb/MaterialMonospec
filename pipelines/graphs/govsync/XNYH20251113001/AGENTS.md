@@ -4,12 +4,15 @@
 
 | Graph | Family | Goal | 说明 |
 |-------|--------|------|------|
-| `sand-addbatch-2026-01/` | transform | `gov-sand-product-addbatch-2026-01` | **禁止 POST**；产出待 POST JSON + `dataNo` 台账 |
-| `sand-addbatch-submit/` | probe | `gov-sand-product-addbatch-submit` | 读冻结源 run；**默认禁止自动 POST**；状态账待 cook |
+| `sand-addbatch-2026-01/` | transform | `gov-sand-product-addbatch-2026-01` | **禁止 POST**；1 月待 POST JSON + `dataNo` 台账 |
+| `sand-addbatch-2026-02/` | transform | `gov-sand-product-addbatch-2026-02` | **禁止 POST**；2 月待 POST JSON + `dataNo` 台账 |
+| `sand-addbatch-submit/` | probe | `gov-sand-product-addbatch-submit` | 按月读冻结源；**默认禁止自动 POST** |
 
 | 归档 | 说明 |
 |------|------|
 | `preserved/2026-01-posted-old-q5/` | 一月已提交、**旧 Q5** 车次快照（勿重 POST；regenerate 时保留） |
+
+约定：**每月独立 Graph**（独立 `goal` / slug）；submit 侧 `seeds/<yyyy-MM>/` 分仓，勿跨月混跑。
 
 路径约定见 [`pipelines/AGENTS.md`](../../../AGENTS.md)（`graphs/govsync/<PointNumber>/<slug>/`）。
 

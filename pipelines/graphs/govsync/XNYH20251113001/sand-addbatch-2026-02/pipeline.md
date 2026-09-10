@@ -1,43 +1,44 @@
-# sand-addbatch-2026-01（govsync / XNYH20251113001）
+# sand-addbatch-2026-02（govsync / XNYH20251113001）
 
 ## 目的 / Goal
 
-生成 **2026 年 1 月** §2.2 `addBatch` **待 POST JSON**（含 `consigneeAddress`、`receivingTime` Q10、持久化 `dataNo` 台账），供用户验收后再另图提交。
+生成 **2026 年 2 月** §2.2 `addBatch` **待 POST JSON**（含 `consigneeAddress`、`receivingTime` Q10、持久化 `dataNo` 台账），供用户验收后再另图提交。
 
 - **本图禁止提交**（`submitEnabled: false`；脚本不得 HTTP）
 - 产物：`json/*.json` + `ledgers/dataNo-ledger.jsonl` + `submit-meta.json`
 - `dataNo`：`fl-{pointNumber小写}-{yyyyMMddHHmmss}-{seq}`（例 `fl-xnyh20251113001-…`）
 - 照片：JSON 内写 `outPhotosPath`；**不**写 Base64（正式 POST 另图 embed）
+- 车载：**Q5** 净~50 / 皮~20 / 毛~70（`48–52` / `19–21` / `67–73`）
 
-Goal 槽：`gov-sand-product-addbatch-2026-01`
+Goal 槽：`gov-sand-product-addbatch-2026-02`（与 1 月图 **互异 goal**；每月独立 Graph）
 
-Status: **active**（2026-09-09 重建；前任见 `_retired/2026-09/sand-addbatch-2026-01/`）
+Status: **active**（2026-09-10 自 `sand-addbatch-2026-01` 派生）
 
-路径：`pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/`
+路径：`pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-02/`
 
 站点：`PointNumber=XNYH20251113001`（见 [`../AGENTS.md`](../AGENTS.md)）
 
 方案：[docs/2026-09-07-sand-product-transport-addbatch-mock](../../../../../docs/2026-09-07-sand-product-transport-addbatch-mock/00-调研总览.md)
 
-**Q11**：五家 `activeDayRate` 档位互异；每月抽 **2～4** 个周末日全场低/零活跃（非「每家每天都有」）。
+**Q11**：五家 `activeDayRate` 档位互异；每月抽 **2～4** 个周末日全场低/零活跃。
 
 ## 非目标
 
 - **禁止**对本图目标 URL 做任何 POST / HMAC 实发
 - 不改 `repos/` 业务代码
-- 不导出其它月份（2–5 月另开独立 Graph / goal，如 `sand-addbatch-2026-02`）
+- 不导出其它月份（1 / 3 / 4 / 5 月各有独立 slug）
 - 不提交 secrets / runs / 现场 jpg / 大 Base64
 - Agent 不宣布 L3 通过
 
 ## 配置指针
 
-- `./config.yaml`（`submitEnabled: false`，`outputFormat: json`）
-- `./seeds/monthly-totals.yaml`
+- `./config.yaml`（`submitEnabled: false`，`month: 2`，`outputFormat: json`）
+- `./seeds/monthly-totals.yaml`（展开 `months[2]`）
 - `./seeds/consignee-addresses.yaml`
 - Q9 池：`pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv/`
 - `./secrets.local.yaml`（仅预留；本图不用）
-- Node/TS：`./scripts/expand-january.ts`（experimental；`pnpm exec tsx`）
-- Invoke：`./scripts/Invoke-SandAddbatch202601.ps1`（experimental）
+- Node/TS：`./scripts/expand-february.ts`（experimental；`pnpm exec tsx`）
+- Invoke：`./scripts/Invoke-SandAddbatch202602.ps1`（experimental）
 
 ## 前置
 
@@ -55,6 +56,7 @@ Status: **active**（2026-09-09 重建；前任见 `_retired/2026-09/sand-addbat
 ## Context
 
 - 指针：`target.baseUrl` + `pointNumber=XNYH20251113001`
+- 2 月目标合计约 **71702.81** t（五家 `months[2]`）
 - 验收：`dataNo` / `carNo` / `productName` / 净皮毛 / `outTime` / `receivingTime`(Q10) / `consignee` / `consigneeAddress` / `outPhotosPath` / 台账
 
 ## 状态机 / Cook chain
@@ -93,15 +95,18 @@ flowchart LR
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File `
-  pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/scripts/Invoke-SandAddbatch202601.ps1
+  pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-2026-02/scripts/Invoke-SandAddbatch202602.ps1
 ```
 
-命令：`/run-pipeline govsync/XNYH20251113001/sand-addbatch-2026-01`
+默认：**全量生成**（二月尚无已提交账本；勿默认套一月 preserve）。  
+可选：`-Preserve` + 提供 `state/2026-02/submit-state.jsonl` 后可续跑重拆。
+
+命令：`/run-pipeline govsync/XNYH20251113001/sand-addbatch-2026-02`
 
 ## 人闸 / Gate
 
 请验收待 POST 参数：`pass` / `fail` + 对象与原因。  
-通过后另开 submit Graph（本图永不自动 POST）。
+通过后拷贝到 **`sand-addbatch-submit/seeds/2026-02/source-run/<runId>/`**，再 HMAC POST（submit 图按月分仓；**不**与 1 月混跑）。
 
 ## 判定级别
 
@@ -114,6 +119,6 @@ powershell -ExecutionPolicy Bypass -File `
 
 ## Handoff
 
-Output：`submit-params-json-ready`。下游 **`sand-addbatch-submit`** 按月读取冻结源（当前 1 月：`../sand-addbatch-submit/seeds/2026-01/source-run/2026-09-09T152356/`），再 embed `outPhotos` 后 HMAC POST（submit 图默认 `submitEnabled: false`，**不自动执行**；2–5 月另仓另跑）。
+Output：`submit-params-json-ready`。下游 **`sand-addbatch-submit`** 切换 `source.month=2026-02` 后读取冻结源。
 
 接口空数组通路探测：另图 `govsync/recycle-hmac-auth`。

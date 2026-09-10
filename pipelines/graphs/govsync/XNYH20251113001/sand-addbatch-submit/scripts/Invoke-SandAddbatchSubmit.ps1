@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 $GraphRoot = Split-Path -Parent $PSScriptRoot
 $ConfigPath = Join-Path $GraphRoot "config.yaml"
 $SecretsPath = Join-Path $GraphRoot "secrets.local.yaml"
-$SourceRunRelDefault = "seeds\2026-01\source-run\2026-09-09T152356"
+$SourceRunRelDefault = "seeds\2026-01\source-run\2026-09-09T165250"
 $DurableStateRelDefault = "state\2026-01\submit-state.jsonl"
 
 function Write-Utf8NoBom {
