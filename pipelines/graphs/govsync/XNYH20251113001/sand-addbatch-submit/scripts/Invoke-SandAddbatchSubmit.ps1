@@ -74,9 +74,14 @@ function Read-WebResponseUtf8Text {
 
 function Read-ErrorResponseUtf8Text {
     param($Exception)
-    if ($null -eq $Exception -or $null -eq $Exception.Response) { return "" }
+    if ($null -eq $Exception) { return "" }
+    $webResp = $null
+    if ($null -ne $Exception.PSObject.Properties['Response']) {
+        $webResp = $Exception.Response
+    }
+    if ($null -eq $webResp) { return "" }
     try {
-        $stream = $Exception.Response.GetResponseStream()
+        $stream = $webResp.GetResponseStream()
         if ($null -eq $stream) { return "" }
         $ms = New-Object System.IO.MemoryStream
         $stream.CopyTo($ms)
@@ -554,8 +559,14 @@ for ($i = 0; $i -lt $pending.Count; $i += $batchSize) {
     }
     catch {
         $errorText = $_.Exception.Message
-        if ($_.Exception.Response) {
-            $httpStatus = [int]$_.Exception.Response.StatusCode
+        # StrictMode: Exception.Response may be absent (timeouts / connection reset).
+        $webResp = $null
+        if ($null -ne $_.Exception -and
+            $null -ne $_.Exception.PSObject.Properties['Response']) {
+            $webResp = $_.Exception.Response
+        }
+        if ($null -ne $webResp) {
+            try { $httpStatus = [int]$webResp.StatusCode } catch { }
             $respText = Read-ErrorResponseUtf8Text -Exception $_.Exception
         }
     }

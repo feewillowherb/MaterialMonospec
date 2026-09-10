@@ -1,0 +1,141 @@
+id: sand-addbatch-2026-03
+created: "2026-09-10"
+graph:
+  product: materialclient
+  domain: govsync
+  family: transform
+  goal: gov-sand-product-addbatch-2026-03
+  status: active
+  site: XNYH20251113001
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: monthly-tonnage-raw
+  end: submit-params-json-ready
+cook: new-object
+
+# HARD: this Graph never POSTs. Produces pending-POST JSON only.
+submitEnabled: false
+
+target:
+  baseUrl: https://gzt.cgw.hangzhou.gov.cn/muckmanage/addmtd0p1q/api/zhztc-module-exapi
+  path: /dataCenter/resourcePlace/productTransportRecord/v1/addBatch
+  method: POST
+  docsRef: docs/2026-09-07-sand-product-transport-addbatch-mock/01-数据源与目标接口.md
+  algorithmRef: docs/2026-09-07-sand-product-transport-addbatch-mock/02-按天按时拆分算法.md
+  fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
+  addressRef: docs/2026-09-07-sand-product-transport-addbatch-mock/06-收货方到货地址.md
+  contractRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
+  seedsRel: seeds/monthly-totals.yaml
+  addressesRel: seeds/consignee-addresses.yaml
+  platePhotoPool:
+    csvDirRel: pipelines/graphs/materialclient/recycle-wenyixilu-export/out/latest/csv
+    requirePhotoFound: true
+    preferAttachTypes: [2, 5]
+    dayPart:
+      dayStart: "06:00"
+      dayEnd: "18:00"
+    hourProximityHours: 2
+    ignorePoolWeight: true
+
+scenario:
+  year: 2026
+  month: 3
+  productNames: [再生细骨料, 再生粉料]
+  productRatio: "1:1"
+  workCalendar: all-days
+  businessHours: ["06:00", "17:30"]
+  businessHoursSoftMarginMinutes: 30
+  outOfWindowRate: 0.08
+  # Q5: net~50 / tare~20 / gross~70
+  tripNetMin: 48
+  tripNetMax: 52
+  tareMin: 19
+  tareMax: 21
+  grossMin: 67
+  grossMax: 73
+  epsilon: 0.01
+  dayWeightJitter: 0.15
+  # Q11: company activity differentiation + quiet weekends
+  quietWeekendCountMin: 2
+  quietWeekendCountMax: 4
+  quietWeekendLowFactor: 0.08
+  quietWeekendZeroProbability: 0.5
+  companyActiveDayRates: [0.40, 0.52, 0.65, 0.78, 0.90]
+  companyWeekdayBiasMin: -0.15
+  companyWeekdayBiasMax: 0.25
+  companyBurstinessMin: 0.2
+  companyBurstinessMax: 0.8
+  batchSize: 100
+  seed: 202609103
+  pointNumber: XNYH20251113001
+  dataNoIncludePointNumber: true
+  outputFormat: json
+  includeOutPhotosBase64: false
+  includeConsigneeAddress: true
+  includeReceivingTime: true
+  receivingOffsetHoursMin: 1.5
+  receivingOffsetHoursMax: 2.5
+  persistDataNoLedger: true
+
+steps:
+  - id: bind-inputs
+    name: 加载 3 月吨位种子 + 地址表 + Q9 车牌/图池 CSV + PointNumber
+  - id: cook-expand-json
+    name: 拆分车次；写出待 POST JSON + dataNo 台账（禁止 HTTP）
+  - id: validate-conservation
+    name: 校验吨位守恒 / dataNo / 地址 / receivingTime(Q10) / 产品 1:1 / 昼夜同档
+
+expect:
+  - id: seeds-readable
+    level: L0
+    description: monthly-totals + consignee-addresses 与池 CSV 可读；month=3 五行齐全
+  - id: conservation
+    level: L1
+    description: 每收货公司 3 月 ΣnetWeight 与种子差 ≤ 0.01；全月合计 ≈ 110805.06
+  - id: shape-and-daypart
+    level: L2
+    description: JSON 含 §2.2 待 POST 字段；fl-{point小写}-… dataNo；receivingTime∈outTime+1.5h～2.5h；台账行数=车次；无 HTTP
+  - id: params-review
+    level: L3
+    description: 用户验收待 POST 参数 — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  json:
+    required: true
+    sink: json/
+  ledger:
+    required: true
+    sink: ledgers/dataNo-ledger.jsonl
+  submitMeta:
+    required: true
+    sink: submit-meta.json
+  manifest:
+    required: true
+    sink: photo-manifest.jsonl
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-pool-csv
+  - params-acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  transform:
+    mode: script-invoke
+    script: scripts/Invoke-SandAddbatch202603.ps1
+    experimental: true
+    nodeTool: scripts/expand-march.ts
+    secretsKeys: [accessKey, secretKey]

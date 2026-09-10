@@ -6,6 +6,9 @@
 |-------|--------|------|------|
 | `sand-addbatch-2026-01/` | transform | `gov-sand-product-addbatch-2026-01` | **禁止 POST**；1 月待 POST JSON + `dataNo` 台账 |
 | `sand-addbatch-2026-02/` | transform | `gov-sand-product-addbatch-2026-02` | **禁止 POST**；2 月待 POST JSON + `dataNo` 台账 |
+| `sand-addbatch-2026-03/` | transform | `gov-sand-product-addbatch-2026-03` | **禁止 POST**；3 月待 POST JSON + `dataNo` 台账 |
+| `sand-addbatch-2026-04/` | transform | `gov-sand-product-addbatch-2026-04` | **禁止 POST**；4 月待 POST JSON + `dataNo` 台账 |
+| `sand-addbatch-2026-05/` | transform | `gov-sand-product-addbatch-2026-05` | **禁止 POST**；5 月待 POST JSON + `dataNo` 台账 |
 | `sand-addbatch-submit/` | probe | `gov-sand-product-addbatch-submit` | 按月读冻结源；**默认禁止自动 POST** |
 
 | 归档 | 说明 |

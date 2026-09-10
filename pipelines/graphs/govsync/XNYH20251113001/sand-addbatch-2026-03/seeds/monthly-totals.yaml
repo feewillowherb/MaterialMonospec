@@ -1,0 +1,18 @@
+# seeds — monthly sand totals (from docs/2026-09-07-sand-product-transport-addbatch-mock/01)
+# This Graph expands **month 3** only (see config.scenario.month).
+year: 2026
+unit: ton
+# Q4: trip productName alternates 1:1
+productNames: [再生细骨料, 再生粉料]
+productRatio: "1:1"
+rows:
+  - consignee: 杭州临平腾满建筑材料商行（个体工商户）
+    months: { 1: 56331.10, 2: 29538.61, 3: 53794.45, 4: 48973.20, 5: 46318.50 }
+  - consignee: 杭州三野建材有限公司
+    months: { 1: 18109.28, 2: 12483.37, 3: 16139.43, 4: 15149.74, 5: 15962.70 }
+  - consignee: 杭州永武建材有限公司
+    months: { 1: 15468.33, 2: 9062.29, 3: 13468.36, 4: 13852.38, 5: 13815.71 }
+  - consignee: 安吉起陆建材有限公司
+    months: { 1: 15445.25, 2: 9249.88, 3: 12445.17, 4: 14647.81, 5: 14321.93 }
+  - consignee: 浙江锦秋建材有限公司
+    months: { 1: 17990.36, 2: 11368.66, 3: 14957.65, 4: 15502.94, 5: 13668.21 }

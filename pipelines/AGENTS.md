@@ -207,6 +207,9 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | gov-recycle-hmac-auth | probe | `graphs/govsync/recycle-hmac-auth/` | active |
 | gov-sand-product-addbatch-2026-01 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/` | active |
 | gov-sand-product-addbatch-2026-02 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-02/` | active |
+| gov-sand-product-addbatch-2026-03 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-03/` | active |
+| gov-sand-product-addbatch-2026-04 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-04/` | active |
+| gov-sand-product-addbatch-2026-05 | transform | `graphs/govsync/XNYH20251113001/sand-addbatch-2026-05/` | active |
 | gov-sand-product-addbatch-submit | probe | `graphs/govsync/XNYH20251113001/sand-addbatch-submit/` | active |
 | login-observe-flaui | observe | `graphs/materialclient/login-flaui/` | active |
 | login-observe-devtools | observe | `graphs/materialclient/login-devtools/` | active |
