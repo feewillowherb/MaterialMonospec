@@ -23,7 +23,15 @@ if (!cols.includes('LastErrorTime')) {
 if (!cols.includes('SubmitMachineCode')) {
   db.exec('ALTER TABLE "UrbanPassageRecords" ADD COLUMN "SubmitMachineCode" TEXT NULL;');
 }
+if (!cols.includes('UploadedAt')) {
+  db.exec('ALTER TABLE "UrbanPassageRecords" ADD COLUMN "UploadedAt" TEXT NULL;');
+}
 db.exec('CREATE INDEX IF NOT EXISTS "IX_UrbanPassageRecords_SyncStatus" ON "UrbanPassageRecords" ("SyncStatus");');
+
+const extCols = db.prepare('PRAGMA table_info("UrbanWeighingExtensions")').all().map((r) => r.name);
+if (!extCols.includes('UrbanInOutType')) {
+  db.exec('ALTER TABLE "UrbanWeighingExtensions" ADD COLUMN "UrbanInOutType" INTEGER NULL;');
+}
 
 const after = db.prepare('PRAGMA table_info("UrbanPassageRecords")').all().map((r) => r.name);
 console.log('After:', after.join(', '));
