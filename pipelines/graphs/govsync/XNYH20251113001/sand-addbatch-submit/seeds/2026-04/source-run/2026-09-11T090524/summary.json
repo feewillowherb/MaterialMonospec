@@ -1,0 +1,201 @@
+{
+  "graph": "sand-addbatch-2026-04",
+  "goal": "gov-sand-product-addbatch-2026-04",
+  "site": "XNYH20251113001",
+  "year": 2026,
+  "month": 4,
+  "submitEnabled": false,
+  "outputFormat": "json",
+  "socketEnd": "submit-params-json-ready",
+  "seed": null,
+  "preserveMode": false,
+  "preservedTrips": 0,
+  "preservedNet": 0,
+  "dataNoPattern": "fl-xnyh20251113001-{yyyyMMddHHmmss}-{seq:D4}",
+  "q11": {
+    "quietWeekends": [
+      {
+        "day": 19,
+        "mode": "zero"
+      },
+      {
+        "day": 12,
+        "mode": "low"
+      }
+    ],
+    "profiles": [
+      {
+        "consignee": "杭州临平腾满建筑材料商行（个体工商户）",
+        "activeDayRate": 0.9,
+        "weekdayBias": 0.05,
+        "burstiness": 0.53
+      },
+      {
+        "consignee": "杭州三野建材有限公司",
+        "activeDayRate": 0.78,
+        "weekdayBias": -0.15,
+        "burstiness": 0.74
+      },
+      {
+        "consignee": "杭州永武建材有限公司",
+        "activeDayRate": 0.65,
+        "weekdayBias": -0.03,
+        "burstiness": 0.46
+      },
+      {
+        "consignee": "安吉起陆建材有限公司",
+        "activeDayRate": 0.4,
+        "weekdayBias": 0.12,
+        "burstiness": 0.56
+      },
+      {
+        "consignee": "浙江锦秋建材有限公司",
+        "activeDayRate": 0.52,
+        "weekdayBias": 0.01,
+        "burstiness": 0.53
+      }
+    ]
+  },
+  "poolStats": {
+    "total": 3402,
+    "day": 2582,
+    "night": 820
+  },
+  "perConsignee": [
+    {
+      "consignee": "杭州临平腾满建筑材料商行（个体工商户）",
+      "target": 48973.2,
+      "sumNet": 48973.2,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 993,
+      "productCounts": {
+        "再生细骨料": 497,
+        "再生粉料": 496
+      },
+      "productTons": {
+        "再生细骨料": 24434.48,
+        "再生粉料": 24538.72
+      },
+      "productRatioOk": true,
+      "activeDays": 26,
+      "activeDayRate": 0.9,
+      "zeroDays": 4,
+      "keptTrips": 0,
+      "newTrips": 993,
+      "keptNet": 0,
+      "genTarget": 48973.2
+    },
+    {
+      "consignee": "杭州三野建材有限公司",
+      "target": 15149.74,
+      "sumNet": 15149.74,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 312,
+      "productCounts": {
+        "再生细骨料": 156,
+        "再生粉料": 156
+      },
+      "productTons": {
+        "再生细骨料": 7473.3,
+        "再生粉料": 7676.44
+      },
+      "productRatioOk": true,
+      "activeDays": 23,
+      "activeDayRate": 0.78,
+      "zeroDays": 7,
+      "keptTrips": 0,
+      "newTrips": 312,
+      "keptNet": 0,
+      "genTarget": 15149.74
+    },
+    {
+      "consignee": "杭州永武建材有限公司",
+      "target": 13852.38,
+      "sumNet": 13852.38,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 287,
+      "productCounts": {
+        "再生细骨料": 144,
+        "再生粉料": 143
+      },
+      "productTons": {
+        "再生细骨料": 6812.17,
+        "再生粉料": 7040.21
+      },
+      "productRatioOk": true,
+      "activeDays": 19,
+      "activeDayRate": 0.65,
+      "zeroDays": 11,
+      "keptTrips": 0,
+      "newTrips": 287,
+      "keptNet": 0,
+      "genTarget": 13852.38
+    },
+    {
+      "consignee": "安吉起陆建材有限公司",
+      "target": 14647.81,
+      "sumNet": 14647.81,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 297,
+      "productCounts": {
+        "再生细骨料": 149,
+        "再生粉料": 148
+      },
+      "productTons": {
+        "再生细骨料": 7321.74,
+        "再生粉料": 7326.07
+      },
+      "productRatioOk": true,
+      "activeDays": 12,
+      "activeDayRate": 0.4,
+      "zeroDays": 18,
+      "keptTrips": 0,
+      "newTrips": 297,
+      "keptNet": 0,
+      "genTarget": 14647.81
+    },
+    {
+      "consignee": "浙江锦秋建材有限公司",
+      "target": 15502.94,
+      "sumNet": 15502.94,
+      "delta": 0,
+      "ok": true,
+      "tripCount": 316,
+      "productCounts": {
+        "再生细骨料": 158,
+        "再生粉料": 158
+      },
+      "productTons": {
+        "再生细骨料": 7739.24,
+        "再生粉料": 7763.7
+      },
+      "productRatioOk": true,
+      "activeDays": 16,
+      "activeDayRate": 0.52,
+      "zeroDays": 14,
+      "keptTrips": 0,
+      "newTrips": 316,
+      "keptNet": 0,
+      "genTarget": 15502.94
+    }
+  ],
+  "monthTarget": 108126.07,
+  "monthSum": 108126.07,
+  "tripCount": 2205,
+  "ledgerCount": 2205,
+  "dayPartAligned": 2205,
+  "dayPartTotal": 2205,
+  "dayPartMismatch": 0,
+  "poolReuse": 0,
+  "levels": {
+    "L0": "pass",
+    "L1": "pass",
+    "L2": "pass",
+    "L3": "pending-user-params-review"
+  },
+  "message": "等待用户验收待 POST JSON 参数，尚未通过。本图禁止 POST。"
+}
