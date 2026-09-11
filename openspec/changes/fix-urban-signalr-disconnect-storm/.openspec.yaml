@@ -1,6 +1,6 @@
 schema: spec-driven
 created: 2026-09-11
 effort:
-  tier: M
-  tokens_estimate: "15万-40万"
-  notes: "Hub disconnect CT + SignalR timeouts; remove ProjectManagement DeviceStatus HubConnection/polling; ABP IDistributedCache → tporadowski/redis :6379 maxmemory 100mb (not SignalR backplane)"
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "Redis primary for live connection/device state (accept loss); Hub hot path zero EF; remove Web DeviceStatus Hub/polling; tporadowski/redis :6379 maxmemory 100mb; not SignalR backplane"

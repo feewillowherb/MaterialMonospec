@@ -1,21 +1,21 @@
 ## ADDED Requirements
 
-### Requirement: Disconnect persistence survives connection abort
+### Requirement: Disconnect path does not write SQLite
 
-When a mapped DeviceStatus SignalR connection disconnects, UrbanManagement MUST attempt to persist that `(ProId, ClientId)` offline state using a dependency scope and cancellation token that are independent of the aborted hub connection token, so EF SaveChanges is not canceled solely because `ConnectionAborted` fired.
+When a mapped DeviceStatus SignalR connection disconnects, UrbanManagement MUST update live offline state in Redis only and MUST NOT perform EF `SaveChanges` / repository upserts against `ClientOnlineStatus` or device-online tables on that disconnect path, so SQLite is not contended by disconnect storms.
 
-#### Scenario: Offline upsert after ClientTimeoutInterval disconnect
+#### Scenario: Offline update after ClientTimeoutInterval disconnect
 
 - **WHEN** a hub connection ends with `ClientTimeoutInterval` (or equivalent connection abort)
 - **AND** the connection was mapped to a valid `(ProId, ClientId)`
-- **THEN** the system SHALL still attempt to upsert that instance as disconnected in the database
-- **AND** SHALL NOT pass the hub connection abort token as the sole cancellation token for that upsert
+- **THEN** the system SHALL update that instance's live state in Redis (offline or key removal)
+- **AND** SHALL NOT upsert SQLite online/device tables for that disconnect event
 
-#### Scenario: Expected cancel is not logged as Error storm
+#### Scenario: Disconnect failures are not SQLite cancel storms
 
-- **WHEN** disconnect persistence fails only because an explicit short timeout or cooperative cancel completed
-- **THEN** the host SHALL NOT treat that outcome as a recurring Error-level "Error persisting client disconnect" storm
-- **AND** unexpected failures (e.g. SQLite IO errors unrelated to abort) MAY still be logged as Error
+- **WHEN** disconnect handling fails (e.g. Redis I/O error)
+- **THEN** the host SHALL log appropriately without generating recurring Error-level `TaskCanceledException` storms from EF `SaveChanges` on the abort token
+- **AND** Redis/infrastructure failures MAY still be logged as Error/Warning
 
 ### Requirement: Configurable SignalR keep-alive and client timeout
 
@@ -29,7 +29,7 @@ The UrbanManagement host SHALL bind SignalR keep-alive and client timeout from t
 
 ### Requirement: Project management Web UI does not use DeviceStatus SignalR
 
-The Blazor project management page MUST NOT open a SignalR client connection to `/hubs/devicestatus`, MUST NOT subscribe to `ClientConnectionUpdate` for automatic refresh, and MUST NOT run background polling to refresh client connection status. Client status on that page SHALL update only when the user navigates/loads the page or explicitly triggers a manual refresh (including existing user-driven actions that reload list data, such as search or paging). The server MUST continue to expose `DeviceStatusHub` for MaterialClient desktop clients. Blazor Server circuit transport (`MapBlazorHub`) remains required and is out of scope for removal.
+The Blazor project management page MUST NOT open a SignalR client connection to `/hubs/devicestatus`, MUST NOT subscribe to `ClientConnectionUpdate` for automatic refresh, and MUST NOT run background polling to refresh client connection status. Client status on that page SHALL update only when the user navigates/loads the page or explicitly triggers a manual refresh (including existing user-driven actions that reload list data, such as search or paging). Live badge data SHALL come from AppService/HTTP backed by Redis. The server MUST continue to expose `DeviceStatusHub` for MaterialClient desktop clients. Blazor Server circuit transport (`MapBlazorHub`) remains required and is out of scope for removal.
 
 #### Scenario: No browser DeviceStatus hub connection
 
@@ -45,4 +45,4 @@ The Blazor project management page MUST NOT open a SignalR client connection to 
 #### Scenario: Manual or navigation-driven refresh still works
 
 - **WHEN** the user loads/reloads the page or performs an explicit refresh / search / page-change that reloads project list data
-- **THEN** client connection badges SHALL reflect current data from `IDeviceStatusAppService` (HTTP / AppService), not from a live hub push
+- **THEN** client connection badges SHALL reflect current live data from `IDeviceStatusAppService` (HTTP / AppService over Redis), not from a live hub push

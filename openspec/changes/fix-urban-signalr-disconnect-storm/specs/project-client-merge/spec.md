@@ -2,7 +2,7 @@
 
 ### Requirement: Real-time connection status updates via SignalR
 
-ProjectManagement.razor MUST NOT subscribe to SignalR `ClientConnectionUpdate` events and MUST NOT fall back to timed polling for client connection status. Connection badges SHALL refresh only when list data is loaded through user navigation or an explicit manual refresh (including user-driven search/paging reloads). Desktop clients continue to use `DeviceStatusHub` independently of the Blazor page.
+ProjectManagement.razor MUST NOT subscribe to SignalR `ClientConnectionUpdate` events and MUST NOT fall back to timed polling for client connection status. Connection badges SHALL refresh only when list data is loaded through user navigation or an explicit manual refresh (including user-driven search/paging reloads), using AppService data backed by Redis live state. Desktop clients continue to use `DeviceStatusHub` independently of the Blazor page.
 
 #### Scenario: Status refresh without SignalR while page is open
 
