@@ -2,6 +2,8 @@
 
 UrbanManagement 卡口进出与成品进出列表已具备重置同步，但缺少与称重记录页对齐的「查看照片」入口，也未展示同步时间与同步状态徽章样式，操作员无法在 UM 侧核对抓拍图与 Gov 同步结果。
 
+> **Superseded by** `add-urban-ops-list-and-manual-entry`（含本 change 照片/同步时间范围，并追加施工单位/项目列与全局多图 lightbox）。**请勿再对本 change 执行 apply**；以新 change 为准。
+
 ## What Changes
 
 - 卡口进出（`CheckpointPassage.razor`）与成品进出（`FinishedProductPassage.razor`）操作列增加「查看照片」，弹出对话框展示该行大图（无图时明确空态）。

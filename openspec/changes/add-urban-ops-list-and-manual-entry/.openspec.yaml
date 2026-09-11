@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-11
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "UrbanManagement only; manual entry API + 4 UI surfaces + shared lightbox; session-split by page group recommended"
