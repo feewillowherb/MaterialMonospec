@@ -112,6 +112,12 @@ docs/2026-01-01-topic-name/
 
 **新建调研**仍应使用上文的日期文件夹格式。
 
+### 常用操作手册（日期夹）
+
+| 手册 | 路径 |
+|------|------|
+| 用 Pipeline 代替人力测试 | [`2026-09-11-pipeline-replace-manual-testing/`](2026-09-11-pipeline-replace-manual-testing/00-调研总览.md)（权威选型仍以 [`pipelines/AGENTS.md`](../pipelines/AGENTS.md) 为准） |
+
 ## Intake 需求收件（Parking）
 
 > **Required trait：** `traits/intake-parking-trait.md`（机制；可迁移）。  
