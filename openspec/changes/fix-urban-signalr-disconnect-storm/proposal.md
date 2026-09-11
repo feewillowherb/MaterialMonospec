@@ -1,33 +1,34 @@
 ## Why
 
-生产日志（`log-20260911`）显示 localhost / Blazor 卡顿约 1 分钟：`DeviceStatusHub` 在 `ClientTimeoutInterval` 下成批断连，断连写 SQLite 大量 `TaskCanceledException`。同时项目管理页浏览器侧再连 `/hubs/devicestatus` 做实时刷新，加重 Hub 负载且非业务必需。Web 不需要 DeviceStatus SignalR；状态由用户手动刷新即可。
+生产日志（`log-20260911`）显示 localhost / Blazor 卡顿约 1 分钟：`DeviceStatusHub` 在 `ClientTimeoutInterval` 下成批断连，断连写 SQLite 大量 `TaskCanceledException`。根因是 **SignalR 热路径同步打 EF/SQLite**；项目管理页再连 `/hubs/devicestatus` 加重负载。产品接受 **连接态易失**：以 Redis 为主存当前在线/设备态，热路径 **不再写 SQLite**；UM/Redis 重启后视为全部离线直至客户端重连。
 
 ## What Changes
 
-- 优化 `DeviceStatusHub` 断连处理：离线持久化不得依赖已取消的连接 `CancellationToken`；独立作用域 / 非 abort CT；取消类失败降噪
-- 为宿主 SignalR（桌面端 Hub + Blazor Server 电路）增加可配置 `ClientTimeoutInterval` / `KeepAliveInterval`
-- **移除** `ProjectManagement.razor` 对 `/hubs/devicestatus` 的 `HubConnection`、`SubscribeClientConnection`、以及 **30s 兜底轮询**；客户端连接状态仅在进入页面 / 用户手动刷新时通过 `IDeviceStatusAppService` HTTP 加载
-- **保留** `MapHub<DeviceStatusHub>` 供 MaterialClient；**保留** `MapBlazorHub`（Blazor Server 必需）
-- 将 ABP `IDistributedCache`（设备状态 / 连接注册等已有缓存）从进程内内存改为 **Redis** 后端：现场 Windows 使用 [tporadowski/redis](https://github.com/tporadowski/redis)，**默认端口 6379**，服务端 **`maxmemory 100mb`**
-- **不**借机大改 GovSync worker / WAL；**不**引入 SignalR Redis 背板（多实例 Hub scale-out）
+- **连接/设备当前态改为 Redis 主存**：`OnConnected` / `OnDisconnected` / `UploadStatus` 热路径只写 Redis（带 TTL），**禁止** EF `ClientOnlineStatus` / `ClientDeviceOnlineStatus` upsert
+- 项目管理徽章与设备弹窗查询以 **Redis 为准**；缺 key / Redis 清空 = 离线或未注册（**接受连接丢失**，不回源 SQLite）
+- 引入本机 Redis（[tporadowski/redis](https://github.com/tporadowski/redis)）：默认 **`127.0.0.1:6379`**，服务端 **`maxmemory 100mb`** + `allkeys-lru`；ABP `IDistributedCache` 后端接 Redis；**不做** SignalR Redis 背板
+- 为宿主 SignalR 增加可配置 `ClientTimeoutInterval` / `KeepAliveInterval`
+- **移除** `ProjectManagement.razor` 对 `/hubs/devicestatus` 的 `HubConnection`、订阅与 **30s 轮询**；仅 HTTP + 手动刷新
+- **保留** `MapHub<DeviceStatusHub>` 与 `MapBlazorHub`；MaterialClient Hub 协议不变
+- **不**借机大改 GovSync / WAL；表结构可保留但热路径与实时查询不再依赖
 
 ## Capabilities
 
 ### New Capabilities
 
-- `urban-signalr-hub-resilience`: DeviceStatusHub 断连韧性、超时可配置；Web 管理页不订阅 DeviceStatus Hub
-- `urban-redis-distributed-cache`: UrbanManagement 分布式缓存使用 Redis；Windows 本机默认 `127.0.0.1:6379`、内存上限 100MB
+- `urban-signalr-hub-resilience`: Hub 热路径不打 EF；超时可配置；Web 不订阅 DeviceStatus Hub
+- `urban-redis-distributed-cache`: Redis 作为连接/设备当前态主存与 ABP 分布式缓存后端（Windows 本机 6379 / 100MB）
 
 ### Modified Capabilities
 
-- `device-online-status-persistence`: 断连 upsert 在 Hub 连接已中止时仍须尽力完成
-- `blazor-project-management`: 去掉实时 SignalR 与轮询；手动刷新
-- `project-client-merge`: 去掉 SignalR 订阅与 30s fallback polling 要求
+- `device-online-status-persistence`: 实时连接与设备当前态改为 Redis 主存；接受进程/Redis 重启后连接丢失；查询不再以 SQLite 为权威
+- `blazor-project-management`: 去掉实时 SignalR 与轮询；手动刷新（数据来自 Redis 支持的 AppService）
+- `project-client-merge`: 去掉 SignalR 订阅与 30s fallback polling
 
 ## Impact
 
-- **子仓库**：`repos/UrbanManagement`（Hub、SignalROptions、AppModule、`ProjectManagement.razor`、`appsettings`、ABP Redis 缓存包与模块）
-- **运维**：Windows 主机须安装并运行 tporadowski/redis（或兼容 Redis），配置 `maxmemory 100mb`；应用连 `127.0.0.1:6379`
-- **桌面端**：MaterialClient Hub 协议不变
-- **Web UX**：项目管理页客户端状态不再实时推送；用户自行刷新（或重新进入页面）
+- **子仓库**：`repos/UrbanManagement`（Hub、`DeviceStatusService`、查询路径、Redis 模块、`ProjectManagement.razor`、`appsettings`）
+- **运维**：必须运行 tporadowski/redis（或兼容实例）；未装 Redis 时缓存/在线态不可用且须可观测失败
+- **语义**：重启或 Redis 清空后管理页显示离线/未注册，直至桌面端重连——**产品已接受**
+- **桌面端**：Hub 协议不变
 - **分支**：Mode A — `fix-urban-signalr-disconnect-storm`
