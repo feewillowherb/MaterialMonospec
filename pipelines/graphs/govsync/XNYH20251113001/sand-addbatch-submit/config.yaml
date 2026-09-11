@@ -26,14 +26,14 @@ target:
   contentType: application/json; charset=utf-8
   docsRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
   fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
-  upstreamGraph: graphs/govsync/XNYH20251113001/sand-addbatch-2026-02
+  upstreamGraph: graphs/govsync/XNYH20251113001/sand-addbatch-2026-03
   hmacProbeGraph: graphs/govsync/recycle-hmac-auth
 
 source:
   # Per-month frozen transform run (execute months separately)
-  month: "2026-02"
-  runId: "2026-09-10T143827"
-  runDirRel: seeds/2026-02/source-run/2026-09-10T143827
+  month: "2026-03"
+  runId: "2026-09-10T221030"
+  runDirRel: seeds/2026-03/source-run/2026-09-10T221030
   jsonGlob: json/*.json
   ledgerRel: ledgers/dataNo-ledger.jsonl
   submitMetaRel: submit-meta.json
@@ -48,7 +48,7 @@ scenario:
   skipPosted: true
   stopOnBatchError: false
   # Durable skip ledger per month (gitignored): state/<yyyy-MM>/submit-state.jsonl
-  durableStateRel: state/2026-02/submit-state.jsonl
+  durableStateRel: state/2026-03/submit-state.jsonl
   embedOutPhotosFromPath: true
   stripOutPhotosPath: true
   # Prefer recycle-hmac-auth for empty-array auth probe before first smoke
