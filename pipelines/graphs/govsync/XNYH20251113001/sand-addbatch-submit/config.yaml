@@ -17,7 +17,7 @@ cook: new-object
 
 # HARD: default off. Do not POST until user flips this and passes human gate.
 # Smoke one-shot: set true + Invoke -AllowPost -Mode smoke -SmokeDataNo ...
-submitEnabled: false
+submitEnabled: true
 
 target:
   method: POST
@@ -26,21 +26,21 @@ target:
   contentType: application/json; charset=utf-8
   docsRef: docs/SyncDoc/杭州市资源化利用厂数据接入接口V1.0.md
   fieldMockRef: docs/2026-09-07-sand-product-transport-addbatch-mock/03-字段Mock与提交策略.md
-  upstreamGraph: graphs/govsync/XNYH20251113001/sand-addbatch-2026-04
+  upstreamGraph: graphs/govsync/XNYH20251113001/sand-addbatch-2026-05
   hmacProbeGraph: graphs/govsync/recycle-hmac-auth
 
 source:
   # Per-month frozen transform run (execute months separately)
-  month: "2026-04"
-  runId: "2026-09-11T090524"
-  runDirRel: seeds/2026-04/source-run/2026-09-11T090524
+  month: "2026-05"
+  runId: "2026-09-11T133554"
+  runDirRel: seeds/2026-05/source-run/2026-09-11T133554
   jsonGlob: json/*.json
   ledgerRel: ledgers/dataNo-ledger.jsonl
   submitMetaRel: submit-meta.json
 
 scenario:
   pointNumber: XNYH20251113001
-  mode: validate-only # validate-only | smoke | resume | full
+  mode: full # validate-only | smoke | resume | full
   smokeMaxTrips: 1
   # Photos ~0.5MB each → keep batch small (5 caused gateway 504)
   batchSize: 1
@@ -48,7 +48,7 @@ scenario:
   skipPosted: true
   stopOnBatchError: false
   # Durable skip ledger per month (gitignored): state/<yyyy-MM>/submit-state.jsonl
-  durableStateRel: state/2026-04/submit-state.jsonl
+  durableStateRel: state/2026-05/submit-state.jsonl
   embedOutPhotosFromPath: true
   stripOutPhotosPath: true
   # Prefer recycle-hmac-auth for empty-array auth probe before first smoke
