@@ -310,6 +310,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | viewmodel-no-repository | `traits/viewmodel-no-repository-trait.md` | ViewModel / Blazor / 界面层访问数据；禁止 UI 注入 Repository 或 DbContext |
 | openspec-git-workflow | `traits/openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash 合入、`dev-*` promote；merge-check |
 | agents-md-only | `traits/agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口 |
+| strategic-fallback | `traits/strategic-fallback-trait.md` | 大规模遗留代码或复杂调用链改动受阻（跨多条领域链且未批准、关键事实缺失、高风险无法在当前范围验证）；禁止伪实现，改用防守外壳 |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -396,6 +397,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整规则与检查清单见 `traits/agents-md-only-trait.md`；traits 目录索引见 `traits/AGENTS.md`。
 
+### strategic-fallback（硬约束摘要）
+
+- 大规模改动或复杂调用链受阻时 **禁止** 假逻辑、桩算法、假返回值或胶水代码假装已解决。
+- 生产基线路径必须保持稳定；临时外壳不得改变已验证行为。
+- 三选一：功能开关回退基线（优先）、显式挂起并抛错+告警、在 proposal 把被阻断依赖标为 Out-of-Scope / Decision Needed。
+- 触发后响应必须以 `STRATEGIC FALLBACK ACTIVATED` 结构块开头（Phase 1 Δ1 / Phase 2 Δ2），不得先写推测性实现。
+
+完整规则见 `traits/strategic-fallback-trait.md`。
+
 ## OpenSpec 与技术债务
 
 > **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
@@ -441,3 +451,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **禁止数据库外键与 EF 关系映射；逻辑 Id + Service 组合**（参见「Required traits」）
 - **OpenSpec 分支与合入遵循 openspec-git-workflow；默认 Mode A + squash 单提交，禁止在目标分支直接开发**（参见「Required traits」）
 - **目录说明仅用 AGENTS.md；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口**（参见「Required traits」· agents-md-only）
+- **大规模改动或复杂调用链受阻时策略性挂起；禁止伪实现污染基线**（参见「Required traits」· strategic-fallback）
