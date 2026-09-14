@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-14
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "仅 MaterialClient.Demo，单会话；无生产称重与跨仓"
