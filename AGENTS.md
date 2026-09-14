@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（工业材料称重桌面应用）、UrbanManagement（城市管理 Web 应用）和 FdSoft.BasePlatform（企业级基础平台 Web 应用）等子仓库的 OpenSpec 文档。所有变更的 proposal、design、specs、tasks 在主仓库中创建和管理，代码实现仍在各自的子仓库中进行。
+MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（工业材料称重桌面应用；其中 MaterialClient.Urban 是工控客户端，须开机自动运行并始终处于前台）、UrbanManagement（城市管理 Web 应用）和 FdSoft.BasePlatform（企业级基础平台 Web 应用）等子仓库的 OpenSpec 文档。所有变更的 proposal、design、specs、tasks 在主仓库中创建和管理，代码实现仍在各自的子仓库中进行。
 
 ## 子仓库 AGENTS
 
@@ -209,6 +209,7 @@ repositories:                # 子仓库列表
 - **类型**：Windows 桌面应用（Avalonia UI）
 - **技术栈**：C# 13 / .NET 10.0 / Avalonia UI 11.3.9 / ReactiveUI / ABP Framework / SQLite
 - **用途**：工业环境材料称重管理，支持有人/无人值守称重
+- **工控客户端**：`MaterialClient.Urban` 是工控软件，须开机自动运行，且主窗口始终处于前台。该要求不落在 UrbanManagement Web。
 - **架构**：MVVM + DDD + 分层架构
 - **详情**：参见 `PROPOSAL_DESIGN_GUIDELINES.md`
 
@@ -216,7 +217,7 @@ repositories:                # 子仓库列表
 
 - **类型**：Web 应用（ABP Framework）
 - **技术栈**：ABP Framework / .NET
-- **用途**：城市管理 Web 应用
+- **用途**：城市管理 Web 应用（不是工控前台客户端）
 
 ### FdSoft.BasePlatform
 

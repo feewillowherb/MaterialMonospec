@@ -76,14 +76,14 @@ groups:
       enabled: true
       order: 1
       metadata:
-        desc: "城管固废称重验收系统客户端软件"
+        desc: "城管固废称重验收系统客户端软件（主程序内模式，不是 MaterialClient.Urban）"
     - key: mode-urban
       label: "城管专用模式"
       submittedText: "城管专用模式（WeighingMode.UrbanMode = 201）"
       enabled: true
       order: 2
       metadata:
-        desc: "Urban 桌面端，固废称重验收"
+        desc: "城管工控桌面客户端（MaterialClient.Urban）：开机自动运行，主窗口始终处于前台"
     - key: mode-recycle
       label: "资源化利用厂模式"
       submittedText: "资源化利用厂模式（WeighingMode.Recycle = 301）"
@@ -1060,23 +1060,30 @@ groups:
         desc: "代码实现的子项目目录"
     - key: repo-materialclient
       label: "MaterialClient"
-      submittedText: "MaterialClient（工业材料称重桌面应用，Avalonia）"
+      submittedText: "MaterialClient（工业材料称重桌面应用，Avalonia；含 MaterialClient.Urban 工控客户端）"
       enabled: true
       order: 2
       metadata:
-        desc: "工业材料称重桌面应用"
-    - key: repo-urbanmanagement
-      label: "UrbanManagement"
-      submittedText: "UrbanManagement（城市管理 Web 应用，ABP）"
+        desc: "工业材料称重桌面应用。其中 MaterialClient.Urban 是工控软件，须开机自动运行并始终处于前台"
+    - key: repo-materialclient-urban
+      label: "MaterialClient.Urban"
+      submittedText: "MaterialClient.Urban（城管工控桌面客户端，Avalonia；须开机自动运行并始终处于前台）"
       enabled: true
       order: 3
       metadata:
-        desc: "城市管理 Web 应用"
+        desc: "工控软件：开机自启，主窗口始终前台。不是 UrbanManagement Web"
+    - key: repo-urbanmanagement
+      label: "UrbanManagement"
+      submittedText: "UrbanManagement（城市管理 Web 应用，ABP；不是工控前台客户端）"
+      enabled: true
+      order: 4
+      metadata:
+        desc: "城市管理 Web 应用。工控前台、开机自启要求落在 MaterialClient.Urban，不落在本 Web 宿主"
     - key: repo-baseplatform
       label: "FdSoft.BasePlatform"
       submittedText: "FdSoft.BasePlatform（企业级基础平台 Web 应用，ASP.NET Core MVC）"
       enabled: true
-      order: 4
+      order: 5
       metadata:
         desc: "建筑行业劳务实名制与项目管理基础平台"
   - id: change-types
