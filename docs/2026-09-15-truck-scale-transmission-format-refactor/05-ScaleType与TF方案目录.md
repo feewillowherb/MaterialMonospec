@@ -18,7 +18,7 @@ public enum TransmissionFormatType
     [Description("(tF0)")]
     TransmissionFormatType0 = 0,
 
-    /// <summary>指令应答（tF=1）。</summary>
+    /// <summary>连续查询听流（生产 tF1；耀华不向设备发查询命令）。</summary>
     [Description("(tF1)")]
     TransmissionFormatType1 = 1,
 
@@ -31,7 +31,7 @@ public enum TransmissionFormatType
 | 成员 | Description | 语义 | Phase 1 |
 |------|-------------|------|---------|
 | `TransmissionFormatType0` | `(tF0)` | 连续发送：仪表主动推流，上位机只听 | **落地** |
-| `TransmissionFormatType1` | `(tF1)` | 指令应答：上位机问、仪表答 | **落地**（真实现仅耀华） |
+| `TransmissionFormatType1` | `(tF1)` | 连续查询听流（生产耀华：**不**向设备发查询命令） | 真实现仅耀华；≠ Demo 指令轮询 |
 | Type2（预留） | `(tF2)` | 拓展连续帧（单帧含毛/皮等，仍属“听”） | 方案；可先挂在 Yaohua Type0 子解析，不必立刻加枚举 |
 | Type3（预留） | `(tF3)` | Modbus/RTU 或其它工业总线主从 | 方案；新品牌常见，与耀华 tF 不是同一物理参数 |
 
@@ -49,7 +49,8 @@ public TransmissionFormatType TransmissionFormatType { get; set; }
 | 方案 ID | 上位机角色 | 典型帧 | 适用场景 | 与现网关系 |
 |---------|------------|--------|----------|------------|
 | **A. Continuous / tF0** | 被动收 | 固定短帧循环 | 一机一磅、实时大屏 | 现网主流；`Type0` |
-| **B. Command / tF1** | 主动问 | 写指令 → 读应答 | 多仪表总线、PLC、按需取数 | 耀华 Demo 已有；`Type1` |
+| **B. Continuous query / 生产 tF1** | 连续读串口解析 | 听流 + 可选地址过滤 | 耀华 Type1 产品形态 | **不发查询命令**；见 [06 §10](06-耀华tf1与连续模式是否足够.md) |
+| **B'. Command / 手册·Demo tF1** | 主动问 | 写指令 → 读应答 | Demo / 经典仪表 tF=1 | **非**生产 Type1 |
 | **C. Extended continuous** | 被动收 | 更长帧（毛+皮等同包） | 要仪表侧重量分量、仍想连续 | 属 Type0 **变体**或预留 Type2 |
 | **D. Dual-port** | 双通道 | 口1 Continuous + 口2 Command | 大屏 + 工控同时要 | **部署方案**，不是第三枚举值；软件可开两个门面会话 |
 | **E. Modbus/RTU** | 主站轮询 | 功能码 + 寄存器 | 柯力/部分进口仪表 | 预留 Type3；新 `ScaleType` 再绑 |
@@ -61,7 +62,8 @@ public TransmissionFormatType TransmissionFormatType { get; set; }
 flowchart TD
   Need{需求?}
   Need -->|只要实时重量 一机一磅| A[方案 A Type0]
-  Need -->|多机/按需指令| B[方案 B Type1 仅耀华]
+  Need -->|多机且必须发命令| Bp[方案 B 手册 Demo 另开 change]
+  Need -->|耀华 Type1 产品| B[方案 B 连续查询不发命令]
   Need -->|连续且单帧要毛皮| C[方案 C 先挂 Yaohua Type0 子解析]
   Need -->|大屏+工控并行| D[方案 D 双串口双会话]
   Need -->|寄存器型仪表| E[方案 E 新 ScaleType + 预留 Type3]
@@ -72,7 +74,7 @@ flowchart TD
 
 | ScaleType | Description | Type0 | Type1 | 帧/协议要点 |
 |-----------|-------------|-------|-------|-------------|
-| `Yaohua` | 耀华 | **真实现**（连续 ASCII/现网） | **真实现**（指令应答） | tF 官方参数；tf1 参考 Demo |
+| `Yaohua` | 耀华 | **真实现**（连续发送听流） | **真实现（连续查询听流；不发查询命令）** | 优先皮/毛/净，全无效降级旧稳定；见 [06 §10.3.1](06-耀华tf1与连续模式是否足够.md) |
 | `DingSong` | 顶松 | **真实现**（HEX） | Unsupported 抛异常 | 无官方 tF1；UI 不可选 Type1 |
 | `DingSongAddr4` | 顶松Addr4 | **真实现**（Addr4） | Unsupported | 同上 |
 | `PortableXPSY` | 便携式XP-SY | **真实现**（9 字节 ASCII） | Unsupported | 同上 |
@@ -121,7 +123,7 @@ flowchart TD
 | 组合 | 配置形态 | 说明 |
 |------|----------|------|
 | 单口 Type0 | 一个 `ScaleSettings`，`Type0` | 默认推荐 |
-| 单口 Type1 | 耀华 + `Type1` | 多机地址 / 按需读 |
+| 单口 Type1 | 耀华 + `Type1` | 连续查询听流 + 皮毛净优先/稳定降级；`CommunicationParameter`（默认 A）；**不发查询命令** |
 | 双口 A+B | 两套串口会话（或两实例） | 大屏 Continuous + 工控 Command；见方案 D |
 | TestMode 联调 | `TestMode` + `Type0` | 无硬件 |
 
