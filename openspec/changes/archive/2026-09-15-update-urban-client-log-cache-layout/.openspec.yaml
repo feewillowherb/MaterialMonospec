@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-15
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "单仓 UrbanManagement；路径/API 返回形状 + 目录浏览 UI + 遗留兼容"
