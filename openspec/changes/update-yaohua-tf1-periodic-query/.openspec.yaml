@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-15
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "MaterialClient only; reverse listen-only to 10s Demo-frame query write; Mode B on dev-truck-scale-weight"
