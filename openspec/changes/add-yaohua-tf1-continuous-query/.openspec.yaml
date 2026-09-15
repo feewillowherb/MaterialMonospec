@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-15
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "MaterialClient only; Yaohua Type1 continuous-query + CommunicationParameter + G/T/N vs stable; Mode B on dev-truck-scale-weight"
