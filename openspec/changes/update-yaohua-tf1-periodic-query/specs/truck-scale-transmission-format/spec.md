@@ -2,42 +2,43 @@
 
 ### Requirement: Yaohua Type1 uses continuous-query listen without host query writes
 
-**Reason:** 现场经典 tF=1 从机不主动推流；用户要求周期性下发查询命令以触发应答。
+**Reason:** 现场经典 tF=1 从机不主动推流；用户要求 Demo 对齐的周期查询。
 
-**Migration:** 使用下方「Yaohua Type1 Demo-style periodic exchange」要求。
+**Migration:** 使用下方「Yaohua Type1 Demo-style B-C-D poll」要求。
 
 ## ADDED Requirements
 
-### Requirement: Yaohua Type1 Demo-style periodic exchange
+### Requirement: Yaohua Type1 Demo-style B-C-D poll
 
-For `ScaleType.Yaohua` and `TransmissionFormatType1`, while the serial port is open and the Type1 protocol is started, the system SHALL periodically perform a Demo-compatible serial exchange: discard inbound buffer, write one query frame, then synchronously read bytes until ETX or reply timeout (~700ms), then parse the reply and publish real-time weight. The exchange MUST run immediately on start (dueTime zero) and then every **10 seconds**. The query frame MUST use address from `CommunicationParameter` (Yaohua default `"A"`), command code **`B`**, and layout `STX + Address + Command + XOR ASCII nibbles + ETX`. The Type1 path MUST NOT rely on `OnDataReceived` for obtaining weight replies (DataReceived handling MAY be a no-op for Type1). The protocol MUST stop the periodic exchanger on `OnStop`.
+For `ScaleType.Yaohua` and `TransmissionFormatType1`, while the serial port is open and the Type1 protocol is started, the system SHALL continuously poll Demo-compatible query commands in order **B → C → D**, waiting **200 milliseconds** between each command. Each poll step MUST perform Discard→Write→sync-read-until-ETX (or reply timeout ~700ms), then parse the reply. Frame layout MUST be `STX + Address + Command + XOR ASCII nibbles + ETX` with address from `CommunicationParameter` (default `"A"`). The Type1 path MUST NOT rely on `OnDataReceived` for obtaining weight replies. The protocol MUST stop the poll loop on `OnStop`.
 
-#### Scenario: Type1 exchanges on start and every 10 seconds
+#### Scenario: Type1 polls B then C then D with 200ms gap
 
 - **WHEN** Yaohua Type1 is active and the serial port is open
-- **THEN** the Type1 protocol MUST perform Discard→Write→read-until-ETX exchange with command `B` and the configured address
-- **AND** MUST repeat that exchange every 10 seconds until stopped
+- **THEN** the Type1 protocol MUST issue query commands in the repeating order B, C, D
+- **AND** MUST wait 200ms between consecutive commands
 
-#### Scenario: Type1 publishes weight from exchange reply
+#### Scenario: Type1 stores C and D (and B) component values
 
-- **WHEN** an exchange receives a parseable Demo-style weight reply
-- **THEN** the Type1 protocol MUST publish the converted weight on the real-time weight stream
+- **WHEN** a parseable Demo-style reply arrives for command B, C, or D
+- **THEN** the protocol MUST store the converted weight as gross (B), tare (C), or net (D) respectively
+- **AND** MUST publish the stored components via the component-weight stream
 
-#### Scenario: Type1 does not depend on DataReceived for replies
+#### Scenario: Type1 realtime weight follows B
 
-- **WHEN** Yaohua Type1 is obtaining weight for display or weighing
-- **THEN** the production path MUST obtain replies via the synchronous exchange path (not solely via DataReceived fragment reads)
+- **WHEN** a parseable Demo-style reply arrives for command B
+- **THEN** the Type1 protocol MUST publish that converted weight on the real-time weight stream
 
-#### Scenario: Periodic exchanger stops with protocol
+#### Scenario: Poll loop stops with protocol
 
-- **WHEN** the Type1 protocol `OnStop` runs (port close / restart / dispose)
-- **THEN** the periodic exchanger MUST stop and MUST NOT write after stop
+- **WHEN** the Type1 protocol `OnStop` runs
+- **THEN** the B-C-D poll loop MUST stop and MUST NOT write after stop
 
 ## MODIFIED Requirements
 
 ### Requirement: ScaleSettings exposes opaque CommunicationParameter
 
-`ScaleSettings` SHALL expose `CommunicationParameter` as an opaque `string?` shared across transmission formats. Changing `TransmissionFormatType` MUST reset `CommunicationParameter` to the default for the active `ScaleType` and new format. For Yaohua, the default MUST be `"A"`. Protocol implementers SHALL own parsing/interpretation; the facade MUST NOT centrally parse the value into a shared address model. Production Yaohua Type1 MAY use `CommunicationParameter` as the address byte when building outbound periodic query frames.
+`ScaleSettings` SHALL expose `CommunicationParameter` as an opaque `string?` shared across transmission formats. Changing `TransmissionFormatType` MUST reset `CommunicationParameter` to the default for the active `ScaleType` and new format. For Yaohua, the default MUST be `"A"`. Protocol implementers SHALL own parsing/interpretation; the facade MUST NOT centrally parse the value into a shared address model. Production Yaohua Type1 MAY use `CommunicationParameter` as the address byte when building outbound poll query frames.
 
 #### Scenario: Yaohua default parameter is A
 
@@ -52,5 +53,5 @@ For `ScaleType.Yaohua` and `TransmissionFormatType1`, while the serial port is o
 
 #### Scenario: Type1 uses parameter as query address
 
-- **WHEN** Yaohua Type1 builds a periodic query frame
+- **WHEN** Yaohua Type1 builds a poll query frame
 - **THEN** the address byte MUST come from interpreting `CommunicationParameter` (default `A`)

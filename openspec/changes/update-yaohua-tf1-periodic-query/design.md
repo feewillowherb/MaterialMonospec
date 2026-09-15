@@ -1,6 +1,6 @@
 ## Context
 
-上一 change `add-yaohua-tf1-continuous-query` 实现了听流；随后 `update-yaohua-tf1-periodic-query` 加了 10s 只写不收齐。现场日志确认：TX 成功，但依赖 DataReceived 碎片读导致无重量。Demo 能工作靠的是 **Discard → Write → 同步读到 ETX**。
+现场确认 Demo Exchange 可用后，用户要求生产 Tf1 与 Demo 连续查询一致：**B→C→D，命令间隔 200ms**，并保存 C/D（皮/净）供分量过磅。
 
 约束：Mode B / `dev-truck-scale-weight`；`minimal-di`；禁止 tuple。
 
@@ -8,42 +8,35 @@
 
 **Goals:**
 
-- Yaohua Type1 对齐 Demo `Exchange`：周期（默认 10s）互斥执行 Discard→Write→读至 ETX（700ms）→解析→`PublishWeight`。
-- `OnDataReceived` 对 Type1 **空实现**，避免与定时器抢串口。
-- `OnStart` / `OnStop` 不在门面 `WriteLock` 内执行，避免首发锁冲突与关口死锁。
-- 保留 Demo 组帧与应答解析（命令 `B`，地址来自 `CommunicationParameter`）。
+- Yaohua Type1：Demo `Exchange`（Discard→Write→读至 ETX）；轮询 **B→C→D**，命令间 **200ms**。
+- 存储 B=毛重、C=皮重、D=净重（吨）；经 `PublishComponentWeights` 发布；`B` 同时更新实时 `WeightUpdates`。
+- `OnDataReceived` 空实现；`OnStart`/`OnStop` 在门面 WriteLock 外。
 
 **Non-Goals:**
 
-- 200ms 高频 B/C/D 轮询（可后续加）。
-- 非耀华 Type1；去皮/置零控制命令。
-- UrbanManagement。
+- 握手 `A`、去皮 `T`、置零 `Z`。
+- 非耀华 Type1；UrbanManagement。
 
 ## Decisions
 
-### D1 — I/O 模型 = Demo Exchange（非 DataReceived 听流）
+### D1 — I/O = Demo Exchange + B/C/D poll
 
-**Decision：** 定时器 tick 内 `SemaphoreSlim` 互斥调用 `Exchange`（与 Demo 同构）；解析成功后发布重量。`OnDataReceived` 忽略。
+**Decision：** 后台 `Task` 循环发 B→C→D，每次 Exchange 后 `Delay(200ms)`（与 Demo `PollLoop` 同构）。
 
-### D2 — 周期与命令
+### D2 — 存储 C/D（及 B）
 
-**Decision：** 间隔 10s；命令 `B`；地址 `CommunicationParameter`（默认 A）。组帧 `STX+Adr+Cmd+XOR+ETX`。
+**Decision：** 协议实例字段保存 `_grossTon` / `_tareTon` / `_netTon`；每次成功应答更新对应字段并 `PublishComponentWeights(new(gross, tare, net))`。三者齐全时 `AllValid` 供过磅优先路径。
 
-### D3 — 门面锁与生命周期
+### D3 — 实时重量
 
-**Decision：** Open 完成后释放 `WriteLock` 再 `OnStart`；关口前先在锁外 `OnStop` 再关串口。`ISerialPort.Write` 已提供。
+**Decision：** 仅 `B` 应答驱动 `PublishWeight`（实时显示跟毛重）；C/D 只进分量存储。
 
 ## Risks / Trade-offs
 
-- [Risk] 10s 实时感 → 用户要求；可后调。
-- [Risk] Exchange 阻塞 Timer 线程最多 ~700ms → 可接受；跳过重叠 tick。
-- [Risk] 关口时 Dispose Timer 等待 callback → 必须在 WriteLock 外 OnStop。
+- [Risk] 串口占用高于 10s 单查 → 与 Demo 一致，可接受。
+- [Risk] 关口等待 poll task → `OnStop` Cancel + Wait(3s)，且须在 WriteLock 外。
 
 ## Migration Plan
 
-1. 重建 Urban，切 Type1，日志应见 `exchange TX` / `exchange RX` 或 `exchange timeout`。
-2. Rollback：回退本协议文件与门面生命周期改动。
-
-## Open Questions
-
-- 周期是否配置化 — 本 change 仍写死 10s。
+1. 重建 Urban；日志应见交替 `Command=B/C/D` 的 TX/RX。
+2. Rollback：回退本协议轮询逻辑。

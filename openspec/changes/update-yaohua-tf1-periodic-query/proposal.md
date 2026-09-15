@@ -4,11 +4,11 @@
 
 ## What Changes
 
-- **BREAKING（相对上一约定）**：撤销「生产耀华 Type1 禁止为取重写查询命令」；改为 Demo 对齐的周期 **Exchange**。
-- `YaohuaTf1Protocol`：每 10 秒（启动立即一次）执行 Demo 同构流程：`Discard → Write(B) → 同步读至 ETX（~700ms）→ 解析 → PublishWeight`；地址取自 `CommunicationParameter`（默认 `A`）。
-- Type1 **不**依赖 `OnDataReceived` 碎片读取应答（该路径空实现，避免与定时器抢串口）。
-- `ISerialPort` / `SerialPortWrapper` 补齐 `Write`。
-- 门面：`OnStart` / `OnStop` 在 `WriteLock` 外执行，避免首发锁冲突与关口死锁。
+- **BREAKING（相对听流约定）**：生产耀华 Type1 改为 Demo 对齐的 **B→C→D** 周期 Exchange（命令间隔 **200ms**）。
+- 每次 Exchange：`Discard → Write → 同步读至 ETX（~700ms）→ 解析`。
+- **存储** B=毛重、C=皮重、D=净重，并经分量流发布；`B` 同时更新实时重量。
+- Type1 **不**依赖 `OnDataReceived`；门面 `OnStart`/`OnStop` 在 `WriteLock` 外。
+- `ISerialPort.Write` 已补齐。
 
 ## Capabilities
 
