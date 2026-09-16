@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-16
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "MaterialClient WeighingInProgress + UrbanManagement empty-plate Receive fallback; Mode A from main; split by repo if needed"
