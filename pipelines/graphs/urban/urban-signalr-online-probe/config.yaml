@@ -1,0 +1,132 @@
+id: urban-signalr-online-probe
+created: "2026-09-16"
+graph:
+  product: urban
+  domain: urban
+  family: probe
+  goal: urban-signalr-online-probe
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: signalr-online-idle
+  end: online-proved
+cook: new-object
+
+target:
+  umBaseUrl: http://127.0.0.1:44371
+  umProject: repos/UrbanManagement/src/UrbanManagement.App/UrbanManagement.App.csproj
+  umContentRoot: repos/UrbanManagement/src/UrbanManagement.App
+  urbanDiagnosticBaseUrl: http://localhost:9961
+  hubPath: /hubs/devicestatus
+  negotiatePath: /hubs/devicestatus/negotiate?negotiateVersion=1
+  clientListGet: /api/app/device-status/client-list?MaxResultCount=100&SkipCount=0
+  urbanHealthGet: /
+  urbanSettingsGet: /api/settings
+  redisHost: 127.0.0.1
+  redisPort: 6379
+  expectedProjectId: 08DDCF46-3744-D3E1-1999-0D645800B322
+  expectedAccessCode: XNXS20260611001
+  sharedSeed: ../../../_shared/urban/seeds/demo-license.json
+  sharedLicenseScript: ../../../_shared/urban/Invoke-UrbanLicenseSeed.ps1
+  investigationRef: _bmad-output/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md
+  # Default live TTL ≈ 2 × ClientTimeoutIntervalSeconds (60) → 120s
+  onlineSettleSeconds: 90
+  presenceHoldSeconds: 150
+  skipPresenceHold: true
+  disableOutbound:
+    BasePlatformSync__Enabled: "false"
+    BackgroundServices__Polling: "false"
+    UrbanAuth__UseBasePlatformJwtIssuer: "false"
+
+seeds:
+  demoLicenseRel: ../../../_shared/urban/seeds/demo-license.json
+
+prerequisites:
+  - Redis listening on target.redisHost:redisPort
+  - Node.js 22.5+ and pipelines/pnpm install (Local license seed)
+  - MaterialClient.Urban Debug build with MinimalWebHost
+  - BasePlatform NOT required
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: preflight-redis
+    name: TCP connect to Redis; abort if unreachable
+  - id: start-um-local
+    name: Optional start UrbanManagement with BP sync off and local URLs
+  - id: seed-license-local
+    name: Invoke-UrbanLicenseSeed Local (license.urban + LicenseInfo)
+  - id: start-urban
+    name: Launch Urban Debug with SignalR__ServerUrl → UM hub
+  - id: probe-hub-negotiate
+    name: POST SignalR negotiate; capture response
+  - id: probe-urban-host
+    name: GET Urban / and /api/settings
+  - id: poll-client-list-online
+    name: Poll UM client-list until expected ProId isConnected=true
+  - id: optional-presence-hold
+    name: If skipPresenceHold=false, wait presenceHoldSeconds and re-check online
+
+expect:
+  - id: redis-reachable
+    level: L0
+    description: TCP connect to Redis succeeds
+  - id: hub-negotiate
+    level: L0
+    description: POST negotiate returns HTTP 2xx with connectionToken or negotiateVersion payload
+  - id: urban-host
+    level: L0
+    description: Urban diagnostic GET / returns 200
+  - id: urban-settings
+    level: L1
+    description: Urban GET /api/settings returns 200
+  - id: client-online
+    level: L2
+    description: client-list contains expectedProjectId with isConnected=true within onlineSettleSeconds
+  - id: presence-hold
+    level: L2
+    description: Optional; still isConnected=true after presenceHoldSeconds (may fail until heartbeat/presence fix)
+  - id: um-badge-ui
+    level: L3
+    description: User confirms project management online badge matches — user only
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: []
+  prepare:
+    required: true
+    sink: prepare/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - redis-down
+  - urban-already-running
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  startUm:
+    mode: script-invoke
+    script: scripts/Start-UmForSignalROnlineProbe.ps1
+    experimental: true
+  startUrban:
+    mode: script-invoke
+    script: scripts/Start-UrbanForSignalROnlineProbe.ps1
+    experimental: true
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanSignalROnlineProbe.ps1
+    experimental: true

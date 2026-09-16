@@ -217,6 +217,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | urban-license-seed-probe | probe | `graphs/urban/urban-license-probe/` | active |
 | urban-passage-client-um-reconcile | reconcile | `graphs/urban/urban-passage-um-reconcile/` | active |
 | urban-sqlite-accesscode-migrate-verify | probe | `graphs/urban/urban-db-accesscode-migrate/` | active |
+| urban-signalr-online-probe | probe | `graphs/urban/urban-signalr-online-probe/` | active |
 | solidwaste-missing-join-pair | ingest | `graphs/materialclient/solidwaste-pair-ingest/` | active |
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 
