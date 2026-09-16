@@ -32,9 +32,11 @@ target:
   sharedLicenseScript: ../../../_shared/urban/Invoke-UrbanLicenseSeed.ps1
   investigationRef: _bmad-output/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md
   # Default live TTL ≈ 2 × ClientTimeoutIntervalSeconds (60) → 120s
+  # Presence hold must exceed live TTL to reproduce false-offline.
   onlineSettleSeconds: 90
-  presenceHoldSeconds: 150
-  skipPresenceHold: true
+  presenceHoldSeconds: 180
+  presenceSampleSeconds: 30
+  skipPresenceHold: false
   disableOutbound:
     BasePlatformSync__Enabled: "false"
     BackgroundServices__Polling: "false"
@@ -67,7 +69,7 @@ steps:
   - id: poll-client-list-online
     name: Poll UM client-list until expected ProId isConnected=true
   - id: optional-presence-hold
-    name: If skipPresenceHold=false, wait presenceHoldSeconds and re-check online
+    name: Sample client-list during presenceHoldSeconds (> live TTL); expect still online for reliability
 
 expect:
   - id: redis-reachable
@@ -87,10 +89,13 @@ expect:
     description: client-list contains expectedProjectId with isConnected=true within onlineSettleSeconds
   - id: presence-hold
     level: L2
-    description: Optional; still isConnected=true after presenceHoldSeconds (may fail until heartbeat/presence fix)
+    description: Remains isConnected=true through presenceHoldSeconds (> Redis live TTL); failure documents false-offline
+  - id: last-online-time-stable
+    level: L2
+    description: While online, lastSeenAt/connectedAt remain coherent (no premature offline timestamp flip)
   - id: um-badge-ui
     level: L3
-    description: User confirms project management online badge matches — user only
+    description: User confirms project management online badge and 最后在线时间 — user only
 
 capture:
   requestResponse:

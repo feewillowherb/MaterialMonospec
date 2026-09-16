@@ -121,8 +121,9 @@ function Invoke-HttpCapture {
         [string] $Name,
         [string] $Method,
         [string] $Url,
-        [string] $Body = $null,
-        [hashtable] $Headers = @{}
+        [string] $Body = "",
+        [hashtable] $Headers = @{},
+        [switch] $HasBody
     )
     $status = 0
     $respBody = ""
@@ -134,7 +135,7 @@ function Invoke-HttpCapture {
             UseBasicParsing = $true
         }
         if ($Headers.Count -gt 0) { $params.Headers = $Headers }
-        if ($null -ne $Body) {
+        if ($HasBody) {
             $params.ContentType = "text/plain"
             $params.Body = $Body
         }
@@ -144,18 +145,26 @@ function Invoke-HttpCapture {
     }
     catch {
         $ex = $_.Exception
-        if ($ex.Response -and $ex.Response.StatusCode) {
-            $status = [int]$ex.Response.StatusCode
+        $respProp = $ex.PSObject.Properties['Response']
+        if ($null -ne $respProp -and $null -ne $respProp.Value) {
+            try {
+                $status = [int]$respProp.Value.StatusCode
+            }
+            catch {
+                $status = 0
+            }
         }
         $respBody = $ex.Message
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+            $respBody = [string]$_.ErrorDetails.Message
+        }
     }
     Save-HttpEvidence -SinkDir $SinkDir -Name $Name -Method $Method -Url $Url -StatusCode $status -Body $respBody
     return @{ StatusCode = $status; Body = $respBody }
 }
 
-function Find-OnlineClient {
+function Get-ClientRow {
     param([string] $JsonBody, [string] $ExpectedProId)
-    $match = $null
     try {
         $obj = $JsonBody | ConvertFrom-Json
         $items = @()
@@ -164,19 +173,70 @@ function Find-OnlineClient {
         foreach ($item in $items) {
             $proId = [string]($item.proId)
             if ([string]::IsNullOrWhiteSpace($proId)) { $proId = [string]($item.ProId) }
-            $connected = $false
-            if ($null -ne $item.isConnected) { $connected = [bool]$item.isConnected }
-            elseif ($null -ne $item.IsConnected) { $connected = [bool]$item.IsConnected }
-            if ($proId -and ($proId -ieq $ExpectedProId) -and $connected) {
-                $match = $item
-                break
+            if ($proId -and ($proId -ieq $ExpectedProId)) {
+                return $item
             }
         }
     }
-    catch {
-        $match = $null
+    catch { }
+    return $null
+}
+
+function Find-OnlineClient {
+    param([string] $JsonBody, [string] $ExpectedProId)
+    $row = Get-ClientRow -JsonBody $JsonBody -ExpectedProId $ExpectedProId
+    if ($null -eq $row) { return $null }
+    if (Get-PropBool -Obj $row -Names @('isConnected', 'IsConnected')) { return $row }
+    return $null
+}
+
+function Get-PropString {
+    param($Obj, [string[]] $Names)
+    if ($null -eq $Obj) { return $null }
+    foreach ($n in $Names) {
+        $p = $Obj.PSObject.Properties[$n]
+        if ($null -ne $p -and $null -ne $p.Value) {
+            return [string]$p.Value
+        }
     }
-    return $match
+    return $null
+}
+
+function Get-PropBool {
+    param($Obj, [string[]] $Names, [bool] $Default = $false)
+    if ($null -eq $Obj) { return $Default }
+    foreach ($n in $Names) {
+        $p = $Obj.PSObject.Properties[$n]
+        if ($null -ne $p -and $null -ne $p.Value) {
+            return [bool]$p.Value
+        }
+    }
+    return $Default
+}
+
+function Get-RowSnapshot {
+    param($Row, [int] $ElapsedSec)
+    if ($null -eq $Row) {
+        return [ordered]@{
+            elapsedSec     = $ElapsedSec
+            found          = $false
+            isConnected    = $false
+            connectedAt    = $null
+            disconnectedAt = $null
+            lastSeenAt     = $null
+            at             = (Get-Date).ToString("o")
+        }
+    }
+    return [ordered]@{
+        elapsedSec     = $ElapsedSec
+        found          = $true
+        isConnected    = (Get-PropBool -Obj $Row -Names @('isConnected', 'IsConnected'))
+        clientId       = (Get-PropString -Obj $Row -Names @('clientId', 'ClientId'))
+        connectedAt    = (Get-PropString -Obj $Row -Names @('connectedAt', 'ConnectedAt'))
+        disconnectedAt = (Get-PropString -Obj $Row -Names @('disconnectedAt', 'DisconnectedAt'))
+        lastSeenAt     = (Get-PropString -Obj $Row -Names @('lastSeenAt', 'LastSeenAt'))
+        at             = (Get-Date).ToString("o")
+    }
 }
 
 if (-not (Test-Path -LiteralPath $ConfigPath)) {
@@ -205,8 +265,9 @@ if ([string]::IsNullOrWhiteSpace($negotiatePath)) { $negotiatePath = "/hubs/devi
 $clientListPath = Get-YamlScalarLocal -Text $configText -Key "clientListGet"
 if ([string]::IsNullOrWhiteSpace($clientListPath)) { $clientListPath = "/api/app/device-status/client-list?MaxResultCount=100&SkipCount=0" }
 $settleSec = Get-YamlIntLocal -Text $configText -Key "onlineSettleSeconds" -Default 90
-$holdSec = Get-YamlIntLocal -Text $configText -Key "presenceHoldSeconds" -Default 150
-$skipHoldCfg = Get-YamlBoolLocal -Text $configText -Key "skipPresenceHold" -Default $true
+$holdSec = Get-YamlIntLocal -Text $configText -Key "presenceHoldSeconds" -Default 180
+$sampleSec = Get-YamlIntLocal -Text $configText -Key "presenceSampleSeconds" -Default 30
+$skipHoldCfg = Get-YamlBoolLocal -Text $configText -Key "skipPresenceHold" -Default $false
 if ($SkipPresenceHold) { $skipHoldCfg = $true }
 
 $secretsPath = Join-Path $GraphRoot "secrets.local.yaml"
@@ -310,7 +371,7 @@ $urbanReady = Wait-HttpOk -Url "$urbanBaseUrl/" -Attempts 45 -DelaySec 2
 # --- L0 hub negotiate ---
 $negotiateUrl = "$umBaseUrl$negotiatePath"
 $neg = Invoke-HttpCapture -SinkDir $HttpDir -Name "hub-negotiate" -Method "POST" -Url $negotiateUrl `
-    -Headers @{ "Content-Type" = "text/plain;charset=UTF-8" }
+    -HasBody -Body "" -Headers @{ "Content-Type" = "text/plain;charset=UTF-8" }
 $l0Hub = ($neg.StatusCode -ge 200 -and $neg.StatusCode -lt 300) -and (
     ($neg.Body -match "connectionToken") -or ($neg.Body -match "negotiateVersion") -or ($neg.Body -match "availableTransports")
 )
@@ -345,31 +406,77 @@ Write-Utf8NoBom (Join-Path $PrepareDir "online-poll.json") ([ordered]@{
         polls         = $pollIndex
         online        = $l2Online
         matched       = $matchedClient
+        snapshot      = (Get-RowSnapshot -Row $matchedClient -ElapsedSec 0)
         at            = (Get-Date).ToString("o")
     } | ConvertTo-Json -Depth 8)
 
-# --- optional presence hold ---
+# --- presence hold (reliability / false-offline) ---
 $l2Hold = $null
+$l2TimeStable = $null
 $holdSkipped = $skipHoldCfg
+$timeline = @()
 if (-not $skipHoldCfg) {
     if (-not $l2Online) {
         Write-Warning "Skipping presence-hold because client never became online."
         $holdSkipped = $true
     }
     else {
-        Write-Host ("[urban-signalr-online-probe] presence-hold {0}s (live TTL risk window)..." -f $holdSec)
-        Start-Sleep -Seconds $holdSec
-        $hold = Invoke-HttpCapture -SinkDir $HttpDir -Name "client-list-after-hold" `
-            -Method "GET" -Url $clientListUrl
-        $after = Find-OnlineClient -JsonBody $hold.Body -ExpectedProId $expectedProId
-        $l2Hold = ($null -ne $after)
+        Write-Host ("[urban-signalr-online-probe] presence-hold {0}s (sample every {1}s; live TTL risk ~120s)..." -f $holdSec, $sampleSec)
+        $holdStart = Get-Date
+        $elapsed = 0
+        $firstSnap = Get-RowSnapshot -Row $matchedClient -ElapsedSec 0
+        $timeline += $firstSnap
+        $wentOfflineAt = $null
+        while ($elapsed -lt $holdSec) {
+            $sleepFor = [Math]::Min($sampleSec, $holdSec - $elapsed)
+            Start-Sleep -Seconds $sleepFor
+            $elapsed = [int]((Get-Date) - $holdStart).TotalSeconds
+            $sampleName = ("client-list-hold-{0:D3}s" -f $elapsed)
+            $holdResp = Invoke-HttpCapture -SinkDir $HttpDir -Name $sampleName -Method "GET" -Url $clientListUrl
+            $row = Get-ClientRow -JsonBody $holdResp.Body -ExpectedProId $expectedProId
+            $snap = Get-RowSnapshot -Row $row -ElapsedSec $elapsed
+            $timeline += $snap
+            Write-Host ("  t={0}s found={1} isConnected={2} lastSeenAt={3}" -f $elapsed, $snap.found, $snap.isConnected, $snap.lastSeenAt)
+            if (-not $snap.isConnected -and $null -eq $wentOfflineAt) {
+                $wentOfflineAt = $elapsed
+            }
+        }
+
+        $final = $timeline[-1]
+        $l2Hold = [bool]$final.isConnected
+        # Time stability: while still online, lastSeenAt should not jump to disconnectedAt-only shell
+        $offlineWhileClaimedOnline = $false
+        foreach ($s in $timeline) {
+            if ($s.found -and $s.isConnected -and -not [string]::IsNullOrWhiteSpace([string]$s.disconnectedAt)) {
+                $offlineWhileClaimedOnline = $true
+            }
+        }
+        $l2TimeStable = $l2Hold -and (-not $offlineWhileClaimedOnline)
+
         Write-Utf8NoBom (Join-Path $PrepareDir "presence-hold.json") ([ordered]@{
-                holdSeconds   = $holdSec
-                stillOnline   = $l2Hold
-                expectedProId = $expectedProId
-                matched       = $after
-                at            = (Get-Date).ToString("o")
-            } | ConvertTo-Json -Depth 8)
+                holdSeconds            = $holdSec
+                sampleSeconds          = $sampleSec
+                liveTtlApproxSeconds   = 120
+                stillOnline            = $l2Hold
+                lastOnlineTimeStable   = $l2TimeStable
+                wentOfflineAtSeconds   = $wentOfflineAt
+                expectedProId          = $expectedProId
+                firstSnapshot          = $firstSnap
+                finalSnapshot          = $final
+                timeline               = $timeline
+                interpretation         = $(
+                    if ($l2Hold) {
+                        "PASS: client remained isConnected=true past live TTL window — presence reliable for this run."
+                    }
+                    elseif ($null -ne $wentOfflineAt) {
+                        "FAIL: client flipped isConnected=false at ~${wentOfflineAt}s (expected if Redis live TTL expires without UploadStatus heartbeat)."
+                    }
+                    else {
+                        "FAIL: expected ProId missing from client-list after hold."
+                    }
+                )
+                at                     = (Get-Date).ToString("o")
+            } | ConvertTo-Json -Depth 10)
     }
 }
 
@@ -381,18 +488,21 @@ $summary = [ordered]@{
     expectedProId      = $expectedProId
     urbanReady         = $urbanReady
     levels             = [ordered]@{
-        L0_redis          = $redisOk
-        L0_hub_negotiate  = $l0Hub
-        L0_urban_host     = $l0Urban
-        L1_urban_settings = $l1Settings
-        L2_client_online  = $l2Online
-        L2_presence_hold  = $(if ($holdSkipped) { "skipped" } else { $l2Hold })
+        L0_redis               = $redisOk
+        L0_hub_negotiate       = $l0Hub
+        L0_urban_host          = $l0Urban
+        L1_urban_settings      = $l1Settings
+        L2_client_online       = $l2Online
+        L2_presence_hold       = $(if ($holdSkipped) { "skipped" } else { $l2Hold })
+        L2_last_online_stable  = $(if ($holdSkipped) { "skipped" } else { $l2TimeStable })
     }
     presenceHoldSkipped = $holdSkipped
     finishedAt          = (Get-Date).ToString("o")
 }
 Write-Utf8NoBom (Join-Path $RunDir "summary.json") ($summary | ConvertTo-Json -Depth 8)
 
+$holdLine = if ($holdSkipped) { "skipped" } else { "$l2Hold" }
+$timeLine = if ($holdSkipped) { "skipped" } else { "$l2TimeStable" }
 $report = @"
 # urban-signalr-online-probe report
 
@@ -401,6 +511,7 @@ $report = @"
 - Urban: ``$urbanBaseUrl``
 - Redis: ``${redisHost}:${redisPort}`` reachable=$redisOk
 - Expected ProId: ``$expectedProId``
+- Presence hold: ${holdSec}s (sample ${sampleSec}s); live TTL ≈ 120s
 
 | Level | Result |
 |-------|--------|
@@ -408,14 +519,20 @@ $report = @"
 | L0 Hub negotiate | $l0Hub |
 | L0 Urban GET / | $l0Urban |
 | L1 Urban settings | $l1Settings |
-| L2 Client online | $l2Online |
-| L2 Presence hold | $(if ($holdSkipped) { "skipped" } else { $l2Hold }) |
+| L2 Client online (settle) | $l2Online |
+| L2 Presence hold (reliability) | $holdLine |
+| L2 Last-online time stable | $timeLine |
+
+## Reliability verdict
+
+- **Settle online** proves Hub + UploadStatus path works initially.
+- **Presence hold** must stay ``isConnected=true`` past Redis live TTL (~2× ClientTimeout). Failure reproduces「几分钟后服务端显示离线」.
+- **Last-online time**: UI ``最后在线时间`` uses ``LastSeenAt ?? ConnectedAt`` while online; Redis miss → EF offline fallback forces ``IsConnected=false`` and may show stale/disconnected times — see ``prepare/presence-hold.json`` timeline.
 
 ## Notes
 
 - BasePlatform not started; UM uses ``BasePlatformSync__Enabled=false``.
-- Presence hold (when enabled) may fail with current product: Redis live TTL ~2× ClientTimeout and change-only UploadStatus.
-- L3: confirm UM project management online badge manually.
+- L3: confirm UM project management badge + 最后在线时间 manually.
 
 ## Agent
 
@@ -426,8 +543,13 @@ Write-Utf8NoBom (Join-Path $RunDir "report.md") $report
 Write-Host "[urban-signalr-online-probe] done. summary=$($RunDir)\summary.json"
 Write-Host ($summary.levels | ConvertTo-Json -Compress)
 
+# Hard fail only bootstrap/settle; presence-hold failure is a product reliability finding (exit 2).
 $hardFail = (-not $redisOk) -or (-not $l0Hub) -or (-not $l0Urban) -or (-not $l1Settings) -or (-not $l2Online)
 if ($hardFail) {
     exit 1
+}
+if (-not $holdSkipped -and $l2Hold -eq $false) {
+    Write-Host "[urban-signalr-online-probe] RELIABILITY FAIL: presence-hold lost online (false-offline reproduced)."
+    exit 2
 }
 exit 0

@@ -51,6 +51,7 @@ Status: **active**
      -SkipStartUm -SkipStartUrban -SkipConfirm
    ```
 
+> **配置注意：** Urban 的 `appsettings.secret.json` 在模块里后加载，会盖掉 `SignalR__ServerUrl` 环境变量。Start 脚本会**改写输出目录**（`bin/.../appsettings*.json`）里的 `SignalR:ServerUrl` 指向本机 UM Hub。
 ## Sockets
 
 | | |

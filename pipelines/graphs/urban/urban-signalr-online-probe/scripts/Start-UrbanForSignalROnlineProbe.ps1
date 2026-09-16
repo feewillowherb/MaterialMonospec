@@ -72,6 +72,14 @@ if (-not (Test-Path -LiteralPath $LicenseScript)) {
     throw "Missing shared license script: $LicenseScript"
 }
 
+# Stop running Urban before build/patch so output DLLs and JSON are writable.
+$existingBefore = Get-Process -Name "MaterialClient.Urban" -ErrorAction SilentlyContinue
+if ($existingBefore) {
+    Write-Warning "Stopping MaterialClient.Urban (PID $($existingBefore.Id -join ',')) before build/patch."
+    $existingBefore | Stop-Process -Force
+    Start-Sleep -Seconds 2
+}
+
 if (-not $SkipBuild) {
     Write-Host "[urban-signalr-online-probe] building MaterialClient.Urban ($Configuration)..."
     & dotnet build $UrbanProject -c $Configuration | Out-Host
@@ -126,6 +134,47 @@ else {
         } | ConvertTo-Json -Depth 6)
 }
 
+function Set-JsonSignalRServerUrl {
+    param([string] $JsonPath, [string] $ServerUrl)
+    $escaped = $ServerUrl.Replace('\', '\\').Replace('"', '\"')
+    if (-not (Test-Path -LiteralPath $JsonPath)) {
+        Write-UrbanUtf8NoBom -Path $JsonPath -Content ("{`n  `"SignalR`": {`n    `"ServerUrl`": `"$escaped`"`n  }`n}`n")
+        return
+    }
+    $raw = [System.IO.File]::ReadAllText($JsonPath, [System.Text.Encoding]::UTF8)
+    if ($raw -match '"ServerUrl"\s*:') {
+        $updated = [regex]::Replace(
+            $raw,
+            '("ServerUrl"\s*:\s*")[^"]*(")',
+            ('${1}' + $escaped + '${2}'),
+            1)
+    }
+    elseif ($raw -match '"SignalR"\s*:\s*\{') {
+        $updated = [regex]::Replace(
+            $raw,
+            '("SignalR"\s*:\s*\{)',
+            ('${1}' + "`n    `"ServerUrl`": `"$escaped`","),
+            1)
+    }
+    else {
+        $trim = $raw.TrimEnd()
+        if ($trim.EndsWith('}')) {
+            $updated = $trim.Substring(0, $trim.Length - 1).TrimEnd().TrimEnd(',') +
+                ",`n  `"SignalR`": {`n    `"ServerUrl`": `"$escaped`"`n  }`n}`n"
+        }
+        else {
+            throw "Cannot patch SignalR ServerUrl in $JsonPath"
+        }
+    }
+    Write-UrbanUtf8NoBom -Path $JsonPath -Content $updated
+}
+
+# MaterialClientUrbanModule loads appsettings.secret.json AFTER host config, which
+# overrides SignalR__ServerUrl env vars. Patch output JSON so local UM Hub wins.
+Set-JsonSignalRServerUrl -JsonPath (Join-Path $urbanDir "appsettings.json") -ServerUrl $signalRUrl
+Set-JsonSignalRServerUrl -JsonPath (Join-Path $urbanDir "appsettings.secret.json") -ServerUrl $signalRUrl
+Write-Host "[urban-signalr-online-probe] patched output SignalR:ServerUrl=$signalRUrl"
+
 $env:MinimalWebHost__EnableOnStartup = "true"
 $env:SignalR__ServerUrl = $signalRUrl
 
@@ -135,13 +184,6 @@ Write-Host "  SignalR__ServerUrl=$($env:SignalR__ServerUrl)"
 
 if ($NoLaunch) {
     Write-Host "[urban-signalr-online-probe] Urban prepare complete; -NoLaunch set."
-    return
-}
-
-$existing = Get-Process -Name "MaterialClient.Urban" -ErrorAction SilentlyContinue
-if ($existing) {
-    Write-Warning "MaterialClient.Urban already running (PID $($existing.Id -join ',')); not starting another instance."
-    Write-Warning "Restart Urban manually if SignalR__ServerUrl changed."
     return
 }
 
