@@ -71,7 +71,7 @@ Urban 客户端在重量稳定时创建 `UrbanWeighingExtension`，当前固定 
 ## Risks / Trade-offs
 
 - [Risk] 下磅侧效应遗漏 → 永远卡在称重中 → Mitigation：单测 OffScale 提升；日志。
-- [Risk] 进程在称重中崩溃 → Mitigation：优先 OffScale + 编辑 + Synced 错传回 Pending；超龄补救可选。
+- [Risk / Known] 进程在称重中关闭或崩溃 → 本地扩展仍在 SQLite（不丢数据），但状态可长期停在 `WeighingInProgress`、不上云。Mitigation（本 change）：仅靠再次 OffScale / `EnsureReadyForUploadAsync` / 人工编辑提升；**不做**启动扫描或超龄自动提升（已在 proposal「Known limitation」标记；补救另开 change）。
 - [Risk] 重复 Receive 客户端带空车牌 + `IsAnomaly=false` 试图「洗白」 → Mitigation：兜底强制异常，不允许空车牌正常。
 - [Risk] 车牌占位符（如「无」「未识别」）是否算空 → Mitigation：本 change **仅** `IsNullOrWhiteSpace`；字面「无」另议，不纳入本兜底 unless 与客户端 EmptyPlate 规则对齐后在 tasks 注明。
 
@@ -83,4 +83,5 @@ Urban 客户端在重量稳定时创建 `UrbanWeighingExtension`，当前固定 
 
 ## Open Questions
 
-（无阻塞。字面「无」是否视为空车牌：默认否，仅 whitespace。）
+- 字面「无」是否视为空车牌：默认否，仅 whitespace（无阻塞）。
+- **Follow-up（已知、非本 change）**：`WeighingInProgress` 残留行在进程重启后是否做启动扫描 / 超龄自动提升为 `Pending`？默认否；见 proposal Known limitation。
