@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-09-18
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "UM-only：TouchOnline + UploadStatus/Receive/Legacy；无 MaterialClient 心跳；客户端 presence 为 backlog"
