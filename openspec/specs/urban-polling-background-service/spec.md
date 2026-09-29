@@ -6,7 +6,7 @@ Defines MaterialClient.Urban periodic background upload of weighing records with
 ## Requirements
 ### Requirement: Urban PollingBackgroundService periodic upload
 
-The MaterialClient.Urban application SHALL provide a `PollingBackgroundService` class in namespace `MaterialClient.Urban.Backgrounds` that extends Volo.Abp's `AsyncPeriodicBackgroundWorkerBase`. The worker SHALL scan locally persisted Urban weighing extensions with `SyncStatus == Pending` and invoke `IUrbanServerUploadService.SubmitRecordAsync` for each eligible record inside an ABP unit of work opened via `IUnitOfWorkManager`.
+The MaterialClient.Urban application SHALL provide a `PollingBackgroundService` class in namespace `MaterialClient.Urban.Backgrounds` that extends Volo.Abp's `AsyncPeriodicBackgroundWorkerBase`. The worker SHALL scan locally persisted Urban weighing extensions with `SyncStatus == Pending` and invoke `IUrbanServerUploadService.SubmitRecordAsync` for each eligible record inside an ABP unit of work opened via `IUnitOfWorkManager`. Extensions in `SyncStatus.WeighingInProgress` MUST NOT be selected or uploaded.
 
 #### Scenario: Worker executes inside unit of work
 
@@ -16,14 +16,15 @@ The MaterialClient.Urban application SHALL provide a `PollingBackgroundService` 
 
 #### Scenario: Pending records are uploaded
 
-- **WHEN** one or more `UrbanWeighingExtension` rows exist with `SyncStatus == Pending` and `IsAnomaly == false`
+- **WHEN** one or more `UrbanWeighingExtension` rows exist with `SyncStatus == Pending`
 - **THEN** the worker SHALL call `GetPendingForUploadAsync` with a batch size bounded by configuration
 - **AND** SHALL call `SubmitRecordAsync` for each returned `WeighingRecordId` in the batch
 
-#### Scenario: Anomalous records are skipped
+#### Scenario: WeighingInProgress records are not uploaded
 
-- **WHEN** a pending extension has `IsAnomaly == true`
-- **THEN** the worker SHALL NOT call `SubmitRecordAsync` for that record
+- **WHEN** an `UrbanWeighingExtension` has `SyncStatus == WeighingInProgress`
+- **THEN** `GetPendingForUploadAsync` MUST NOT return that extension
+- **AND** the worker MUST NOT call `SubmitRecordAsync` for that record
 
 #### Scenario: Single record failure does not abort batch
 

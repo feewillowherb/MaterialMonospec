@@ -3,9 +3,7 @@
 ## Purpose
 
 定义 UrbanManagement Blazor 应用的项目管理页面，包括项目列表、搜索、分页、CRUD 操作、客户端连接状态显示、设备详情查看、称重记录导航和实时 SignalR 更新。该页面通过 `IGovProjectAppService` 与 ABP ApplicationService 交互，不使用任何 MVC 控制器。客户端状态和设备详情通过 `IDeviceStatusAppService` 获取。
-
 ## Requirements
-
 ### Requirement: Project list page rendering
 
 `ProjectManagement.razor` SHALL render a paginated table of government projects with search, client-connection status filter, and CRUD operations, consuming `IGovProjectAppService` via DI injection.
@@ -109,11 +107,14 @@ ProjectManagement.razor SHALL provide a "称重" button on each project row that
 - **THEN** the system SHALL navigate to `/weighing?proName=<project name>`
 
 ### Requirement: Real-time client status via SignalR
-ProjectManagement.razor SHALL subscribe to SignalR for real-time client status updates with polling fallback. See `project-client-merge` capability for full specification.
 
-#### Scenario: SignalR client status updates
-- **WHEN** a `ClientConnectionUpdate` event fires
-- **THEN** the corresponding project row's client status badge SHALL update in real-time
+ProjectManagement.razor MUST NOT subscribe to DeviceStatus SignalR for client status updates and MUST NOT use polling fallback. Client status badges SHALL be loaded via `IDeviceStatusAppService` (live state from Redis) when the page loads or when the user explicitly refreshes list data (manual refresh and/or user-driven reload such as search/paging). See `project-client-merge` for merge semantics.
+
+#### Scenario: Status loaded without live hub push
+
+- **WHEN** the project management page loads or the user triggers a manual/list reload
+- **THEN** the corresponding project row client status badges SHALL update from AppService data backed by Redis live state
+- **AND** MUST NOT require a `ClientConnectionUpdate` SignalR event
 
 ### Requirement: No GovProjectApiController dependency
 `ProjectManagement.razor` SHALL NOT call any endpoint from `GovProjectApiController`. All data operations SHALL go through `IGovProjectAppService` (ABP convention routes).
@@ -175,3 +176,4 @@ ProjectManagement.razor SHALL subscribe to SignalR for real-time client status u
 #### Scenario: Same-status secondary order is stable
 - **WHEN** multiple projects share the same connection status
 - **THEN** those projects SHALL keep a deterministic secondary order (e.g. `CreationTime` descending)
+

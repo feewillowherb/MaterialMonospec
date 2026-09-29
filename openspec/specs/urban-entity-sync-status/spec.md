@@ -1,7 +1,7 @@
 ## Purpose
 
 urban-entity-sync-status capability requirements.
-
+## Requirements
 ### Requirement: SyncStatus enum on all sync-capable entities
 
 UrbanManagement SHALL persist government/client sync state using the `SyncStatus` enum (`Pending`, `Success`, `Failed`) on `UrbanWeighingRecord`, `UrbanPassageRecord`, and `GovSyncData`. `SyncType` MUST be non-nullable with default `Pending` on insert. The system MUST NOT use raw `int` or `int?` for sync status on these entities.
@@ -44,16 +44,16 @@ UrbanManagement API responses and request bodies that expose `SyncType` or `Clie
 
 ### Requirement: No new GovSyncData inserts
 
-After this change, the system MUST NOT insert new rows into `GovSyncData`. Modern weighing receive and any Legacy stub MUST NOT call `InsertAsync` on `GovSyncData`. Existing historical rows MAY remain read-only.
+After entity semantic hardening, the system MUST NOT insert new rows into `GovSyncData`. Modern weighing receive, Legacy weighing ingest (success and reject staging), and any remaining stubs MUST NOT call `InsertAsync` on `GovSyncData`. Existing historical rows MAY remain read-only.
 
 #### Scenario: Modern receive does not dual-write
 
 - **WHEN** `UrbanWeighingRecordAppService.ReceiveAsync` creates or updates a record
 - **THEN** the system MUST NOT insert or update `GovSyncData` for that operation
 
-#### Scenario: Legacy stub does not write GovSyncData
+#### Scenario: Legacy ingest does not write GovSyncData
 
-- **WHEN** a client calls the Legacy HTTP endpoint
+- **WHEN** a client calls the Legacy HTTP endpoint and ingest succeeds or is rejected into staging
 - **THEN** the system MUST NOT insert into `GovSyncData`
 
 ### Requirement: Service layer uses SyncStatus enum only
@@ -65,3 +65,4 @@ Domain services and sync managers (`GovSyncManager`, `GovCheckpointSyncManager`,
 - **WHEN** a checkpoint forward succeeds
 - **THEN** the manager MUST set `record.SyncType = SyncStatus.Success`
 - **AND** MUST NOT assign `SyncType = 1`
+

@@ -1,3 +1,8 @@
+## RENAMED Requirements
+
+- FROM: `### Requirement: Database is authoritative for connection and device-detail queries`
+- TO: `### Requirement: Redis is authoritative for live connection and device-detail queries`
+
 ## MODIFIED Requirements
 
 ### Requirement: Client online status entity persistence

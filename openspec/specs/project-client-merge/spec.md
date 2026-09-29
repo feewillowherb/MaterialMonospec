@@ -3,9 +3,7 @@
 ## Purpose
 
 定义将客户端连接状态和设备详情功能合并到项目管理页面的规范。移除独立的客户端管理和设备状态页面，将其实时状态更新、设备详情查看功能整合到 ProjectManagement.razor 中。
-
 ## Requirements
-
 ### Requirement: Project table displays client connection status
 ProjectManagement.razor SHALL display each project's client connection status (online/offline) directly in the project list table, merging data from `IGovProjectAppService.GetListAsync` and `IDeviceStatusAppService.GetClientListAsync`.
 
@@ -33,15 +31,19 @@ Each project row SHALL provide a "设备" button that opens a modal dialog showi
 - **THEN** the modal SHALL display "暂无设备数据" empty state
 
 ### Requirement: Real-time connection status updates via SignalR
-ProjectManagement.razor SHALL subscribe to SignalR `ClientConnectionUpdate` events to refresh client connection status in real-time, with 30-second fallback polling when SignalR is disconnected.
 
-#### Scenario: Client connects while page is open
-- **WHEN** a client connects and the `ClientConnectionUpdate` SignalR event fires
-- **THEN** the corresponding project row's client status badge SHALL update to "在线" without full page reload
+ProjectManagement.razor MUST NOT subscribe to SignalR `ClientConnectionUpdate` events and MUST NOT fall back to timed polling for client connection status. Connection badges SHALL refresh only when list data is loaded through user navigation or an explicit manual refresh (including user-driven search/paging reloads), using AppService data backed by Redis live state. Desktop clients continue to use `DeviceStatusHub` independently of the Blazor page.
 
-#### Scenario: SignalR disconnected fallback
-- **WHEN** SignalR connection is lost for more than 30 seconds
-- **THEN** the system SHALL fall back to polling `GetClientListAsync` every 30 seconds to refresh status
+#### Scenario: Status refresh without SignalR while page is open
+
+- **WHEN** a desktop client connects or disconnects while Project Management is open
+- **THEN** the project row badge is NOT required to update until the user reloads list data manually or via an explicit refresh action
+- **AND** the page MUST NOT auto-update solely from a `ClientConnectionUpdate` event
+
+#### Scenario: No SignalR disconnected polling fallback
+
+- **WHEN** the project management page is open
+- **THEN** the system MUST NOT poll `GetClientListAsync` every 30 seconds (or any similar background interval) to refresh connection status
 
 ### Requirement: Remove standalone client and device pages
 `/clients`, `/clients/{proId}`, and `/device-status` routes SHALL be removed along with ClientList.razor, ClientDetail.razor, and DeviceStatus.razor files. The sidebar primary navigation SHALL treat 项目管理 as the home entry at `/` and MUST NOT include 仪表盘.
@@ -112,3 +114,4 @@ The project row「设备」modal MUST display device online details loaded via `
 
 - **WHEN** multiple `ClientId` instances have device detail rows under the same `ProId`
 - **THEN** the modal data SHALL retain `ClientId` (or equivalent grouping) so instances are not silently merged into one ambiguous card set
+

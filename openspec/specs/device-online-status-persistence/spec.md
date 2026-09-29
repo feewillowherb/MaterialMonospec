@@ -3,167 +3,101 @@
 ## Purpose
 
 UrbanManagement 将桌面客户端实例在线态与设备详情当前态持久化到数据库，查询以库为准，支持同一 `ProId` 多 `ClientId`。
-
 ## Requirements
-
 ### Requirement: Client online status entity persistence
 
-UrbanManagement MUST persist each desktop client instance's current online/offline connection state in the database via a `ClientOnlineStatus` entity that is unique by `(ProId, ClientId)`, registered on `UrbanManagementDbContext` with an EF Core migration. The schema MUST allow multiple rows per `ProId` so a future Urban V2 project can keep up to four concurrent machine instances online without a table redesign. `ProId` SHALL be stored as **non-nullable `Guid`**.
+UrbanManagement MUST retain the `ClientOnlineStatus` entity and table (unique by `(ProId, ClientId)`, `ProId` as **non-nullable `Guid`**). **Live** connection state for SignalR connect/disconnect SHALL be written to Redis only on the hot path. EF rows SHALL be updated by the periodic Redis→EF snapshot job (see `urban-client-status-ef-snapshot`), not by Hub connect/disconnect. Multiple `ClientId` values per `ProId` MUST remain representable in Redis and in EF.
 
-#### Scenario: Entity stored in DbContext
+#### Scenario: Entity remains in DbContext
 
 - **WHEN** the application data model is configured
-- **THEN** `UrbanManagementDbContext` SHALL expose a `DbSet` for `ClientOnlineStatus`
-- **AND** the entity SHALL include at least `ProId` (**Guid**), `ClientId`, `ProName`, `IsConnected`, `ConnectedAt`, `DisconnectedAt`, and `LastSeenAt`
-- **AND** `(ProId, ClientId)` SHALL be unique
-- **AND** `ProId` alone MUST NOT be a uniqueness constraint that would allow only one row per project
+- **THEN** `UrbanManagementDbContext` SHALL expose `DbSet<ClientOnlineStatus>`
+- **AND** the SignalR connect/disconnect hot path SHALL NOT insert or update `ClientOnlineStatus` rows
 
-#### Scenario: Optional Slot column reserved for Urban V2
+#### Scenario: Live upsert on client instance online (Redis)
 
-- **WHEN** the `ClientOnlineStatus` table is created
-- **THEN** the entity MAY include a nullable `Slot` (`int?`) for future correlation with Urban V2 machine-code slots
-- **AND** this change SHALL NOT require writing `Slot` on connect/disconnect
-- **AND** `Slot` SHALL NOT be treated as the authorization source of truth
+- **WHEN** a MaterialClient SignalR connection maps a valid parsed `ProId` (Guid) and non-empty `ClientId`
+- **THEN** the system SHALL record that `(ProId, ClientId)` as connected in **Redis** with the short live TTL
+- **AND** SHALL NOT require an EF upsert on that event
 
-#### Scenario: Upsert on client instance online
-
-- **WHEN** a MaterialClient SignalR connection maps a valid parsed `ProId` (Guid) and non-empty `ClientId` (online registration for that instance)
-- **THEN** the system SHALL upsert `ClientOnlineStatus` for that `(ProId, ClientId)` with `IsConnected = true`
-- **AND** SHALL set `ConnectedAt` and `LastSeenAt` to the write-path clock
-- **AND** SHALL update `ProName` when provided
-- **AND** SHALL NOT delete or overwrite other `ClientId` rows under the same `ProId`
-
-#### Scenario: Upsert on client instance offline
+#### Scenario: Live upsert on client instance offline (Redis)
 
 - **WHEN** the SignalR connection for a mapped `(ProId, ClientId)` disconnects
-- **THEN** the system SHALL upsert only that `(ProId, ClientId)` row with `IsConnected = false`
-- **AND** SHALL set `DisconnectedAt` and update `LastSeenAt`
-- **AND** SHALL NOT mark other instances under the same `ProId` as offline
+- **THEN** the system SHALL mark only that `(ProId, ClientId)` offline in **Redis** (`IsConnected = false`)
+- **AND** SHALL apply the configured offline retention TTL (default seven days)
+- **AND** SHALL NOT delete the connection entry solely because the client disconnected
+- **AND** SHALL NOT require an EF upsert on that event
 
-#### Scenario: Multiple instances under one project
+#### Scenario: Offline retention vs unregistered
 
-- **WHEN** two different `ClientId` values under the same `ProId` are both connected
-- **THEN** the database SHALL contain two `ClientOnlineStatus` rows for that `ProId`
-- **AND** both rows SHALL have `IsConnected = true`
-
-#### Scenario: Survives process restart
-
-- **WHEN** UrbanManagement restarts after clients were connected
-- **THEN** persisted `ClientOnlineStatus` rows SHALL remain queryable from the database
-
-#### Scenario: Migration ignores unparseable historical ProId rows
-
-- **WHEN** an EF migration converts `ClientOnlineStatus.ProId` from string to Guid
-- **THEN** rows whose legacy `ProId` value cannot be parsed as Guid SHALL be removed from the table
-- **AND** the migration MUST NOT attempt to infer or repair invalid project identifiers
+- **WHEN** a disconnected Redis connection entry is still within offline retention
+- **THEN** management aggregation SHALL treat that instance as registered offline (徽章「离线」)
+- **WHEN** neither Redis nor EF has an entry for the project’s instances
+- **THEN** the project-level badge SHALL be 未注册
 
 ### Requirement: Device online detail current-state persistence
 
-UrbanManagement MUST persist the latest online detail for each device type on each client instance via a `ClientDeviceOnlineStatus` entity (name may vary) that is unique by `(ProId, ClientId, DeviceType)`, registered on `UrbanManagementDbContext` with an EF Core migration. `ProId` SHALL be **non-nullable `Guid`**. This is current-state storage for the project management device modal and `GetClientDevicesAsync`, not an append-only audit log.
+Live device online detail for the project management device modal and `GetClientDevicesAsync` SHALL be stored in **Redis** as current-state (not an append-only audit log). The `ClientDeviceOnlineStatus` table MAY remain in the schema but the `UploadStatus` and disconnect hot paths SHALL NOT upsert that table for live state.
 
-#### Scenario: Device detail entity in DbContext
+#### Scenario: Device detail entity MAY remain in DbContext
 
 - **WHEN** the application data model is configured
-- **THEN** `UrbanManagementDbContext` SHALL expose a `DbSet` for the device online detail entity
-- **AND** each row SHALL include at least `ProId` (**Guid**), `ClientId`, `DeviceType`, `Status`, `LastUpdateTime`, and optional `AdditionalData`
-- **AND** `(ProId, ClientId, DeviceType)` SHALL be unique
+- **THEN** `UrbanManagementDbContext` MAY continue to expose a `DbSet` for the device online detail entity
+- **AND** the SignalR `UploadStatus` / disconnect hot path SHALL NOT insert or update those rows for live state
 
-#### Scenario: Upsert on UploadStatus
+#### Scenario: Upsert on UploadStatus (Redis)
 
 - **WHEN** a valid `UploadStatus` message includes a parseable `ProId` (Guid), `ClientId`, `DeviceType`, and `Status`
-- **THEN** the system SHALL upsert the matching device detail row with that status and timestamp
-- **AND** SHALL NOT remove other device types or other `ClientId` rows under the same `ProId`
+- **THEN** the system SHALL upsert the matching device detail entry in **Redis**
+- **AND** SHALL NOT remove other device types or other `ClientId` entries under the same `ProId` in Redis
+- **AND** SHALL NOT require an EF device-detail upsert for that event
 
-#### Scenario: Mark devices offline on instance disconnect
+#### Scenario: Mark devices offline on instance disconnect (Redis)
 
 - **WHEN** a mapped `(ProId, ClientId)` SignalR connection disconnects
-- **THEN** the system SHALL set `Status` to Offline (or equivalent) for all device detail rows of that `(ProId, ClientId)`
-- **AND** SHALL update their `LastUpdateTime`
-- **AND** SHALL NOT change device detail rows belonging to other `ClientId` values under the same `ProId`
+- **THEN** the system SHALL set those device detail entries in Redis to Offline (or equivalent) for that `(ProId, ClientId)`
+- **AND** SHALL NOT change device detail entries belonging to other `ClientId` values under the same `ProId`
 
-#### Scenario: Device details survive restart
+#### Scenario: Device details do not survive Redis loss
 
-- **WHEN** UrbanManagement restarts after device statuses were persisted
-- **THEN** `GetClientDevicesAsync` SHALL return persisted device detail rows from the database
-
-### Requirement: Database is authoritative for connection and device-detail queries
-
-Client connection queries MUST read from `ClientOnlineStatus`. Device online detail queries (`GetClientDevicesAsync` and equivalents) MUST read from the device detail current-state table. Distributed cache MUST NOT be the sole source of truth.
-
-#### Scenario: Connection query after cache expiry
-
-- **WHEN** connection cache entries have expired or are missing
-- **AND** one or more `ClientOnlineStatus` rows exist for a `ProId`
-- **THEN** `GetClientListAsync` (or equivalent) SHALL still return the persisted instance state(s) from the database
-
-#### Scenario: Device detail query after cache expiry
-
-- **WHEN** `DeviceStatusCacheItem` for a `ProId` is missing
-- **AND** device detail rows exist for that `ProId`
-- **THEN** `GetClientDevicesAsync` SHALL return those rows from the database
-- **AND** each item SHALL include enough identity to distinguish instances (`ClientId`) when multiple instances exist
-
-#### Scenario: Optional write-through cache
-
-- **WHEN** the system upserts connection or device detail rows
-- **THEN** the system MAY also update write-through cache entries
-- **AND** cache write failure SHALL NOT roll back or skip the database upsert
+- **WHEN** Redis live device keys are missing after restart/flush/eviction
+- **THEN** `GetClientDevicesAsync` SHALL return empty or offline-equivalent live data from Redis
+- **AND** SHALL NOT be required to return historical SQLite device-detail rows as live state
 
 ### Requirement: Project-level aggregation for management UI
 
-When the project management UI needs a single status per project, the system MUST aggregate all `ClientOnlineStatus` rows for that `ProId` without collapsing them in storage. Device detail rows drive the device modal, not the project-level 未注册/在线/离线 badge.
+When the project management UI needs a single status per project, the system MUST aggregate all connection instances for that `ProId` from the Redis-preferred merged set (Redis hits plus EF offline fallbacks) without collapsing them in storage.
 
 #### Scenario: Aggregate online
 
-- **WHEN** at least one row for the `ProId` has `IsConnected = true`
+- **WHEN** at least one Redis connection entry for the `ProId` is connected
 - **THEN** the project-level client badge SHALL be 在线
 
 #### Scenario: Aggregate offline
 
-- **WHEN** the `ProId` has one or more rows and every row has `IsConnected = false`
+- **WHEN** the merged instance set for the `ProId` is non-empty and every instance is disconnected (including EF fallbacks)
 - **THEN** the project-level client badge SHALL be 离线
 
 #### Scenario: Aggregate unregistered
 
-- **WHEN** the `ProId` has no `ClientOnlineStatus` rows
+- **WHEN** the merged instance set for the `ProId` is empty
 - **THEN** the project-level client badge SHALL be 未注册
-
-#### Scenario: Aggregate last online time
-
-- **WHEN** the project table renders「最后在线时间」
-- **THEN** the value SHALL be derived from the newest relevant timestamp among that `ProId`'s instance rows
-- **AND** SHALL NOT use `GovProject.LastSyncTime`
-
-#### Scenario: Device modal uses persisted details
-
-- **WHEN** the user opens the project「设备」modal for a `ProId`
-- **THEN** the UI SHALL render device cards from `GetClientDevicesAsync` backed by persisted device detail rows
-- **AND** SHALL show status and last update time per device type (and per `ClientId` when multiple instances exist)
 
 ### Requirement: LastSeenAt refresh without dedicated heartbeat
 
-The system SHALL expose a live-connection Touch path that renews last-seen and Redis live TTL for a `(ProId, ClientId)` instance, and MUST **recreate** a live online entry (`IsConnected = true`) when the live key is missing. Qualifying SignalR `UploadStatus` messages that carry usable `ProId` and `ClientId` MUST invoke this Touch path (not only on first Hub connection mapping). The system MUST NOT introduce a separate heartbeat Hub method. Optional minimum-interval throttle MAY limit how often last-seen timestamps advance, but MUST NOT skip renewing live key TTL on Touch. This capability does **not** require MaterialClient periodic presence republish.
+The system SHALL refresh last-seen (and Redis key TTL) on qualifying `UploadStatus` messages that carry `ProId` and `ClientId` when a live Redis connection entry exists, without introducing a separate heartbeat Hub method. The refresh MUST support an optional minimum interval throttle. This refresh SHALL NOT require updating SQLite `ClientOnlineStatus.LastSeenAt` on the hot path.
 
-#### Scenario: Status upload refreshes last-seen and live TTL
+#### Scenario: Status upload refreshes last-seen in Redis
 
-- **WHEN** an `UploadStatus` message includes known `ProId` and `ClientId`
-- **AND** a live connection entry already exists
+- **WHEN** an `UploadStatus` message includes known `ProId` and `ClientId` and a live Redis connection entry exists
 - **THEN** the system SHALL update that entry's last-seen subject to an optional throttle
-- **AND** SHALL renew the live Redis TTL for that connection
-- **AND** SHALL NOT require a new Hub method beyond `UploadStatus`
-
-#### Scenario: Status upload recreates live online after TTL expiry
-
-- **WHEN** an `UploadStatus` message includes known `ProId` and `ClientId`
-- **AND** the live Redis connection key for that instance is missing (expired or never written)
-- **AND** the SignalR connection may still be the same ConnectionId as before expiry
-- **THEN** the system SHALL recreate a live online entry with `IsConnected = true`
-- **AND** management client-list / project badge queries SHALL report the instance online after the upload
+- **AND** SHALL refresh the Redis TTL for that live entry
+- **AND** SHALL NOT require a new MaterialClient heartbeat protocol
 
 #### Scenario: Missing ClientId does not fall back to ProId-only upsert
 
 - **WHEN** an `UploadStatus` that would register online or device detail lacks a usable `ClientId`
-- **THEN** the system SHALL NOT upsert a ProId-only connection or device entry that would violate multi-instance uniqueness
+- **THEN** the system SHALL NOT upsert a ProId-only live connection or device entry that would violate multi-instance uniqueness
 - **AND** SHALL log a warning or error for diagnostics
 
 ### Requirement: Weighing receive touches live online presence
@@ -188,3 +122,31 @@ After a successful `ReceiveAsync` (including Legacy ingest that delegates to `Re
 - **WHEN** `ReceiveAsync` succeeds and `SubmitMachineCode` is null or whitespace
 - **THEN** the system SHALL NOT invent a ProId-only live connection row
 - **AND** SHALL leave SignalR-based presence unchanged by this receive
+
+### Requirement: Redis is authoritative for live connection and device-detail queries
+
+Client connection queries used for management badges MUST prefer live state from Redis. When Redis has no entry for an instance that exists in `ClientOnlineStatus`, the query SHALL fall back to EF and present that instance as **offline** for badge aggregation (MUST NOT promote a Redis-miss EF row to 在线). Device online detail queries MAY fall back to EF device-detail rows when Redis misses if those rows were populated by the snapshot job; otherwise empty Redis remains empty.
+
+#### Scenario: Connection query when Redis has entries
+
+- **WHEN** live connection entries exist in Redis for a `ProId`
+- **THEN** `GetClientListAsync` (or equivalent) SHALL return those instance state(s) from Redis
+
+#### Scenario: Connection query Redis miss with EF history
+
+- **WHEN** Redis has no connection entry for a `(ProId, ClientId)` that exists in `ClientOnlineStatus`
+- **THEN** the query SHALL include that instance as disconnected/offline for aggregation
+- **AND** SHALL preserve last-seen / disconnect timestamps from EF when available
+- **AND** SHALL NOT treat Redis-miss EF `IsConnected = true` as 在线
+
+#### Scenario: Connection query when Redis and EF both miss
+
+- **WHEN** neither Redis nor EF has connection rows for a `ProId`
+- **THEN** the project-level client badge SHALL be 未注册
+
+#### Scenario: Device detail query when Redis misses
+
+- **WHEN** Redis device-detail entries for a `ProId` are missing
+- **THEN** `GetClientDevicesAsync` MAY return snapshot-backed EF device-detail rows when available
+- **AND** SHALL NOT invent device rows that were never snapshotted or uploaded
+
