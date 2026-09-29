@@ -4,7 +4,8 @@
   Experimental probe: UM DeviceStatusHub + Urban online badge (no BasePlatform).
 .DESCRIPTION
   Optional start UM/Urban, then negotiate Hub, probe Urban host, poll client-list for
-  isConnected=true. Optional presence-hold after live TTL. Writes runs/<ts>/ evidence.
+  isConnected=true. Optional presence-hold past live TTL (quiet expire is expected without
+  client heartbeat). Then POST Urban /api/device/republish-status to UploadStatus-wake Redis.
 #>
 [CmdletBinding()]
 param(
@@ -12,7 +13,8 @@ param(
     [switch] $SkipStartUm,
     [switch] $SkipStartUrban,
     [switch] $SkipConfirm,
-    [switch] $SkipPresenceHold
+    [switch] $SkipPresenceHold,
+    [switch] $SkipTouchWake
 )
 
 Set-StrictMode -Version Latest
@@ -267,8 +269,13 @@ if ([string]::IsNullOrWhiteSpace($clientListPath)) { $clientListPath = "/api/app
 $settleSec = Get-YamlIntLocal -Text $configText -Key "onlineSettleSeconds" -Default 90
 $holdSec = Get-YamlIntLocal -Text $configText -Key "presenceHoldSeconds" -Default 180
 $sampleSec = Get-YamlIntLocal -Text $configText -Key "presenceSampleSeconds" -Default 30
+$wakeSettleSec = Get-YamlIntLocal -Text $configText -Key "touchWakeSettleSeconds" -Default 60
+$republishPath = Get-YamlScalarLocal -Text $configText -Key "urbanDeviceRepublishPost"
+if ([string]::IsNullOrWhiteSpace($republishPath)) { $republishPath = "/api/device/republish-status" }
 $skipHoldCfg = Get-YamlBoolLocal -Text $configText -Key "skipPresenceHold" -Default $false
+$skipWakeCfg = Get-YamlBoolLocal -Text $configText -Key "skipTouchWake" -Default $false
 if ($SkipPresenceHold) { $skipHoldCfg = $true }
+if ($SkipTouchWake) { $skipWakeCfg = $true }
 
 $secretsPath = Join-Path $GraphRoot "secrets.local.yaml"
 if (Test-Path -LiteralPath $secretsPath) {
@@ -463,20 +470,89 @@ if (-not $skipHoldCfg) {
                 expectedProId          = $expectedProId
                 firstSnapshot          = $firstSnap
                 finalSnapshot          = $final
-                timeline               = $timeline
                 interpretation         = $(
                     if ($l2Hold) {
-                        "PASS: client remained isConnected=true past live TTL window — presence reliable for this run."
+                        "PASS: client remained isConnected=true past live TTL (unexpected under no-heartbeat product; still OK)."
                     }
                     elseif ($null -ne $wentOfflineAt) {
-                        "FAIL: client flipped isConnected=false at ~${wentOfflineAt}s (expected if Redis live TTL expires without UploadStatus heartbeat)."
+                        "EXPECTED quiet-offline: flipped isConnected=false at ~${wentOfflineAt}s without UploadStatus; TouchOnline wake is checked next."
                     }
                     else {
                         "FAIL: expected ProId missing from client-list after hold."
                     }
                 )
                 at                     = (Get-Date).ToString("o")
+                timeline               = $timeline
             } | ConvertTo-Json -Depth 10)
+    }
+}
+
+# --- TouchOnline wake: republish after quiet TTL expiry ---
+$l2Wake = $null
+$wakeSkipped = $skipWakeCfg
+if (-not $skipWakeCfg) {
+    if (-not $l2Online) {
+        Write-Warning "Skipping touch-wake because client never became online in settle."
+        $wakeSkipped = $true
+    }
+    elseif (-not $holdSkipped -and $l2Hold -eq $true) {
+        Write-Host "[urban-signalr-online-probe] presence-hold stayed online; still forcing republish for TouchOnline smoke."
+    }
+
+    if (-not $wakeSkipped) {
+        # Ensure we are past live TTL if hold was skipped
+        if ($holdSkipped) {
+            Write-Host "[urban-signalr-online-probe] hold skipped — waiting 130s for live TTL before wake..."
+            Start-Sleep -Seconds 130
+        }
+
+        $republishUrl = "$urbanBaseUrl$republishPath"
+        Write-Host "[urban-signalr-online-probe] POST republish-status → TouchOnline wake..."
+        $republish = Invoke-HttpCapture -SinkDir $HttpDir -Name "device-republish-status" `
+            -Method "POST" -Url $republishUrl -HasBody -Body ""
+        $republishOk = ($republish.StatusCode -ge 200 -and $republish.StatusCode -lt 300)
+
+        $wakeOnline = $false
+        $wakeMatched = $null
+        $wakePolls = 0
+        $wakeDeadline = (Get-Date).AddSeconds($wakeSettleSec)
+        while ((Get-Date) -lt $wakeDeadline) {
+            $wakePolls++
+            $wakeList = Invoke-HttpCapture -SinkDir $HttpDir -Name ("client-list-wake-{0:D3}" -f $wakePolls) `
+                -Method "GET" -Url $clientListUrl
+            $wakeMatched = Find-OnlineClient -JsonBody $wakeList.Body -ExpectedProId $expectedProId
+            if ($null -ne $wakeMatched) {
+                $wakeOnline = $true
+                break
+            }
+            Start-Sleep -Seconds 2
+        }
+
+        $l2Wake = $republishOk -and $wakeOnline
+        Write-Utf8NoBom (Join-Path $PrepareDir "touch-wake.json") ([ordered]@{
+                republishUrl      = $republishUrl
+                republishStatus   = $republish.StatusCode
+                republishOk       = $republishOk
+                wakeSettleSeconds = $wakeSettleSec
+                wakePolls         = $wakePolls
+                wokeOnline        = $wakeOnline
+                matched           = $wakeMatched
+                snapshot          = (Get-RowSnapshot -Row $wakeMatched -ElapsedSec 0)
+                interpretation    = $(
+                    if ($l2Wake) {
+                        "PASS: after quiet TTL window, diagnostic republish UploadStatus restored isConnected=true (TouchOnline)."
+                    }
+                    elseif (-not $republishOk) {
+                        "FAIL: Urban POST /api/device/republish-status failed (status=$($republish.StatusCode))."
+                    }
+                    else {
+                        "FAIL: republish OK but client-list did not return isConnected=true within ${wakeSettleSec}s."
+                    }
+                )
+                at                = (Get-Date).ToString("o")
+            } | ConvertTo-Json -Depth 8)
+
+        Write-Host ("[urban-signalr-online-probe] touch-wake republishOk={0} wokeOnline={1}" -f $republishOk, $wakeOnline)
     }
 }
 
@@ -495,14 +571,17 @@ $summary = [ordered]@{
         L2_client_online       = $l2Online
         L2_presence_hold       = $(if ($holdSkipped) { "skipped" } else { $l2Hold })
         L2_last_online_stable  = $(if ($holdSkipped) { "skipped" } else { $l2TimeStable })
+        L2_touch_wake          = $(if ($wakeSkipped) { "skipped" } else { $l2Wake })
     }
     presenceHoldSkipped = $holdSkipped
+    touchWakeSkipped    = $wakeSkipped
     finishedAt          = (Get-Date).ToString("o")
 }
 Write-Utf8NoBom (Join-Path $RunDir "summary.json") ($summary | ConvertTo-Json -Depth 8)
 
 $holdLine = if ($holdSkipped) { "skipped" } else { "$l2Hold" }
 $timeLine = if ($holdSkipped) { "skipped" } else { "$l2TimeStable" }
+$wakeLine = if ($wakeSkipped) { "skipped" } else { "$l2Wake" }
 $report = @"
 # urban-signalr-online-probe report
 
@@ -512,6 +591,7 @@ $report = @"
 - Redis: ``${redisHost}:${redisPort}`` reachable=$redisOk
 - Expected ProId: ``$expectedProId``
 - Presence hold: ${holdSec}s (sample ${sampleSec}s); live TTL ≈ 120s
+- Touch wake settle: ${wakeSettleSec}s after POST ``$republishPath``
 
 | Level | Result |
 |-------|--------|
@@ -520,14 +600,15 @@ $report = @"
 | L0 Urban GET / | $l0Urban |
 | L1 Urban settings | $l1Settings |
 | L2 Client online (settle) | $l2Online |
-| L2 Presence hold (reliability) | $holdLine |
+| L2 Presence hold (quiet TTL) | $holdLine |
 | L2 Last-online time stable | $timeLine |
+| L2 TouchOnline wake | $wakeLine |
 
 ## Reliability verdict
 
-- **Settle online** proves Hub + UploadStatus path works initially.
-- **Presence hold** must stay ``isConnected=true`` past Redis live TTL (~2× ClientTimeout). Failure reproduces「几分钟后服务端显示离线」.
-- **Last-online time**: UI ``最后在线时间`` uses ``LastSeenAt ?? ConnectedAt`` while online; Redis miss → EF offline fallback forces ``IsConnected=false`` and may show stale/disconnected times — see ``prepare/presence-hold.json`` timeline.
+- **Settle online** proves Hub + initial UploadStatus path.
+- **Presence hold** past live TTL without further UploadStatus is **expected offline** under current product (no client heartbeat). See ``prepare/presence-hold.json``.
+- **TouchOnline wake** (regression gate): after quiet expiry, Urban ``POST /api/device/republish-status`` forces UploadStatus; client-list MUST return ``isConnected=true``. See ``prepare/touch-wake.json``.
 
 ## Notes
 
@@ -543,13 +624,16 @@ Write-Utf8NoBom (Join-Path $RunDir "report.md") $report
 Write-Host "[urban-signalr-online-probe] done. summary=$($RunDir)\summary.json"
 Write-Host ($summary.levels | ConvertTo-Json -Compress)
 
-# Hard fail only bootstrap/settle; presence-hold failure is a product reliability finding (exit 2).
+# Hard fail bootstrap/settle; wake fail is product regression (exit 2). Quiet hold offline is not exit 2.
 $hardFail = (-not $redisOk) -or (-not $l0Hub) -or (-not $l0Urban) -or (-not $l1Settings) -or (-not $l2Online)
 if ($hardFail) {
     exit 1
 }
-if (-not $holdSkipped -and $l2Hold -eq $false) {
-    Write-Host "[urban-signalr-online-probe] RELIABILITY FAIL: presence-hold lost online (false-offline reproduced)."
+if (-not $wakeSkipped -and $l2Wake -eq $false) {
+    Write-Host "[urban-signalr-online-probe] REGRESSION FAIL: TouchOnline wake after TTL did not restore isConnected=true."
     exit 2
+}
+if (-not $holdSkipped -and $l2Hold -eq $false) {
+    Write-Host "[urban-signalr-online-probe] note: quiet presence-hold offline (expected without client heartbeat); wake gate is authoritative."
 }
 exit 0

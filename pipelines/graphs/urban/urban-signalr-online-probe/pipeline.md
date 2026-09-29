@@ -7,7 +7,8 @@
 1. UM Hub negotiate 可达  
 2. Urban Local license seed 后诊断口可达  
 3. Urban 上报后，UM `device-status/client-list` 出现期望 `ProId` 且 `isConnected=true`  
-4.（可选）越过 live TTL 后仍在线 — 用于暴露「无心跳假离线」
+4.（可选）越过 live TTL 后安静离线（无客户端心跳时预期）
+5. Urban `POST /api/device/republish-status` 后再上线 — 验收 UM TouchOnline 唤醒
 
 Goal 槽：`urban-signalr-online-probe`
 
@@ -73,8 +74,9 @@ flowchart LR
   HostN[probe-urban-host]
   OnlineN[poll-client-list-online]
   HoldN[optional-presence-hold]
+  WakeN[touch-wake-republish]
   GateN[Gate]
-  BindN --> RedisN --> UmN --> SeedN --> UrbanN --> HubN --> HostN --> OnlineN --> HoldN --> GateN
+  BindN --> RedisN --> UmN --> SeedN --> UrbanN --> HubN --> HostN --> OnlineN --> HoldN --> WakeN --> GateN
 ```
 
 1. **bind-config** — 读 config/secrets；建 `runs/<ts>/`
@@ -85,14 +87,15 @@ flowchart LR
 6. **probe-hub-negotiate** — `POST /hubs/devicestatus/negotiate`
 7. **probe-urban-host** — `GET /`、`GET /api/settings`
 8. **poll-client-list-online** — 轮询 `GET /api/app/device-status/client-list` 直至期望 ProId `isConnected=true`
-9. **optional-presence-hold** — 等待 `presenceHoldSeconds` 后再查一次（默认可关）
+9. **optional-presence-hold** — 等待 `presenceHoldSeconds`（> live TTL）；安静无 UploadStatus 时预期离线
+10. **touch-wake-republish** — `POST /api/device/republish-status` 后轮询 client-list 直至再次在线
 
 ## 证据包
 
 | collector | sink |
 |-----------|------|
 | HTTP | `runs/<ts>/http/` |
-| prepare | `runs/<ts>/prepare/`（redis / um-start / license-seed） |
+| prepare | `runs/<ts>/prepare/`（redis / um-start / license-seed / presence-hold / touch-wake） |
 | summary | `runs/<ts>/summary.json` |
 | report | `runs/<ts>/report.md` |
 
@@ -103,7 +106,8 @@ flowchart LR
 | L0 | Redis TCP OK；Hub negotiate 2xx；Urban `GET /` 200 | Agent |
 | L1 | Urban `GET /api/settings` 200 | Agent |
 | L2 | client-list 中期望 ProId `isConnected=true`（settle 窗口内） | Agent |
-| L2-hold | （可选）hold 后再查仍 `isConnected=true` | Agent 采证；当前产品可能因无心跳 TTL 失败 |
+| L2-hold | （可选）hold 后再查；安静离线为预期（无客户端心跳） | Agent 采证 |
+| L2-wake | republish 后再次 `isConnected=true`（TouchOnline 回归） | Agent |
 | L3 | UM 项目管理页徽章与现场一致 | **用户** |
 
 ## Invoke
@@ -123,7 +127,8 @@ powershell -ExecutionPolicy Bypass -File `
 
 - Redis 不可达
 - UM / Urban 端口冲突或已运行实例 env 未更新
-- `presenceHold` 失败时：对照调查结论（live TTL ≈ 2× ClientTimeout，无周期 UploadStatus）
+- `presenceHold` 安静离线：预期（无客户端心跳）；对照 `touch-wake`
+- `touch-wake` 失败：UM TouchOnline / Urban republish 回归失败
 - 最终验收：用户 `pass` / `fail`
 
 ## Handoff
