@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-10-09
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "MaterialClient only; LPR fan-out + gate/trigger dedupe + tests"
