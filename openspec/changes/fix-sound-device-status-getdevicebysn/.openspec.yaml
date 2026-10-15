@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-10-15
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "MaterialClient only; align getDeviceBySN with ls21_mgrserver Postman contract"
