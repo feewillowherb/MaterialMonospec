@@ -11,4 +11,6 @@ pipelines/**/runs/
 # BMAD — 个人作用域配置（安装器按用户再生，不入库）
 _bmad/**/config.user.toml
 
+# Local machine-only files (never commit). Includes SSH keys for ops agents:
+#   .local/.ssh/docker-linux-ed25519   (user-supplied; replace yourself)
 .local/

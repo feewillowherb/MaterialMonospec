@@ -47,6 +47,7 @@ pipelines/graphs/
 | `baseplatform` | FdSoft.BasePlatform | `login-smoke` |
 | `govsync` | 政府平台出站/对接探测与采证 | `xiaoshan-gate`；站点图可用 `graphs/govsync/<PointNumber>/<slug>/`（如 `XNYH20251113001/sand-addbatch-2026-01`） |
 | `platform` | 跨产品运维：表导入导出、库同步、冒烟等 | `sqlite-reconcile` |
+| `ops` | 运维基础设施：SSH 远程执行 / 主机探测（供 Agent 复用） | `ssh-agent` |
 
 新增 domain **MUST** 先改本文件词表，再落盘。
 
@@ -59,7 +60,7 @@ id: "<slug>"
 created: "2026-08-27"          # YYYY-MM-DD；本 Graph 落盘创建日（必填）
 graph:
   product: urban           # materialclient | urban | baseplatform | platform
-  domain: govsync          # 与路径 domain 一致
+  domain: govsync          # 与路径 domain 一致（含 ops）
   family: probe            # observe | ingest | probe | reconcile | transform
   goal: gov-inout-record-save   # kebab；同一 goal 槽互斥
   status: active           # active | retired
@@ -223,6 +224,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 | waybill-softdelete-join-gap | probe | `graphs/materialclient/waybill-softdelete-join-probe/` | active |
 | solidwaste-oct-export-include-soft-masters | transform | `graphs/materialclient/solidwaste-oct-export-include-softdelete/` | active |
+| ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

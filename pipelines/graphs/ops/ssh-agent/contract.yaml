@@ -1,0 +1,28 @@
+id: ssh-agent
+graph:
+  domain: ops
+  family: probe
+  goal: ops-ssh-agent
+  status: active
+input:
+  state: ssh-idle
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  identityRel: .local/.ssh/docker-linux-ed25519
+output:
+  state: ssh-proved
+  artifacts:
+    - ssh/
+    - prepare/
+    - summary.json
+    - report.md
+invariants:
+  - private key path remains .local/.ssh/docker-linux-ed25519 unless secrets override identityFileName
+  - .local/ stays gitignored; Agent must not commit keys
+  - host and user are never invented; missing secrets stop the cook
+  - destructive remote commands require explicit human gate and allowDestructive
+  - agent does not self-declare P3
+acceptance: P0-P3
+legacyExpectLevels: config.yaml expect.level L0-L2 map to P0-P2; the former user-only L3 is P3

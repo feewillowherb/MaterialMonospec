@@ -1,0 +1,94 @@
+id: "ssh-agent"
+created: "2026-11-02"
+graph:
+  product: platform
+  domain: ops
+  family: probe
+  goal: ops-ssh-agent
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: ssh-idle
+  end: ssh-proved
+cook: new-object
+
+target:
+  # Host/user MUST come from secrets.local.yaml — do not invent.
+  identityRel: .local/.ssh/docker-linux-ed25519
+  knownHostsRel: .local/.ssh/known_hosts
+  identityFileName: docker-linux-ed25519
+  defaultPort: 22
+  connectTimeoutSeconds: 15
+  # Read-only probe; override via secrets.local.yaml probeCommand if needed.
+  probeCommand: "uname -a && whoami && pwd"
+  sharedResolve: ../../../_shared/ops/ssh/Resolve-SshIdentity.ps1
+  sharedInvoke: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+
+prerequisites:
+  - OpenSSH client (ssh) on PATH
+  - Private key at .local/.ssh/docker-linux-ed25519 (gitignored; user-supplied)
+  - secrets.local.yaml with host and user
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: resolve-identity
+    name: Resolve and validate docker-linux-ed25519 under .local/.ssh
+  - id: ssh-remote-probe
+    name: SSH BatchMode probeCommand; capture stdout/stderr/meta
+  - id: validate-exit
+    name: Assert exitCode=0; write summary.json and report.md
+
+expect:
+  - id: identity-present
+    level: L0
+    description: .local/.ssh/docker-linux-ed25519 exists and ssh client is on PATH
+  - id: ssh-handshake
+    level: L1
+    description: SSH session reaches the remote host (command accepted)
+  - id: probe-ok
+    level: L2
+    description: probeCommand exits 0 with non-empty stdout
+  - id: host-intent
+    level: L3
+    description: User confirms the host matches the intended ops target — user only
+
+capture:
+  ssh:
+    required: true
+    sink: ssh/
+  prepare:
+    required: true
+    sink: prepare/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+  - destructive-command
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  resolve:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Resolve-SshIdentity.ps1
+    experimental: true
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-SshAgentProbe.ps1
+    experimental: true
