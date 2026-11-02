@@ -1,0 +1,97 @@
+id: "fev-u1-host"
+created: "2026-11-03"
+graph:
+  product: platform
+  domain: ops
+  family: probe
+  goal: ops-fev-u1-host
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: fev-u1-idle
+  end: fev-u1-evidenced
+cook: new-object
+
+target:
+  identityRel: .local/.ssh/docker-linux-ed25519
+  identityFileName: docker-linux-ed25519
+  defaultPort: 2222
+  connectTimeoutSeconds: 20
+  fevId: U1
+  fevDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+  # Prefer scripts/remote-u1-probe.sh (loaded by Invoke). Optional secrets override: probeCommand.
+  probeScriptRel: scripts/remote-u1-probe.sh
+  sharedResolve: ../../../_shared/ops/ssh/Resolve-SshIdentity.ps1
+  sharedUnlock: ../../../_shared/ops/ssh/Unlock-SshIdentity.ps1
+  sharedInvoke: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+
+prerequisites:
+  - OpenSSH client (ssh, ssh-keygen) on PATH
+  - Private key at .local/.ssh/docker-linux-ed25519
+  - secrets.local.yaml with host and user
+  - identityPassphrase in secrets when key is encrypted
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: unlock-identity-optional
+    name: If identityPassphrase set, unlock temporary .batch identity
+  - id: ssh-u1-probe
+    name: SSH read-only U1 probe command block; capture stdout/stderr/meta
+  - id: agent-analyze
+    name: Agent maps OS/virt evidence to FEV Verdict and D1 path; write prepare/u1-parse.json
+  - id: write-report
+    name: Write summary.json and report.md with Agent analysis
+
+expect:
+  - id: identity-and-ssh
+    level: L0
+    description: Identity usable and SSH client present
+  - id: remote-executed
+    level: L1
+    description: U1 probe command executed on remote (exit 0 or captured failure with meta)
+  - id: agent-verdict
+    level: L2
+    description: Evidence present and Agent wrote verdict + rationale + d1Path in prepare/u1-parse.json
+  - id: optional-ack
+    level: L3
+    description: Optional user ack of this run — does not redo analysis
+
+capture:
+  ssh:
+    required: true
+    sink: ssh/
+  prepare:
+    required: true
+    sink: prepare/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+  - passphrase-required
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  unlock:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Unlock-SshIdentity.ps1
+    experimental: true
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-FevU1HostProbe.ps1
+    experimental: true

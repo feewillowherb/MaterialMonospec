@@ -12,6 +12,7 @@
 | `ops/` | 运维基础设施（SSH 等）；见 [`ops/AGENTS.md`](ops/AGENTS.md) |
 | `ops/ssh/Invoke-SshRemote.ps1` | Agent 远程 SSH 执行（密钥默认 `.local/.ssh/docker-linux-ed25519`） |
 | `ops/ssh/Resolve-SshIdentity.ps1` | 解析 / 校验本机 SSH 私钥与 known_hosts |
+| `ops/ssh/Unlock-SshIdentity.ps1` | 口令私钥临时解锁为 `.batch`（用完删除） |
 | `urban/Invoke-UrbanLprSeedSettings.ps1` | MaterialClient.Urban 诊断口：GET/POST Settings，**完全替换** `licensePlateRecognitionConfigs` |
 | `urban/Invoke-UrbanLicenseSeed.ps1` | 授权初始化：写入 `license.urban` + `upsert-license-info`（或 POST `/api/license/seed`） |
 | `urban/seeds/demo-license.json` | 默认演示授权种子 |

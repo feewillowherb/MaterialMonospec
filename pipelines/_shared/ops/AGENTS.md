@@ -8,6 +8,7 @@
 | 路径 | 用途 |
 |------|------|
 | `ssh/Resolve-SshIdentity.ps1` | 解析仓库根 `.local/.ssh/docker-linux-ed25519`，校验存在，可选收紧 Windows ACL |
+| `ssh/Unlock-SshIdentity.ps1` | 口令私钥 → 临时 `.batch` 无口令副本（cook 后删除）；规避本机 ssh-agent Disabled |
 | `ssh/Invoke-SshRemote.ps1` | 用该私钥执行远程命令并可选落证据 |
 
 ### 密钥约定（NON-NEGOTIABLE）
@@ -34,7 +35,13 @@ powershell -ExecutionPolicy Bypass -File pipelines/_shared/ops/ssh/Invoke-SshRem
   -HostName "<host>" -User "<user>" -RemoteCommand "uname -a"
 ```
 
-验收探针 Graph：`pipelines/graphs/ops/ssh-agent/`（`/run-pipeline ops/ssh-agent`）。
+验收探针 Graph：
+
+| Graph | Goal | 用途 |
+|-------|------|------|
+| `graphs/ops/ssh-agent/` | `ops-ssh-agent` | SSH 连通性冒烟 |
+| `graphs/ops/fev-u1-host/` | `ops-fev-u1-host` | FEV U1 宿主 OS/虚拟化采证 |
+| `graphs/ops/fev-u2-docker/` | `ops-fev-u2-docker` | FEV U2 安装 Docker Engine + MSSQL 容器验证 |
 
 ## MUST / MUST NOT
 

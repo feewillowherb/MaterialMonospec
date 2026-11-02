@@ -1,0 +1,33 @@
+id: fev-u1-host
+graph:
+  domain: ops
+  family: probe
+  goal: ops-fev-u1-host
+  status: active
+input:
+  state: fev-u1-idle
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  optionalSecrets:
+    - identityPassphrase
+    - port
+    - probeCommand
+  identityRel: .local/.ssh/docker-linux-ed25519
+  fevId: U1
+output:
+  state: fev-u1-evidenced
+  artifacts:
+    - ssh/
+    - prepare/
+    - summary.json
+    - report.md
+invariants:
+  - uses pipelines/_shared/ops/ssh helpers only for SSH
+  - probe commands remain read-only unless allowDestructive
+  - temporary .batch identity is deleted after cook
+  - Agent MUST write FEV Verdict + rationale + d1Path; humans do not analyze OS/virt
+  - FEV Verdict is host-feasibility only; not product APPROVED / OpenSpec
+acceptance: P0-P3
+legacyExpectLevels: L0-L2 Agent; L3 optional user ack only

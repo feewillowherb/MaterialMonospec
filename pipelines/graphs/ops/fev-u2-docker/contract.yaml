@@ -1,0 +1,33 @@
+id: fev-u2-docker
+graph:
+  domain: ops
+  family: probe
+  goal: ops-fev-u2-docker
+  status: active
+input:
+  state: fev-u1-evidenced
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  optionalSecrets:
+    - identityPassphrase
+    - port
+  identityRel: .local/.ssh/docker-linux-ed25519
+  fevId: U2
+output:
+  state: fev-u2-evidenced
+  artifacts:
+    - ssh/
+    - prepare/
+    - summary.json
+    - report.md
+invariants:
+  - uses pipelines/_shared/ops/ssh helpers only for SSH
+  - install / all modes run only with -Apply (human gate)
+  - sudo password is never sent; remote sudo must be passwordless
+  - Docker bridge and address pools never overlap the VM eth0 network
+  - MSSQL probe uses a remote-generated SA password and is removed after verify unless keepMssqlProbe
+  - temporary .batch identity is deleted after cook
+  - FEV Verdict is host-feasibility only; not product APPROVED / OpenSpec
+acceptance: P0-P3

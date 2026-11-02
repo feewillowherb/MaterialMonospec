@@ -23,7 +23,8 @@ param(
     [string] $EvidenceDir = "",
     [int] $ConnectTimeoutSeconds = 15,
     [switch] $SkipHardenAcl,
-    [switch] $AllowDestructive
+    [switch] $AllowDestructive,
+    [switch] $SkipDestructiveCheck
 )
 
 Set-StrictMode -Version Latest
@@ -34,23 +35,27 @@ if (-not (Test-Path -LiteralPath $ResolveScript)) {
     throw "Missing Resolve-SshIdentity.ps1: $ResolveScript"
 }
 
-$destructiveHints = @(
-    '\brm\b', '\bmkfs\b', '\bdd\b', '\bshutdown\b', '\breboot\b',
-    '\bpoweroff\b', '\buserdel\b', '\bpasswd\b', '>\s*/', '\bchmod\s+777\b'
-)
+# Note: do NOT treat `>/dev/null` / `2>/dev/null` as destructive (redirects only).
 $isDestructive = $false
-foreach ($hint in $destructiveHints) {
-    if ($RemoteCommand -match $hint) {
-        $isDestructive = $true
-        break
+if (-not $SkipDestructiveCheck) {
+    $destructiveHints = @(
+        '\brm\b', '\bmkfs\b', '\bdd\b', '\bshutdown\b', '\breboot\b',
+        '\bpoweroff\b', '\buserdel\b', '\bpasswd\b', '\bchmod\s+777\b',
+        '>\s*/(?!dev/null\b)'
+    )
+    foreach ($hint in $destructiveHints) {
+        if ($RemoteCommand -match $hint) {
+            $isDestructive = $true
+            break
+        }
     }
-}
-if ($isDestructive -and -not $AllowDestructive) {
-    throw @"
+    if ($isDestructive -and -not $AllowDestructive) {
+        throw @"
 Remote command looks destructive and -AllowDestructive was not set:
   $RemoteCommand
 Refuse to run. Pass -AllowDestructive only after an explicit human gate.
 "@
+    }
 }
 
 $resolveArgs = @{
