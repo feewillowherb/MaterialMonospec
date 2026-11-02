@@ -221,6 +221,8 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | urban-signalr-online-probe | probe | `graphs/urban/urban-signalr-online-probe/` | active |
 | solidwaste-missing-join-pair | ingest | `graphs/materialclient/solidwaste-pair-ingest/` | active |
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
+| waybill-softdelete-join-gap | probe | `graphs/materialclient/waybill-softdelete-join-probe/` | active |
+| solidwaste-oct-export-include-soft-masters | transform | `graphs/materialclient/solidwaste-oct-export-include-softdelete/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

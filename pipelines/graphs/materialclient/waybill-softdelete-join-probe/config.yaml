@@ -1,0 +1,91 @@
+id: waybill-softdelete-join-probe
+created: "2026-11-02"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: waybill-softdelete-join-gap
+  status: active
+environment: local
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-idle
+  end: softdelete-gap-probed
+cook: new-object
+
+target:
+  # Prefer secrets.local.yaml databaseAbs; fallback relative path for local copies.
+  databaseAbsHint: "D:/新建文件夹/固废/1112/MaterialClient.db"
+  databaseRel: ""
+  readOnly: true
+  # Code pointers (analysis only; MUST NOT modify repos/)
+  orderQueryRefs:
+    - repos/MaterialClient/src/MaterialClient.Common/Services/SolidWasteService.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Services/StandardService.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Services/StandardModeService.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Models/WeighingListItemDto.cs
+  entityRefs:
+    - repos/MaterialClient/src/MaterialClient.Common/Entities/Material.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Entities/Provider.cs
+
+scenario:
+  # Simulate ABP soft-delete filter: lookups that only see IsDeleted=0
+  activeOnlyJoin: true
+  # Also report hard-missing FK (row absent) vs soft-deleted (row present, IsDeleted=1)
+  sampleLimit: 20
+
+steps:
+  - id: bind-db
+    name: Resolve MaterialClient.db（secrets.local 优先）；只读打开
+  - id: count-masters
+    name: 统计 Materials / Providers 总数与 IsDeleted 分布
+  - id: probe-waybill-joins
+    name: 对照硬缺失 vs 软删除引用；模拟 active-only join 缺口
+  - id: probe-waybill-materials
+    name: WaybillMaterials 行级物料软删除缺口
+  - id: write-evidence
+    name: 写出 summary.json / report.md / samples/
+
+expect:
+  - id: db-reachable
+    level: L0
+    description: SQLite 可打开且含 Waybills / Materials / Providers
+  - id: soft-delete-columns
+    level: L1
+    description: Materials / Providers 具备 IsDeleted（及 DeletionTime）列
+  - id: gap-classified
+    level: L2
+    description: 报告区分 hard-missing 与 soft-deleted；给出 Waybill 缺口计数与按物料聚合
+  - id: business-ok
+    level: L3
+    description: 用户确认缺口解释与现场「订单缺材料/供应商信息」现象一致 — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  samples:
+    required: true
+    sink: samples/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - acceptance
+
+failurePolicy:
+  retries: 1
+  stopOnError: false
+
+adapters:
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-WaybillSoftdeleteJoinProbe.ps1
+    experimental: true
+    nodeTool: scripts/probe-softdelete-join.ts

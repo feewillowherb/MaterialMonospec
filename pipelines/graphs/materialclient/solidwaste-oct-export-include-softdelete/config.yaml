@@ -1,0 +1,98 @@
+id: solidwaste-oct-export-include-softdelete
+created: "2026-11-02"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: transform
+  goal: solidwaste-oct-export-include-soft-masters
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-idle
+  end: xlsx-exported
+cook: new-object
+
+target:
+  databaseAbsHint: "D:/新建文件夹/固废/1112/MaterialClient.db"
+  databaseRel: ""
+  readOnlyDb: true
+  # App parity (layout / filters / mapping) — code pointers only
+  contractRefs:
+    - repos/MaterialClient/src/MaterialClient.Common/Services/ExcelExportService.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Services/SolidWasteService.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Models/SolidWasteExportRow.cs
+    - repos/MaterialClient/src/MaterialClient.Common/Entities/SolidWasteInfoExtensions.cs
+
+scenario:
+  # Align SolidWasteExportFilter + GetEffectiveEndDate: EndDate+1 day exclusive upper bound
+  yearMonth: "2026-10"
+  startDate: "2026-10-01"
+  endDateInclusive: "2026-10-31"
+  # DB enums (from source)
+  weighingMode: 1          # WeighingMode.SolidWaste
+  orderTypeCompleted: 1    # OrderTypeEnum.Completed
+  # Intentional delta vs current app bug: resolve master names including IsDeleted=1
+  includeSoftDeletedMasters: true
+  defaultShipper: "东部资源化处置点"
+  sheetName: "Sheet1"
+  outputFileName: "solidwaste-export-2026-10-include-softdelete.xlsx"
+
+steps:
+  - id: bind-db
+    name: 解析 secrets.local databaseAbs；只读打开 SQLite
+  - id: query-october
+    name: 筛选固废+已完成+AddDate∈[2026-10-01,2026-11-01)
+  - id: resolve-masters
+    name: 按 Id 解析 Materials/Providers（含软删）
+  - id: map-rows
+    name: 映射 SolidWasteExportRow 等价 18 列 + 汇总行
+  - id: write-xlsx
+    name: 写出 xlsx（表头/列序对齐 ExcelExportService）与 evidence CSV
+
+expect:
+  - id: db-reachable
+    level: L0
+    description: MaterialClient.db 可打开且含 Waybills / Materials / Providers
+  - id: october-rows
+    level: L1
+    description: 导出行数 = 10 月固废已完成 Waybill 计数（非空则 >0）
+  - id: soft-masters-resolved
+    level: L2
+    description: 引用软删材料/供应商的行 GoodsName/单位名非空（若主表仍有行）；summary 含 softResolved 计数
+  - id: business-ok
+    level: L3
+    description: 用户用 Excel 打开对照应用列头/抽样行 — 仅用户
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  xlsx:
+    required: true
+    sink: export/
+  csv:
+    required: true
+    sink: export/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-secrets
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  transform:
+    mode: script-invoke
+    script: scripts/Invoke-SolidwasteOctExport.ps1
+    experimental: true
+    nodeTool: scripts/export-solidwaste-october.ts
