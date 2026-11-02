@@ -16,6 +16,19 @@ MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（�
 
 ViewModel / 界面层 **不得**直接使用 Repository：规则在 `traits/viewmodel-no-repository-trait.md`，**不要**写入各子仓库 `AGENTS.md`。
 
+## Where things are
+
+| 职能 | 入口 |
+|------|------|
+| 产品 SHALL / change | [`openspec/AGENTS.md`](openspec/AGENTS.md) |
+| Agent 行为契约 | [`traits/AGENTS.md`](traits/AGENTS.md) |
+| 可复用调研知识 | [`docs/AGENTS.md`](docs/AGENTS.md) |
+| Node.js cook / 验收 Graph | [`pipelines/AGENTS.md`](pipelines/AGENTS.md) |
+| 根脚本与 Graph 脚本边界 | [`scripts/AGENTS.md`](scripts/AGENTS.md) |
+| 可行性 / 交付 / Epic 停止 | `traits/fev-trait.md`、`traits/icd-trait.md`、`traits/ced-trait.md` |
+
+本仓技术栈不因 Monospec 权威分层而改变。硬约束摘要仍在下文。
+
 ## 目录结构
 
 ```
@@ -74,7 +87,7 @@ MaterialMonospec/
 
 ```bash
 # 创建新变更
-openspec create <change-name>
+openspec new change <change-name>
 
 # 查看活动变更
 openspec list
@@ -153,7 +166,7 @@ openspec list --specs    # 查看所有 specs
 
 ```bash
 # 步骤 1：创建变更
-openspec create <change-name>
+openspec new change <change-name>
 
 # 步骤 2：编写 proposal.md
 # 步骤 3：编写 design.md（如需要）
@@ -291,9 +304,10 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 现行 Graph：`pipelines/graphs/<domain>/<slug>/`（模板 `pipelines/_template/`）
 - 命令：`.cursor/commands/gen-pipeline.md`、`run-pipeline.md`，以及 `/gen-<family>-pipeline`、`/run-<family>-pipeline`
 - Family：`observe` | `ingest` | `probe` | `reconcile` | `transform`
-- **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 宣布 L3 通过
+- **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 把 cook 结果自评为产品通过
+- **刻度**：Pipeline Acceptance 用 P0–P3（见 `traits/pipelines-trait.md`）。ICD 用 L1–L4。`guess-governance` 用自己的 L1–L3。三者不互推
 
-生成默认只写工件。用户确认后才执行。Agent 不得宣布 L3 验收通过。
+生成默认只写工件。用户确认后才执行。Agent 不得把 cook 的 P3 或历史说法中的 L3 宣布为产品通过。
 
 ## Required traits
 
@@ -311,6 +325,11 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | openspec-git-workflow | `traits/openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash 合入、`dev-*` promote；merge-check |
 | agents-md-only | `traits/agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口 |
 | strategic-fallback | `traits/strategic-fallback-trait.md` | 大规模遗留代码或复杂调用链改动受阻（跨多条领域链且未批准、关键事实缺失、高风险无法在当前范围验证）；禁止伪实现，改用防守外壳 |
+| fev | `traits/fev-trait.md` | 技术可行性未知；Unknown → Experiment → Evidence → Verdict |
+| icd | `traits/icd-trait.md` | 声明或评审 Capability 交付；tasks 勾选不等于交付 |
+| ced | `traits/ced-trait.md` | 已授权 Epic 的显式 STOP / Defer；状态 PENDING |
+| docs | `traits/docs-trait.md` | 新建或维护可复用项目知识；状态 PENDING |
+| pipelines | `traits/pipelines-trait.md` | Graph 的 Contract、Run identity、Evidence、P0–P3；不改 Node.js cook |
 
 ### effort-token-estimate（硬约束摘要）
 
@@ -406,6 +425,15 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 
 完整规则见 `traits/strategic-fallback-trait.md`。
 
+### 调查与验收（硬约束摘要）
+
+- FEV 只判断方案是否可行：Unknown → Experiment → Evidence → Verdict。`FEASIBLE` 不是交付。
+- ICD：tasks 全勾不等于 Capability 交付。等级是 L1–L4，必须有对应 Evidence。
+- CED 状态为 PENDING。只在已授权 Epic 内显式 STOP / Defer，不授权 commit 或覆盖 `strategic-fallback`。
+- Pipeline cook 用 P0–P3。Agent 不得把 cook 结果自评为产品通过。
+- Pipeline / DOCS 结论要进入产品行为时，须有 Human `APPROVED`。该决定不授权 commit 或 push。
+- 不引入自动 commit。仅用户明确要求时 commit。
+
 ## OpenSpec 与技术债务
 
 > **默认规则：除非用户或当前 change 的 proposal 明确要求，否则不要在 OpenSpec 流程中处理技术债务。**
@@ -438,7 +466,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 代码实现完成后，更新 tasks.md 中的完成状态
 - 保持 specs 与代码实现同步
 - 变更名称使用动词引导（add-、update-、remove-、refactor-）
-- 归档前确认所有任务已完成
+- 归档前确认任务勾选只说明变更文件做完；Capability 交付另需 Acceptance 证据（ICD）。不得仅凭 tasks 全勾宣称交付
 - 定期运行验证脚本确保配置正确
 - **无明确要求时，OpenSpec 不处理技术债务**（参见「OpenSpec 与技术债务」）
 - **界面层不得碰 Repository**（viewmodel-no-repository；**不要**写入子仓 `AGENTS.md`）

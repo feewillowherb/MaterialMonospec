@@ -1,0 +1,31 @@
+id: urban-passage-um-reconcile
+graph:
+  domain: urban
+  family: reconcile
+  goal: urban-passage-client-um-reconcile
+  status: active
+input:
+  state: client-um-idle
+  secretsRef: secrets.local.yaml
+  seeds:
+    - seeds/passage-cases.json
+    - seeds/lpr-devices.json
+  endpoints:
+    - /api/app/urban-checkpoint-passage/receive
+    - /api/app/urban-finished-product-passage/receive
+    - /api/app/urban-checkpoint-passage
+    - /api/app/urban-finished-product-passage
+output:
+  state: client-um-aligned
+  artifacts:
+    - http/
+    - reconcile/
+    - summary.json
+    - report.md
+invariants:
+  - reconcile modes remain ClientUpload, ReconcileOnly, and Bridge as named in config.yaml
+  - expected checkpoint cases stay 5 and expected product cases stay 5
+  - cook scripts and config.yaml behavior stay as they are
+  - agent does not self-declare P3
+acceptance: P0-P3
+legacyExpectLevels: config.yaml expect.level L0-L2 map to P0-P2; the former user-only L3 is P3

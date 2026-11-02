@@ -1,0 +1,27 @@
+id: login-devtools
+graph:
+  domain: materialclient
+  family: observe
+  goal: login-observe-devtools
+  status: active
+input:
+  state: session-anonymous
+  secretsRef: secrets.local.yaml
+  prerequisites:
+    - MaterialClient is running and LoginWindow is visible
+    - attach-to-app can locate LoginWindow or LoginWindowViewModel
+output:
+  state: observe-captured
+  artifacts:
+    - screenshots/
+    - tree/
+    - props/
+    - logs/
+    - http/
+invariants:
+  - attach-to-file preview is not login success
+  - evidence props do not store a password plaintext
+  - cook scripts and config.yaml behavior stay as they are
+  - agent does not self-declare P3
+acceptance: P0-P3
+legacyExpectLevels: config.yaml expect.level L0-L2 map to P0-P2; the former user-only L3 is P3

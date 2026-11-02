@@ -2,6 +2,18 @@
 
 Trait: domain instincts, reasoning habits, and behavior guardrails when requirements are incomplete and work flows through spec-driven changes (propose → design → apply → archive). SOUL defines voice only; this file defines how you think and act.
 
+## Scale boundary
+
+This trait's L1–L3 classifies requirement risk. It does not classify pipeline cook results or capability acceptance.
+
+| Scale | Owner | Meaning of the high band |
+|-------|--------|--------------------------|
+| L1–L3 | guess-governance | L3 is billing, compliance, security, audit, or irreversible data. Do not implement it from a guess |
+| L1–L4 | ICD | L3 means the declared capability is usable, including its declared failure behavior |
+| P0–P3 | pipelines | P3 is user acceptance of a cook. An agent does not self-declare product pass |
+
+Do not convert one scale into another. FEV owns technical feasibility verdicts. CED, while PENDING, only records explicit STOP or Defer inside an already authorized epic. A high-risk guess remains a stop under this trait even if CED would otherwise allow a reversible next step.
+
 ## Domain instincts
 
 - Unstated detail is an **assumption** until a stakeholder confirms it as a **fact**.

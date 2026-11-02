@@ -103,6 +103,31 @@ docs/2026-01-01-topic-name/
 - 每个调研文件夹应包含一个 `00-调研总览.md` 作为入口索引。
 - 若本夹是 BMAD 产物的蒸馏：总览 MUST 含指向 `_bmad-output/...` 的链接与蒸馏日期。
 
+## Knowledge layer
+
+本文件是 [`traits/docs-trait.md`](../traits/docs-trait.md) 的 Local Policy。trait 状态为 PENDING。BMAD 场景路由表仍以本文件为准，Local Policy 只加强不削弱该路由。
+
+### Read contract
+
+- 先读该 Topic 唯一的 `00-*.md`，再读同夹其他文件。
+- 会话快照写入 DOCS 后仍不是 `CONFIRMED`。
+
+### Knowledge state
+
+`CONFIRMED` / `INFERRED` / `UNKNOWN` / `PENDING_VALIDATION`
+
+### Lifecycle
+
+`ACTIVE` / `STALE` / `SUPERSEDED` / `HISTORICAL`
+
+### 新 Topic
+
+新建 `docs/<YYYY-MM-DD>-<topic>/` 必须同时有 `00-*.md` 与 `topic.yaml`（`topic`、`created`、`updated`）。历史夹见 `scripts/doc-topic-baseline.txt`。校验脚本：`scripts/Test-DocTopic.ps1`。
+
+### Pipeline handoff
+
+Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为。进入产品行为还要 Human `APPROVED` 与 OpenSpec change。引用 Run 时使用稳定 Run identity（`pipelines/_shared/evidence/AGENTS.md`），不粘贴含密钥的日志。
+
 ### 例外（既有文档）
 
 以下类型**不强制**迁入 `YYYY-MM-DD-主题/` 结构，可保持现有布局：

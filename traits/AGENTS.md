@@ -9,10 +9,15 @@
 | Trait | 文件 | 何时强制 |
 |-------|------|----------|
 | agents-md-only | `agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md |
-| strategic-fallback | `strategic-fallback-trait.md` | 大规模改动 / 复杂调用链受阻；禁止伪实现；防守外壳（开关 / 显式挂起 / 声明式斩断） |
+| strategic-fallback | `strategic-fallback-trait.md` | 大规模改动 / 复杂调用链受阻；禁止伪实现；防守外壳。FEV 不替代本外壳 |
 | openspec-git-workflow | `openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash、`dev-*` promote |
 | effort-token-estimate | `effort-token-estimate-trait.md` | 调研工作量；change `.openspec.yaml` 的 `effort:` |
 | intake-parking | `intake-parking-trait.md` | 挂起/碎片需求；`/intake-draft` · register · promote |
+| fev | `fev-trait.md` | 技术可行性未知；需要 Experiment / Evidence / Verdict。只使用核心环 |
+| icd | `icd-trait.md` | 声明或评审 Capability 是否交付；归档前不得把 tasks 勾选当成交付 |
+| ced | `ced-trait.md` | 已授权 Epic 的 STOP / Defer。状态 PENDING |
+| docs | `docs-trait.md` | 新建或维护 `docs/` 可复用知识。状态 PENDING；细则见 `docs/AGENTS.md` |
+| pipelines | `pipelines-trait.md` | 新建、改写或 cook `pipelines/graphs/**` 的契约、证据与 P0–P3。cook 实现仍以 `pipelines/AGENTS.md` 为准 |
 
 ## 跨子仓编码 / UI 约定
 
@@ -29,7 +34,10 @@
 | Trait | 文件 | 说明 |
 |-------|------|------|
 | standard-words | `standard-words-trait.md` | 标准用语 |
-| guess-governance | `guess-governance-trait.md` | 猜测治理 |
+| guess-governance | `guess-governance-trait.md` | 猜测治理。其 L1–L3 是需求风险，不与 ICD L1–L4 或 Pipeline P0–P3 互推 |
+| bmad | `bmad-trait.md` | 选用 BMAD 仪式时。场景路由仍以 `docs/AGENTS.md` 为准 |
+| technology-first | `technology-first-trait.md` | 多个实现或依赖之间选型。不得重开已写定的 Node.js cook |
+| chinese-technical-writing | `chinese-technical-writing-trait.md` | 新建或改写中文技术说明 |
 
 ## 非目标
 

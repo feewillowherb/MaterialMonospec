@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-02
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "仅编排仓 Monospec 契约；不改产品技术栈与 Node.js cook 实现"

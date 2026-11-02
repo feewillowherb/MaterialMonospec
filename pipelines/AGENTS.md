@@ -237,4 +237,14 @@ Retired：`graphs/_retired/2026-08/postweight/`（原 `gov-inout-record-save`）
 - **OpenSpec**：SHALL / change tasks 可**指向** Graph；不得把「如何再验收」只写在 `docs/YYYY-MM-DD-*`。
 - **根 `AGENTS.md`**：业务仓与 traits；本文件只管 pipelines。
 - **`docs/AGENTS.md`**：只管调研笔记目录形态。
-- **禁止**：修产品行为塞进 runner；覆盖旧 `runs/`；Agent 宣布 L3 通过。
+- **禁止**：修产品行为塞进 runner；覆盖旧 `runs/`；Agent 把 cook 结果自评为产品通过。
+
+## 8. Handoff 与 Run identity
+
+Contract、Evidence 与 P0–P3 的语义见 [`traits/pipelines-trait.md`](../traits/pipelines-trait.md)。family 词表、`graph.*` 与 Node.js cook 仍以本文件为准。
+
+Cook 或生成前：先按 §3 选型，再读命中 Graph 的 `pipeline.md`、`config.yaml`，以及存在时的 `contract.yaml` 与 `acceptance.md`。步骤也写在 `.agents/skills/pipelines-cook-invoke/SKILL.md`。
+
+引用一次 Run 时使用稳定身份，字段见 [`_shared/evidence/AGENTS.md`](_shared/evidence/AGENTS.md)。DOCS 可以链接该身份，不得把 Pipeline `pass` 写成产品变更许可。Pipeline / DOCS 结论要进入产品行为时，还要 Human `APPROVED` 与 OpenSpec change。
+
+历史 `config.yaml` 的 `expect.level` 保持不变，供现有 cook 读取。新验收说明使用 P0–P3。P3 只由用户判定。

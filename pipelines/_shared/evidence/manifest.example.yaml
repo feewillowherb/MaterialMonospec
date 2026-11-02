@@ -1,0 +1,7 @@
+graphId: example-graph
+graphPath: pipelines/graphs/<domain>/<slug>
+runId: yyyy-MM-ddTHHmmss
+result: unknown
+gitRevision: ""
+contractPath: pipelines/graphs/<domain>/<slug>/contract.yaml
+artifacts: []
