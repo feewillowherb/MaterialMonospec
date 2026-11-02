@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-02
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "MaterialClient Common 多服务查询路径；选型守卫；无跨仓"
