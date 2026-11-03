@@ -15,6 +15,7 @@
 | `deploy-urban-acceptance` | ingest | `ops-deploy-urban-acceptance`（`deploy` 需 `-Apply`，`-ResetDatabase` 另需人闸；`verify` 只读） |
 | `cutover-safety-drill` | probe | `ops-cutover-safety-drill`（回滚导出 MSSQL → SQLite；生产库只读） |
 | `e2e-urban-phase2` | probe | `ops-e2e-urban-phase2`（合成客户端经 `5333` 跑客户端契约与 backplane；写入探针数据并清理） |
+| `urban-cutover` | ingest | `ops-urban-cutover`（`check` 只读就绪；`cutover` 需 `-Apply`：现网库导入 + 打开 `um-worker` 同步；IIS 停站与 5233 入口由人在宿主执行） |
 
 新 Graph **MUST** 落在本目录下独立 slug；**MUST NOT** 与已有 `goal` 并存第二个 `active`。
 

@@ -1,0 +1,84 @@
+id: "urban-cutover"
+created: "2026-11-03"
+graph:
+  product: urban
+  domain: ops
+  family: ingest
+  goal: ops-urban-cutover
+  status: active
+environment: production-cutover
+stopOnError: true
+secretsRef: ../deploy-urban-acceptance/secrets.local.yaml
+sockets:
+  start: urban-acceptance-deployed
+  end: urban-cutover-vm-side-done
+cook: new-object
+
+target:
+  secretsRel: ../deploy-urban-acceptance/secrets.local.yaml
+  identityFileName: docker-linux-ed25519
+  defaultPort: 2222
+  remoteScriptRel: scripts/remote-urban-cutover.sh
+  stableHostAddress: 191.12.234.212
+  vmIp: 192.168.250.10
+  publicPort: 5333
+  productionPort: 5233
+  legacyStorageRoot: C:/wwwroot/UrbanManagement/Uploads
+  blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+
+prerequisites:
+  - Phase 3 stack deployed (ops/deploy-urban-acceptance)
+  - Human APPROVED cutover window; IIS stop and 5233 entry switch are host-side human steps
+  - cutover mode: production SQLite (+ -wal/-shm if present) provided via -SourceDb
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: check-or-cutover
+    name: SSH check (default) or cutover with -Apply (import + enable worker sync)
+  - id: agent-analyze
+    name: prepare/parse.json, summary.json, report.md
+
+expect:
+  - id: ssh-sudo
+    level: P0
+    description: SSH works and sudo is non-interactive
+  - id: stack-ready
+    level: P1
+    description: Fixed IP, SMB mounted, all roles ready, sync still off (check) or worker sync on (cutover)
+  - id: iis-gate
+    level: P1
+    description: check reports 5233 still up; cutover refuses unless 5233 is down
+  - id: import-ok
+    level: P2
+    description: cutover only — import report passed
+  - id: user-ack
+    level: P3
+    description: User switches 5233 entry and observes live clients
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  ssh: { required: true, sink: ssh/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+  - cutover-without-apply
+  - iis-still-up
+  - missing-source-db
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-UrbanCutover.ps1
+    experimental: true
