@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "单仓 UrbanManagement 小幅代码改动 + 容器定义；主要工作量在虚拟机部署 Graph 与导入演练"

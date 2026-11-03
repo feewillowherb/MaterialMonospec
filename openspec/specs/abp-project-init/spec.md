@@ -3,19 +3,21 @@
 ## Purpose
 
 Defines the solution structure, build configuration, and ABP module setup for the UrbanManagement project. Covers project references, Central Package Management, and the ABP EF Core / Autofac module chain.
-
 ## Requirements
-
 ### Requirement: Solution structure follows FluentSample template
-The project SHALL consist of two source projects: `UrbanManagement.App` (Web host) and `UrbanManagement.Core` (domain layer), with a corresponding test project `UrbanManagement.Core.Tests`. The solution file SHALL be `UrbanManagement.sln` at the repository root.
+The project SHALL consist of two source projects: `UrbanManagement.App` (Web host) and `UrbanManagement.Core` (domain layer), a one-off data import console tool `UrbanManagement.DataImport` under `tools/`, and a corresponding test project `UrbanManagement.Core.Tests`. The solution file SHALL be `UrbanManagement.sln` at the repository root.
 
 #### Scenario: Solution file exists and contains expected projects
 - **WHEN** the solution is opened
-- **THEN** it SHALL contain exactly `UrbanManagement.App`, `UrbanManagement.Core`, and `UrbanManagement.Core.Tests` projects
+- **THEN** it SHALL contain exactly `UrbanManagement.App`, `UrbanManagement.Core`, `UrbanManagement.DataImport`, and `UrbanManagement.Core.Tests` projects
 
 #### Scenario: App project references Core project
 - **WHEN** the `UrbanManagement.App.csproj` is inspected
 - **THEN** it SHALL contain a `<ProjectReference>` to `UrbanManagement.Core.csproj`
+
+#### Scenario: Data import tool is not referenced by the web host
+- **WHEN** `UrbanManagement.App.csproj` is inspected
+- **THEN** it MUST NOT reference `UrbanManagement.DataImport`
 
 ### Requirement: Directory.Build.props configures unified build settings
 A `Directory.Build.props` file at the solution root SHALL set `TargetFramework` to `net10.0`, enable `Nullable`, enable `ImplicitUsings`, and include the `AutoConstructor` source generator for all projects.
@@ -35,13 +37,6 @@ A `Directory.Packages.props` file SHALL define all NuGet package versions centra
 - **WHEN** both App and Core reference the same ABP package
 - **THEN** both SHALL resolve to the same version defined in Directory.Packages.props
 
-### Requirement: Core module configures ABP EF Core with SQLite
-`UrbanManagementCoreModule` SHALL depend on `AbpEntityFrameworkCoreModule` and `AbpEntityFrameworkCoreSqliteModule`, register `UrbanManagementDbContext` with `AddDefaultRepositories(true)`, and configure SQLite connection string.
-
-#### Scenario: DbContext is registered with ABP
-- **WHEN** the application starts
-- **THEN** `UrbanManagementDbContext` SHALL be available through ABP's repository pattern
-
 ### Requirement: App module depends on Core and Autofac
 `UrbanManagementAppModule` SHALL depend on `UrbanManagementCoreModule` and `AbpAutofacModule`。App 模块 SHALL 仅注册 API 控制器（不含视图引擎），并注册 Blazor Server 作为主 UI 框架。
 
@@ -59,3 +54,4 @@ A `Directory.Packages.props` file SHALL define all NuGet package versions centra
 - **WHEN** the application starts
 - **THEN** `LegacyApiController` SHALL be accessible via MVC convention routing at `/Api/Post`
 - **AND** no other MVC page controllers SHALL exist
+

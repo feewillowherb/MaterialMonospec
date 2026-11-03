@@ -11,6 +11,8 @@
 | `ssh-agent` | probe | `ops-ssh-agent` |
 | `fev-u1-host` | probe | `ops-fev-u1-host` |
 | `fev-u2-docker` | probe | `ops-fev-u2-docker`（安装类模式需 `-Apply`；远端需免密 sudo） |
+| `fev-u10-uploads-smb` | probe | `ops-fev-u10-uploads-smb`（`reach` / `mount-test` 只读；`setup` 需 `-Apply`；写入测试需 `-ProductionWrite`） |
+| `deploy-urban-acceptance` | ingest | `ops-deploy-urban-acceptance`（`deploy` 需 `-Apply`，`-ResetDatabase` 另需人闸；`verify` 只读） |
 
 新 Graph **MUST** 落在本目录下独立 slug；**MUST NOT** 与已有 `goal` 并存第二个 `active`。
 

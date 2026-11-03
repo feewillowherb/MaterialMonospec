@@ -1,0 +1,33 @@
+id: fev-u10-uploads-smb
+graph:
+  domain: ops
+  family: probe
+  goal: ops-fev-u10-uploads-smb
+  status: active
+input:
+  state: fev-u1-evidenced
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  optionalSecrets:
+    - identityPassphrase
+    - port
+  identityRel: .local/.ssh/docker-linux-ed25519
+  fevId: U10
+output:
+  state: fev-u10-evidenced
+  artifacts:
+    - ssh/
+    - prepare/
+    - summary.json
+    - report.md
+invariants:
+  - uses pipelines/_shared/ops/ssh helpers only for SSH
+  - reach mode is read-only (TCP connects only; no mount, no install)
+  - passwords travel only on SSH stdin (env UM_VM_SUDO_PASSWORD / UM_SMB_PASSWORD); never in the remote command, evidence or files
+  - setup runs only with -Apply (human gate)
+  - mount-test writes only under Uploads/_probe/ and only after production-write-approval
+  - temporary .batch identity is deleted after cook
+  - FEV Verdict is feasibility only; not product APPROVED / OpenSpec
+acceptance: P0-P3

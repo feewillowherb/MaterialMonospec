@@ -1,0 +1,37 @@
+id: deploy-urban-acceptance
+graph:
+  domain: ops
+  family: ingest
+  goal: ops-deploy-urban-acceptance
+  status: active
+input:
+  state: fev-u10-evidenced
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  optionalSecrets:
+    - identityPassphrase
+    - port
+  identityRel: .local/.ssh/docker-linux-ed25519
+  importSource: _tmp/UrbanManagement_test.upgraded.db
+output:
+  state: urban-acceptance-deployed
+  artifacts:
+    - ssh/
+    - scp/
+    - prepare/
+    - summary.json
+    - report.md
+invariants:
+  - uses pipelines/_shared/ops/ssh helpers only for SSH / scp
+  - deploy runs only with -Apply (human gate deploy-approval); -ResetDatabase additionally needs reset-database-approval
+  - database passwords are generated on the VM into /opt/urbanmanagement/.env (600 root) and never leave the VM
+  - the local appsettings.secret.json travels only on SSH stdin and is used only when the IIS config is unreadable
+  - the wwwroot share is mounted read-only and unmounted in the same run
+  - import writes only into an empty database; a non-empty database is skipped unless -ResetDatabase
+  - outbound sync stays off (BasePlatformSync__Enabled / BackgroundServices__Polling false, GovAddress empty)
+  - the host side (portproxy, firewall, IIS) is never changed by this Graph
+  - temporary .batch identity is deleted after cook
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

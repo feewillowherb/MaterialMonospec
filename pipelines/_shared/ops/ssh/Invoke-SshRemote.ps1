@@ -24,7 +24,9 @@ param(
     [int] $ConnectTimeoutSeconds = 15,
     [switch] $SkipHardenAcl,
     [switch] $AllowDestructive,
-    [switch] $SkipDestructiveCheck
+    [switch] $SkipDestructiveCheck,
+    # Sent to the remote command's stdin; never printed or written to evidence. Use for secrets.
+    [string] $StdinText = ""
 )
 
 Set-StrictMode -Version Latest
@@ -120,14 +122,43 @@ $stdout = ""
 $stderr = ""
 
 try {
-    $p = Start-Process -FilePath $sshExe.Source `
-        -ArgumentList $sshArgs `
-        -NoNewWindow -Wait -PassThru `
-        -RedirectStandardOutput $tmpOut `
-        -RedirectStandardError $tmpErr
-    $code = $p.ExitCode
-    $stdout = [System.IO.File]::ReadAllText($tmpOut)
-    $stderr = [System.IO.File]::ReadAllText($tmpErr)
+    if ([string]::IsNullOrEmpty($StdinText)) {
+        $p = Start-Process -FilePath $sshExe.Source `
+            -ArgumentList $sshArgs `
+            -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOutput $tmpOut `
+            -RedirectStandardError $tmpErr
+        $code = $p.ExitCode
+        $stdout = [System.IO.File]::ReadAllText($tmpOut)
+        $stderr = [System.IO.File]::ReadAllText($tmpErr)
+    }
+    else {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $sshExe.Source
+        $psi.Arguments = $sshArgs -join " "
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardInput = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $psi.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
+        # .NET Framework builds the stdin writer from Console.InputEncoding and writes its BOM at Start.
+        $savedInputEncoding = $null
+        try { $savedInputEncoding = [Console]::InputEncoding; [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false) } catch { }
+        try { $p = [System.Diagnostics.Process]::Start($psi) }
+        finally { if ($savedInputEncoding) { try { [Console]::InputEncoding = $savedInputEncoding } catch { } } }
+        $outTask = $p.StandardOutput.ReadToEndAsync()
+        $errTask = $p.StandardError.ReadToEndAsync()
+        # Raw bytes: StreamWriter on a UTF-8 console code page would prepend a BOM to the first line.
+        $stdinBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(($StdinText -replace "`r`n", "`n"))
+        $p.StandardInput.BaseStream.Write($stdinBytes, 0, $stdinBytes.Length)
+        $p.StandardInput.BaseStream.Flush()
+        $p.StandardInput.Close()
+        $p.WaitForExit()
+        $code = $p.ExitCode
+        $stdout = $outTask.Result
+        $stderr = $errTask.Result
+    }
 }
 finally {
     Remove-Item -LiteralPath $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
@@ -156,6 +187,7 @@ if ($metaPath) {
         endedAt          = $ended.ToString("o")
         destructiveHint  = $isDestructive
         allowDestructive = [bool]$AllowDestructive
+        stdinProvided    = -not [string]::IsNullOrEmpty($StdinText)
     }
     $json = ($meta | ConvertTo-Json -Depth 5)
     [System.IO.File]::WriteAllText($metaPath, $json, [System.Text.UTF8Encoding]::new($false))

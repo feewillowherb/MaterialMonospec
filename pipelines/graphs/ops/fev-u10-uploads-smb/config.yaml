@@ -1,0 +1,97 @@
+id: "fev-u10-uploads-smb"
+created: "2026-11-03"
+graph:
+  product: platform
+  domain: ops
+  family: probe
+  goal: ops-fev-u10-uploads-smb
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: fev-u1-evidenced
+  end: fev-u10-evidenced
+cook: new-object
+
+target:
+  identityRel: .local/.ssh/docker-linux-ed25519
+  identityFileName: docker-linux-ed25519
+  defaultPort: 2222
+  fevId: U10
+  fevDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+  remoteReachScriptRel: scripts/remote-u10-reach.sh
+  # Host LAN address; fixed, unlike the Default Switch gateway (blueprint 05 §1.5, N3).
+  stableHostAddress: 191.12.234.212
+  # A port nothing listens on; if it also accepts, a middlebox is answering and 445 "open" proves nothing.
+  controlPort: 47123
+  probeTimeoutSeconds: 3
+  remoteSetupScriptRel: scripts/remote-u10-setup.sh
+  remoteMountScriptRel: scripts/remote-u10-mount.sh
+  hostUploadsPath: C:\wwwroot\UrbanManagement\Uploads
+  # Dedicated share created on the host by a human (pipeline.md "宿主机侧"); never reuse the wwwroot share.
+  shareName: um-uploads
+  smbUser: um-uploads
+  smbDomain: DESKTOP-GEQS48S
+  credentialsPath: /etc/um-uploads.cred
+  probeMountPoint: /mnt/um-uploads-probe
+
+prerequisites:
+  - fev-u1-host run with Verdict FEASIBLE (d1Path D1-B)
+  - OpenSSH client on PATH; key at .local/.ssh/docker-linux-ed25519
+  - secrets.local.yaml with host/user/port (+ identityPassphrase when key is encrypted)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: unlock-identity-optional
+    name: Unlock temporary .batch identity; removed in finally
+  - id: reach
+    name: Read-only TCP 445 + control port from VM to gateway and stable host; cifs client readiness
+  - id: setup
+    name: Passwordless sudo drop-in, cifs-utils, root-only credentials file; passwords only on SSH stdin (requires -Apply)
+  - id: mount-test
+    name: Read-only mount, read a historical file, stat latency; -ProductionWrite adds write/read back/delete under _probe/; unmount
+  - id: agent-analyze
+    name: Agent writes prepare/u10-reach-parse.json, summary.json, report.md
+
+expect:
+  - id: identity-and-ssh
+    level: P0
+    description: Identity usable and SSH reachable
+  - id: remote-executed
+    level: P1
+    description: Remote script executed (exit 0)
+  - id: agent-verdict
+    level: P2
+    description: Agent wrote reach Verdict FEASIBLE/INFEASIBLE with markers
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  ssh: { required: true, sink: ssh/ }
+  prepare: { required: true, sink: prepare/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+  - host-share-required
+  - sudo-nopasswd-required
+  - production-write-approval
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-FevU10UploadsSmb.ps1
+    experimental: true

@@ -1,0 +1,104 @@
+id: "deploy-urban-acceptance"
+created: "2026-11-03"
+graph:
+  product: urban
+  domain: ops
+  family: ingest
+  goal: ops-deploy-urban-acceptance
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: fev-u10-evidenced
+  end: urban-acceptance-deployed
+cook: new-object
+
+target:
+  identityRel: .local/.ssh/docker-linux-ed25519
+  identityFileName: docker-linux-ed25519
+  defaultPort: 2222
+  urbanRepoRel: repos/UrbanManagement
+  importSourceRel: _tmp/UrbanManagement_test.upgraded.db
+  # Local publish output and bundle; gitignored, one directory per run.
+  stageRootRel: _tmp/deploy-urban
+  remoteScriptRel: scripts/remote-urban-deploy.sh
+  stableHostAddress: 191.12.234.212
+  uploadsShare: um-uploads
+  # Read-only, only to copy the IIS site's appsettings*.json; falls back to the local secret json when unreadable.
+  wwwrootShare: wwwroot
+  iisSiteDir: UrbanManagement
+  credentialsPath: /etc/um-uploads.cred
+  # Absolute LocalPath prefix written by the IIS deployment; forward slashes avoid shell quoting of backslashes.
+  legacyStorageRoot: C:/wwwroot/UrbanManagement/Uploads
+  publicPort: 5333
+  blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+  openspecChange: openspec/changes/add-urban-docker-deployment
+
+prerequisites:
+  - fev-u2-docker FEASIBLE (Docker + compose on the VM)
+  - fev-u10-uploads-smb FEASIBLE (cifs-utils, /etc/um-uploads.cred, passwordless sudo)
+  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the add-urban-docker-deployment branch
+  - secrets.local.yaml with host/user/port (+ identityPassphrase when key is encrypted)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: publish
+    name: dotnet publish App + DataImport; bundle with deploy/docker files (deploy only)
+  - id: upload
+    name: scp bundle and import source to /tmp/um-deploy/<run>/ (deploy only)
+  - id: remote-deploy
+    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-app
+  - id: remote-checks
+    name: Health, container mount/tus/keys/TZ, logs, memory (deploy and verify)
+  - id: external-check
+    name: http://<host>:5333/health/ready from this machine
+  - id: agent-analyze
+    name: Agent writes prepare/deploy-<mode>-parse.json, summary.json, report.md
+
+expect:
+  - id: identity-and-ssh
+    level: P0
+    description: Identity usable and SSH reachable
+  - id: remote-executed
+    level: P1
+    description: Remote script exit 0
+  - id: stack-healthy
+    level: P2
+    description: ready/live 200, Uploads is the SMB mount inside the container, tus writable, no secret json, import done or skipped
+  - id: user-ack
+    level: P3
+    description: User-only (includes the client submit test)
+
+capture:
+  ssh: { required: true, sink: ssh/ }
+  scp: { required: false, sink: scp/ }
+  prepare: { required: true, sink: prepare/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+  - deploy-approval
+  - reset-database-approval
+  - host-portproxy-required
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  scp:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Copy-ScpToRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-DeployUrbanAcceptance.ps1
+    experimental: true

@@ -226,6 +226,9 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | solidwaste-oct-export-include-soft-masters | transform | `graphs/materialclient/solidwaste-oct-export-include-softdelete/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
+| ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |
+| ops-fev-u10-uploads-smb | probe | `graphs/ops/fev-u10-uploads-smb/` | active |
+| ops-deploy-urban-acceptance | ingest | `graphs/ops/deploy-urban-acceptance/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

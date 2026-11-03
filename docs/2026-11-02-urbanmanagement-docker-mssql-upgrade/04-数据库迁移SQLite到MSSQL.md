@@ -78,7 +78,7 @@ Windows 上 `Path.GetRelativePath` 生成的 `LocalPath` 形如 `GDXS20250415002
 1. **数据层**：导入时把 `\` 统一替换为 `/`；以旧 `FilesPhysicalPath` 绝对根开头的路径裁剪为相对路径；其余绝对路径列入异常清单人工处理。
 2. **代码层**：`StoragePathResolver.ResolveStoredPath` 读取时把 `\` 规范为 `Path.DirectorySeparatorChar`；`GetRelativeStoredPath` 写入时统一输出 `/`。这样即便漏网的旧数据也能读到。
 
-附件文件本身：停站后把 `Uploads\`（含 `_tus` 可不拷）完整复制到 `um-uploads` 卷；`ClientLogs\` 视需要复制到 `um-clientlogs` 卷。Linux 文件系统大小写敏感，复制后按 §4.3 全量核对一次存在性。
+附件文件本身：**按 D10（修订）不迁移，新栈经 SMB 共用 IIS 原 `Uploads\`**。`AttachmentFile` 行照常导入并做路径规范化（`\` → `/`），新栈通过挂载直接读到历史照片。§4.3 的"附件可达"校验照常执行：在能访问挂载点的位置运行导入工具时传 `--uploads-root <挂载点>`，缺失清单应与 IIS 现状一致。
 
 ## 6. SQLite 与 SQL Server 语义差异
 
@@ -99,5 +99,5 @@ Windows 上 `Path.GetRelativePath` 生成的 `LocalPath` 形如 `GDXS20250415002
 | 全量备份 | 宿主"任务计划程序"定时执行 `docker exec mssql /opt/mssql-tools18/bin/sqlcmd … -Q "BACKUP DATABASE UrbanManagement TO DISK='/var/opt/mssql/backup/um_YYYYMMDD.bak' WITH COMPRESSION"`（Express 不支持 `COMPRESSION`，去掉该项） |
 | 备份落盘 | 单独的 `um-mssql-backup` 卷或宿主目录，再同步到异机 |
 | 恢复演练 | 切换前至少在测试环境完整恢复一次 |
-| 附件备份 | `um-uploads` 卷按日增量（robocopy / rsync） |
+| 附件备份 | 附件仍在宿主 `C:\wwwroot\UrbanManagement\Uploads`（D10），沿用宿主侧备份（robocopy 按日增量） |
 | 账号 | `sa` 只用于运维；应用 `um_app` 最小权限；migrator 才有 DDL 权限 |
