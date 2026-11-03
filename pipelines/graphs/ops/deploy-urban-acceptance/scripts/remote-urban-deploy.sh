@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UrbanManagement Phase 2 on the Docker VM: release -> SMB automount -> config -> .env -> image ->
-# mssql/redis -> database/login -> import -> migrator + ingest/console/worker + gateway -> checks.
+# mssql/redis -> database/login -> import -> migrator + ingest x2/attachment/realtime/admin/worker + gateway -> checks.
 # "verify" runs the checks only.
 # Never echo secrets: passwords live only in $BASE/.env (600 root) and container environments.
 # stdin line 1 (optional): base64 of the local appsettings.secret.json, used only when the IIS config is unreadable.
@@ -9,7 +9,7 @@ set -uo pipefail
 MODE="$1"; RUN_ID="$2"; HOST="$3"; UPLOADS_SHARE="$4"; WWWROOT_SHARE="$5"; CRED="$6"
 RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"; MSSQL_MEM_MB="${11:-1280}"
 MEM_MIN_MB="${12:-500}"
-APP_ROLES="um-ingest um-console um-worker"
+APP_ROLES="um-ingest um-ingest-2 um-attachment um-realtime um-admin um-worker"
 
 STAGE="/tmp/um-deploy/$RUN_ID"
 BASE=/opt/urbanmanagement
@@ -338,11 +338,16 @@ deploy_app() {
 http_code() { curl -s -o /dev/null -m 10 -w '%{http_code}' "$@" 2>/dev/null || true; }
 
 # HTTP status of a request made inside a role container (the aspnet image has bash but no curl).
-role_http() {
+role_http() { peer_http "$1" 127.0.0.1 "$2" "$3"; }
+
+# HTTP status of a request from container $1 to host $2 port 8080 on the compose network.
+peer_http() {
   dc exec -T "$1" timeout 10 bash -c \
-    'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "%s %s HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" "$0" "$1" >&3 && head -n 1 <&3' \
-    "$2" "$3" 2>/dev/null | awk '{print $2}' | tr -d '\r'
+    'exec 3<>/dev/tcp/$0/8080 && printf "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n" "$1" "$2" "$0" >&3 && head -n 1 <&3' \
+    "$2" "$3" "$4" 2>/dev/null | awk '{print $2}' | tr -d '\r'
 }
+
+role_key() { echo "${1#um-}" | tr '[:lower:]-' '[:upper:]_'; }
 
 svc_exec() { dc exec -T "$1" sh -c "$2" 2>/dev/null | tr -d '\r'; }
 
@@ -364,22 +369,29 @@ checks() {
   mark VM_IP "$vm_ip"
   mark VM_IP_READY_HTTP "$(http_code "http://$vm_ip:$PUBLIC_PORT/health/ready")"
 
-  # Routing: only ingest maps tus; only console maps the hub (GET without connection id => 400, unmapped => 404).
+  # Routing: only attachment maps tus; only realtime maps the hub (GET without connection id => 400, unmapped => 404).
   local tus_headers
   tus_headers="$(curl -s -o /dev/null -D - -m 10 -X OPTIONS -H 'Tus-Resumable: 1.0.0' "$gw/api/urban-attachment/tus/" 2>/dev/null | tr -d '\r')"
   mark GW_TUS_OPTIONS_HTTP "$(printf '%s\n' "$tus_headers" | awk 'NR==1{print $2}')"
   mark GW_TUS_VERSION "$(printf '%s\n' "$tus_headers" | sed -n 's/^[Tt]us-[Vv]ersion: *//p' | head -n 1)"
   mark GW_HUB_HTTP "$(http_code "$gw/hubs/devicestatus")"
   mark GW_NEGOTIATE_HTTP "$(http_code -X POST "$gw/hubs/devicestatus/negotiate?negotiateVersion=1")"
+  mark GW_INTERNAL_HTTP "$(http_code "$gw/internal/client-log/online-clients")"
+  mark GW_CLIENT_LOG_APP_HTTP "$(http_code "$gw/api/app/client-log/online-clients")"
 
   local svc key
   for svc in $APP_ROLES; do
-    key="$(echo "${svc#um-}" | tr '[:lower:]' '[:upper:]')"
+    key="$(role_key "$svc")"
     mark "ROLE_${key}_READY" "$(role_http "$svc" GET /health/ready)"
     mark "ROLE_${key}_HUB" "$(role_http "$svc" GET /hubs/devicestatus)"
     mark "ROLE_${key}_UPLOADS_FS" "$(svc_exec "$svc" 'stat -f -c %T /app/Uploads')"
   done
   mark ROLE_INGEST_TUS_OPTIONS "$(role_http um-ingest OPTIONS /api/urban-attachment/tus/)"
+  mark ROLE_ATTACHMENT_TUS_OPTIONS "$(role_http um-attachment OPTIONS /api/urban-attachment/tus/)"
+  mark ROLE_ADMIN_ROOT "$(role_http um-admin GET /)"
+  mark ROLE_REALTIME_ROOT "$(role_http um-realtime GET /)"
+  mark ADMIN_TO_REALTIME_INTERNAL "$(peer_http um-admin um-realtime GET /internal/client-log/online-clients)"
+  mark ADMIN_INTERNAL_LOCAL "$(role_http um-admin GET /internal/client-log/online-clients)"
 
   local migrator_id
   migrator_id="$(dc ps -a -q um-migrator 2>/dev/null | head -n 1)"
@@ -389,15 +401,15 @@ checks() {
 
   mark BACKPLANE_CHANNELS "$(dc exec -T redis redis-cli --raw PUBSUB CHANNELS 'UM:signalr*' 2>/dev/null | grep -c . || true)"
 
-  mark CONTAINER_TZ "$(svc_exec um-console 'date +%Z')"
-  mark CONTAINER_UPLOADS_SAMPLE_READ "$(svc_exec um-console 'f=$(find /app/Uploads -mindepth 2 -maxdepth 2 -type f -name "*.jpg" 2>/dev/null | head -n 1); [ -n "$f" ] && head -c 4096 "$f" >/dev/null && echo ok || echo none')"
-  mark CONTAINER_TUS_WRITABLE "$(svc_exec um-ingest 'test -w /app/tus && echo yes || echo no')"
-  mark CONTAINER_KEYS "$(svc_exec um-console 'ls /app/keys 2>/dev/null | wc -l')"
+  mark CONTAINER_TZ "$(svc_exec um-admin 'date +%Z')"
+  mark CONTAINER_UPLOADS_SAMPLE_READ "$(svc_exec um-admin 'f=$(find /app/Uploads -mindepth 2 -maxdepth 2 -type f -name "*.jpg" 2>/dev/null | head -n 1); [ -n "$f" ] && head -c 4096 "$f" >/dev/null && echo ok || echo none')"
+  mark CONTAINER_TUS_WRITABLE "$(svc_exec um-attachment 'test -w /app/tus && echo yes || echo no')"
+  mark CONTAINER_KEYS "$(svc_exec um-admin 'ls /app/keys 2>/dev/null | wc -l')"
   mark CONTAINER_SECRET_JSON "$(svc_exec um-ingest 'test -e /app/appsettings.secret.json && echo present || echo absent')"
 
   local err_pattern='(ERR|FTL)\]|\[(Error|Fatal)|\| +fail:' logs total_err=0 n
   for svc in um-migrator $APP_ROLES um-gateway; do
-    key="$(echo "${svc#um-}" | tr '[:lower:]' '[:upper:]')"
+    key="$(role_key "$svc")"
     logs="$(dc logs --no-color "$svc" 2>/dev/null)"
     n="$(printf '%s\n' "$logs" | grep -c -E "$err_pattern" || true)"
     total_err=$((total_err + n))

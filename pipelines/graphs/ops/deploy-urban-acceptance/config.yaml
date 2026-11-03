@@ -36,12 +36,12 @@ target:
   mssqlMemoryLimitMb: 1280
   memMinAvailableMb: 500
   blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
-  openspecChange: openspec/changes/add-urban-role-split
+  openspecChange: openspec/changes/refactor-urban-realtime-split
 
 prerequisites:
   - fev-u2-docker FEASIBLE (Docker + compose on the VM)
   - fev-u10-uploads-smb FEASIBLE (cifs-utils, /etc/um-uploads.cred, passwordless sudo)
-  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the add-urban-role-split branch (or main after merge)
+  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the refactor-urban-realtime-split branch (or main after merge)
   - secrets.local.yaml with host/user/port (+ identityPassphrase when key is encrypted)
 
 steps:
@@ -52,7 +52,7 @@ steps:
   - id: upload
     name: scp bundle and import source to /tmp/um-deploy/<run>/ (deploy only)
   - id: remote-deploy
-    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-migrator then um-ingest/um-console/um-worker + um-gateway (--remove-orphans)
+    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-migrator then um-ingest x2/um-attachment/um-realtime/um-admin/um-worker + um-gateway (--remove-orphans)
   - id: remote-checks
     name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, mounts, logs, memory (deploy and verify)
   - id: external-check
@@ -69,7 +69,7 @@ expect:
     description: Remote script exit 0
   - id: stack-healthy
     level: P2
-    description: gateway ready/live/health 200; tus via gateway reaches ingest (204 + Tus-Version) and hub reaches console; roles ready; migrator exit 0; workers only on um-worker; backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
+    description: gateway ready/live/health 200; tus via gateway reaches attachment (204 + Tus-Version) and hub reaches realtime; only attachment maps tus, only realtime maps the hub, only admin maps the Blazor hub; gateway refuses /internal; admin reaches realtime /internal/client-log; roles ready; migrator exit 0; workers only on um-worker; backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
   - id: user-ack
     level: P3
     description: User-only (includes the client submit test)

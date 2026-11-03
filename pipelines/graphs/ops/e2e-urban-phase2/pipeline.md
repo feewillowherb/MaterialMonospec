@@ -2,7 +2,7 @@
 
 ## 目的 / Goal
 
-用合成的 MaterialClient.Urban 客户端，从本机经公网入口 `http://191.12.234.212:5333`（宿主 portproxy → 网关）跑一遍客户端契约（蓝图 [`02`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/02-客户端接口兼容契约.md)）在 Phase 2 角色拆分栈上的端到端流程，并证明 SignalR Redis backplane 能把 ingest 进程发出的推送送达连在 console 上的客户端。
+用合成的 MaterialClient.Urban 客户端，从本机经公网入口 `http://191.12.234.212:5333`（宿主 portproxy → 网关）跑一遍客户端契约（蓝图 [`02`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/02-客户端接口兼容契约.md)）在角色拆分栈（Phase 3：ingest ×2、attachment、realtime、admin）上的端到端流程，并证明 SignalR Redis backplane 能把 ingest / admin 进程发出的推送送达连在 realtime 上的客户端。Graph 名保留 `phase2`。
 
 Goal 槽：`ops-e2e-urban-phase2` · Status: **active** · 路径：`pipelines/graphs/ops/e2e-urban-phase2/` · 上游：`ops/deploy-urban-acceptance`
 
@@ -10,13 +10,13 @@ Goal 槽：`ops-e2e-urban-phase2` · Status: **active** · 路径：`pipelines/g
 
 | 步骤 | 内容 | 走哪个角色 |
 |------|------|-----------|
-| Hub | WebSockets 连接 + `SayHello` 往返；另开 SSE 连接 `SayHello`（代理不缓冲） | console |
-| 在线 | `UploadStatus`（合成 ProId / ClientId，加入组 `pro_{ProId}`）→ `GET /api/app/device-status/client-list` 出现且 `isConnected=true` | console |
+| Hub | WebSockets 连接 + `SayHello` 往返；另开 SSE 连接 `SayHello`（代理不缓冲） | realtime |
+| 在线 | `UploadStatus`（合成 ProId / ClientId，加入组 `pro_{ProId}`）→ `GET /api/app/device-status/client-list` 出现且 `isConnected=true` | admin（读 Redis 状态） |
 | R9 / R10 | tus 创建（`Location` 按客户端规则解析后必须是对外地址；tusdotnet 返回相对路径）→ HEAD→ PATCH → `tus/commit` 得附件 ID | ingest |
 | R2 | `receive` 记录 A（带附件）、记录 B，均为异常记录 | ingest |
-| 审批 A | 经网关 `approve` → 客户端收到 `WeighingRecordApproved`；console 日志有推送行 | console |
+| 审批 A | 经网关 `approve` → 客户端收到 `WeighingRecordApproved`；admin 日志有推送行 | admin → Redis → realtime |
 | R3 / R4 | `pending-server-approval-sync` 含 A → `ack-approval-sync` → 不再含 A | ingest |
-| 审批 B | SSH 在 `um-ingest` 容器内直接调 `approve`：推送由 ingest 进程发出，只有经 Redis backplane 才能到 console 上的客户端；ingest 日志有推送行、console 没有 | ingest → Redis → console |
+| 审批 B | SSH 在 `um-ingest` 容器内直接调 `approve`：推送由 ingest 进程发出，只有经 Redis backplane 才能到 realtime 上的客户端；ingest 日志有推送行、admin / realtime 没有 | ingest → Redis → realtime |
 | 清理 | 删除本 run 的记录、附件行与 `Uploads/E2E-PROBE/` 文件、在线状态行、Redis 键；再计数确认为 0 | VM |
 
 不覆盖：R1 激活（需真实激活码）、R5 / R6 卡口与成品、R7 / R8 Base64 与 multipart、R11 旧版 `/Api/Post`、日志拉取。
@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File pipelines/graphs/ops/e2e-urban-phase2/s
 
 ## 结果规则（写死在 cook）
 
-`report.md` 的每项检查都通过 → `pass`；任一失败 → `fail`；没有任何证据 → `blocked`。检查项：`hub-websockets`、`hub-sse`、`client-online`、`tus-r9`、`tus-r10-commit`、`receive-r2`、`approve-push-console`、`pending-ack-r3-r4`、`backplane-ingest-push`、`cleanup`。
+`report.md` 的每项检查都通过 → `pass`；任一失败 → `fail`；没有任何证据 → `blocked`。检查项：`hub-websockets`、`hub-sse`、`client-online`、`tus-r9`、`tus-r10-commit`、`receive-r2`、`approve-push-admin`、`pending-ack-r3-r4`、`backplane-ingest-push`、`cleanup`。
 
 ## 判定级别
 

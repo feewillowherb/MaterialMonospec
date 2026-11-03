@@ -28,8 +28,8 @@ case "$MODE" in
     PRO_ID="$1"; CLIENT_ID="$2"; LICENSE="$3"; REC_A="$4"; REC_B="$5"
     case "$LICENSE" in E2E-*) ;; *) mark CLEANUP refused-license; exit 1 ;; esac
 
-    for svc in um-ingest um-console um-worker; do
-      key="$(echo "${svc#um-}" | tr '[:lower:]' '[:upper:]')"
+    for svc in um-ingest um-ingest-2 um-attachment um-realtime um-admin um-worker; do
+      key="$(echo "${svc#um-}" | tr '[:lower:]-' '[:upper:]_')"
       logs="$(dc logs --no-color --since 30m "$svc" 2>/dev/null)"
       mark "PUSH_LOG_${key}_A" "$(printf '%s\n' "$logs" | grep -c "Pushed server approval sync for ClientRecordId=$REC_A" || true)"
       mark "PUSH_LOG_${key}_B" "$(printf '%s\n' "$logs" | grep -ci "Pushed server approval sync for ClientRecordId=$REC_B" || true)"

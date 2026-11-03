@@ -1,7 +1,7 @@
 #:package Microsoft.AspNetCore.SignalR.Client@10.0.14
 #:property PublishAot=false
 // Synthetic MaterialClient.Urban against the Phase 2 gateway: hub (WebSockets + SSE), UploadStatus,
-// client-list, tus R9/R10, receive R2, approve (console) + push, R3/R4, then waits for a push of a
+// client-list, tus R9/R10, receive R2, approve (admin) + push, R3/R4, then waits for a push of a
 // record approved inside um-ingest (backplane). Output: "@@ KEY=VALUE" lines only, no secrets.
 // args: <baseUrl> <proId> <clientId> <buildLicenseNo> <backplaneWaitSeconds>
 using System.Collections.Concurrent;
@@ -142,7 +142,7 @@ try
     async Task<string> Pending() =>
         await http.GetStringAsync($"api/app/urban-weighing-record/pending-server-approval-sync?proId={proId}");
 
-    // Record A: approval through the gateway (console process) → push to this client.
+    // Record A: approval through the gateway (admin process) → push to this client.
     var recordA = await Receive("A", attachmentIds);
     Mark("RECORD_A", recordA);
     var approvedAt = DateTime.UtcNow;

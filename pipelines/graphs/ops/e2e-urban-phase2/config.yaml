@@ -36,7 +36,7 @@ steps:
   - id: ingest-approve
     name: SSH; approve record B inside um-ingest (backplane path)
   - id: backplane-push
-    name: Client on um-console receives WeighingRecordApproved for B
+    name: Client on um-realtime receives WeighingRecordApproved for B
   - id: evidence-cleanup
     name: SSH; which role logged each push; delete probe rows, files, Redis keys; verify zero residue
   - id: agent-analyze

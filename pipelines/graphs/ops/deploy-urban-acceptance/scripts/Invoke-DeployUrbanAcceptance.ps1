@@ -1,7 +1,7 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Ingest cook: deploy UrbanManagement Phase 2 (gateway + ingest/console/worker/migrator + mssql + redis)
+  Ingest cook: deploy UrbanManagement Phase 2 (Phase 3: gateway + ingest x2/attachment/realtime/admin/worker/migrator + mssql + redis)
   to the Docker VM on 5333 and verify it per role.
 .DESCRIPTION
   Modes:
@@ -223,15 +223,26 @@ try {
     $resultText = "fail"
     function N([string] $k) { $v = 0; [void][int]::TryParse((M $k), [ref]$v); return $v }
     $remoteOk = (M "DONE") -eq "yes" -and (M "READY_HTTP") -eq "200" -and (M "LIVE_HTTP") -eq "200" -and (M "GW_HEALTH_HTTP") -eq "200"
-    $rolesOk = (M "ROLE_INGEST_READY") -eq "200" -and (M "ROLE_CONSOLE_READY") -eq "200" -and (M "ROLE_WORKER_READY") -eq "200" -and
+    $roleKeys = @("INGEST", "INGEST_2", "ATTACHMENT", "REALTIME", "ADMIN", "WORKER")
+    $nonWorkerKeys = $roleKeys | Where-Object { $_ -ne "WORKER" }
+    function RoleMarks([string] $suffix) { ($roleKeys | ForEach-Object { "$($_.ToLower())=$(M "ROLE_$($_)_$suffix")" }) -join " " }
+    function LogMarks([string] $suffix) { ($roleKeys | ForEach-Object { "$($_.ToLower())=$(M "LOG_$($_)_$suffix")" }) -join " " }
+    $rolesOk = @($roleKeys | Where-Object { (M "ROLE_$($_)_READY") -ne "200" }).Count -eq 0 -and
         (M "MIGRATOR_EXIT") -eq "0" -and (N "LOG_MIGRATOR_MIGRATED") -ge 1 -and (M "UM_APP_PRESENT") -eq "0"
+    $hubOk = (M "ROLE_REALTIME_HUB") -eq "400" -and
+        @($roleKeys | Where-Object { $_ -ne "REALTIME" -and (M "ROLE_$($_)_HUB") -eq "400" }).Count -eq 0
     $routingOk = (M "GW_TUS_OPTIONS_HTTP") -eq "204" -and -not [string]::IsNullOrWhiteSpace((M "GW_TUS_VERSION")) -and
-        (M "GW_HUB_HTTP") -eq "400" -and (M "GW_NEGOTIATE_HTTP") -eq "200" -and (M "ROLE_INGEST_HUB") -eq "404" -and (M "ROLE_CONSOLE_HUB") -eq "400"
-    $workersOk = (N "LOG_INGEST_WORKERS_SKIPPED") -ge 1 -and (N "LOG_CONSOLE_WORKERS_SKIPPED") -ge 1 -and (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and
-        ((N "LOG_INGEST_GOVSYNC_REGISTERED") + (N "LOG_CONSOLE_GOVSYNC_REGISTERED") + (N "LOG_WORKER_GOVSYNC_REGISTERED")) -eq 0
+        (M "GW_HUB_HTTP") -eq "400" -and (M "GW_NEGOTIATE_HTTP") -eq "200" -and $hubOk -and
+        (M "ROLE_ATTACHMENT_TUS_OPTIONS") -eq "204" -and (M "ROLE_INGEST_TUS_OPTIONS") -ne "204" -and
+        (M "ROLE_ADMIN_ROOT") -in @("200", "302") -and
+        (M "GW_INTERNAL_HTTP") -eq "404" -and (M "ADMIN_TO_REALTIME_INTERNAL") -eq "200" -and (M "ADMIN_INTERNAL_LOCAL") -eq "404" -and
+        (M "GW_CLIENT_LOG_APP_HTTP") -eq "200"
+    $govSyncTotal = 0; foreach ($k in $roleKeys) { $govSyncTotal += (N "LOG_$($k)_GOVSYNC_REGISTERED") }
+    $workersOk = @($nonWorkerKeys | Where-Object { (N "LOG_$($_)_WORKERS_SKIPPED") -lt 1 }).Count -eq 0 -and
+        (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and $govSyncTotal -eq 0
     $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
     $smb = @("smb2", "cifs")
-    $containerOk = (M "ROLE_INGEST_UPLOADS_FS") -in $smb -and (M "ROLE_CONSOLE_UPLOADS_FS") -in $smb -and (M "ROLE_WORKER_UPLOADS_FS") -in $smb -and
+    $containerOk = @($roleKeys | Where-Object { (M "ROLE_$($_)_UPLOADS_FS") -notin $smb }).Count -eq 0 -and
         (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
     $memOk = (M "MEM_OK") -eq "yes"
@@ -254,10 +265,11 @@ try {
     else {
         if (M "FAILED_AT") { $rationale += "Remote step failed at $(M 'FAILED_AT')." }
         if (-not $remoteOk) { $rationale += "Gateway health: ready=$(M 'READY_HTTP') live=$(M 'LIVE_HTTP') gateway=$(M 'GW_HEALTH_HTTP') done=$(M 'DONE')." }
-        if (-not $rolesOk) { $rationale += "Roles: ingest=$(M 'ROLE_INGEST_READY') console=$(M 'ROLE_CONSOLE_READY') worker=$(M 'ROLE_WORKER_READY') migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
-        if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP') ingest hub=$(M 'ROLE_INGEST_HUB') console hub=$(M 'ROLE_CONSOLE_HUB')." }
-        if (-not $workersOk) { $rationale += "Workers: ingest skipped=$(M 'LOG_INGEST_WORKERS_SKIPPED') console skipped=$(M 'LOG_CONSOLE_WORKERS_SKIPPED') worker snapshot=$(M 'LOG_WORKER_SNAPSHOT_REGISTERED') govsync ingest/console/worker=$(M 'LOG_INGEST_GOVSYNC_REGISTERED')/$(M 'LOG_CONSOLE_GOVSYNC_REGISTERED')/$(M 'LOG_WORKER_GOVSYNC_REGISTERED')." }
-        if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }        if (-not $containerOk) { $rationale += "Container checks: uploads fs ingest/console/worker=$(M 'ROLE_INGEST_UPLOADS_FS')/$(M 'ROLE_CONSOLE_UPLOADS_FS')/$(M 'ROLE_WORKER_UPLOADS_FS') host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
+        if (-not $rolesOk) { $rationale += "Roles ready: $(RoleMarks 'READY'); migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
+        if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP'); role hub $(RoleMarks 'HUB'); tus attachment/ingest=$(M 'ROLE_ATTACHMENT_TUS_OPTIONS')/$(M 'ROLE_INGEST_TUS_OPTIONS'); root admin/realtime=$(M 'ROLE_ADMIN_ROOT')/$(M 'ROLE_REALTIME_ROOT'); gateway /internal=$(M 'GW_INTERNAL_HTTP'); admin->realtime internal=$(M 'ADMIN_TO_REALTIME_INTERNAL') admin local internal=$(M 'ADMIN_INTERNAL_LOCAL'); gateway /api/app/client-log=$(M 'GW_CLIENT_LOG_APP_HTTP')." }
+        if (-not $workersOk) { $rationale += "Workers: skipped $(LogMarks 'WORKERS_SKIPPED'); worker snapshot=$(M 'LOG_WORKER_SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal." }
+        if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
+        if (-not $containerOk) { $rationale += "Container checks: uploads fs $(RoleMarks 'UPLOADS_FS'); host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }
     }
     $rationale += "Config source=$(M 'CONFIG_SOURCE') (IIS files: $(M 'IIS_FILES'); mount error: $(M 'IIS_MOUNT_ERROR')); Windows-path keys: $(M 'PROD_WINDOWS_PATH_KEYS')."

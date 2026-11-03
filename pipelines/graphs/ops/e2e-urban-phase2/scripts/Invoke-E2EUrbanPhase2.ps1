@@ -5,8 +5,8 @@
 .DESCRIPTION
   A synthetic MaterialClient.Urban (UrbanE2EClient.cs, run with `dotnet run`) connects from this machine to
   http://<host>:<port>: hub over WebSockets and SSE, UploadStatus, client-list, tus create/PATCH/HEAD/commit,
-  receive, approve (console) with WeighingRecordApproved push, pending/ack. Record B is then approved inside
-  um-ingest over SSH: only the SignalR Redis backplane can deliver that push to the client on um-console.
+  receive, approve (admin) with WeighingRecordApproved push, pending/ack. Record B is then approved inside
+  um-ingest over SSH: only the SignalR Redis backplane can deliver that push to the client on um-realtime.
   Finally the VM side reports which role logged each push and deletes every probe row, file and Redis key.
   Writes to the acceptance database and the shared Uploads (dedicated E2E-PROBE folder), always cleaned up.
 #>
@@ -157,9 +157,9 @@ $checks = [ordered]@{
     "tus-r9"              = (M "TUS_CREATE_HTTP") -eq "201" -and (M "TUS_LOCATION_EXTERNAL") -eq "True" -and (M "TUS_HEAD_HTTP") -eq "200" -and (M "TUS_HEAD_OFFSET") -eq "0" -and (M "TUS_PATCH_HTTP") -eq "204" -and (M "TUS_PATCH_OFFSET_OK") -eq "True"
     "tus-r10-commit"      = (M "TUS_COMMIT_HTTP") -eq "200" -and (M "TUS_ATTACHMENT_IDS") -eq "1"
     "receive-r2"          = (M "R2_A_HTTP") -eq "200" -and (M "R2_A_HAS_RECORD_ID") -eq "True" -and (M "R2_B_HTTP") -eq "200"
-    "approve-push-console" = (M "APPROVE_A_HTTP") -eq "200" -and (M "PUSH_A_RECEIVED") -eq "True" -and (M "PUSH_LOG_CONSOLE_A") -eq "1"
+    "approve-push-admin" = (M "APPROVE_A_HTTP") -eq "200" -and (M "PUSH_A_RECEIVED") -eq "True" -and (M "PUSH_LOG_ADMIN_A") -eq "1"
     "pending-ack-r3-r4"   = (M "R3_CONTAINS_A") -eq "True" -and (M "R4_HTTP") -in @("200", "204") -and (M "R3_AFTER_ACK_CONTAINS_A") -eq "False"
-    "backplane-ingest-push" = (M "INGEST_APPROVE_HTTP") -eq "200" -and (M "PUSH_B_RECEIVED") -eq "True" -and (M "PUSH_LOG_INGEST_B") -eq "1" -and (M "PUSH_LOG_CONSOLE_B") -eq "0"
+    "backplane-ingest-push" = (M "INGEST_APPROVE_HTTP") -eq "200" -and (M "PUSH_B_RECEIVED") -eq "True" -and (M "PUSH_LOG_INGEST_B") -eq "1" -and (M "PUSH_LOG_ADMIN_B") -eq "0" -and (M "PUSH_LOG_REALTIME_B") -eq "0"
     "cleanup"             = (M "AFTER_ROWS_RECORDS") -eq "0" -and (M "AFTER_ROWS_ATTACHMENTS") -eq "0" -and (M "AFTER_ROWS_ONLINE") -eq "0" -and (M "AFTER_FILES") -eq "0" -and (M "AFTER_REDIS_KEYS") -eq "0"
 }
 $failed = @($checks.Keys | Where-Object { -not $checks[$_] })

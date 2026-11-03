@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: M
+  tokens_estimate: "20万-40万"
+  notes: "新增 Realtime/Admin/Attachment 角色、内部 client-log API 与 Admin 侧转发、网关四集群、compose 六角色；两个 ops Graph 同步与部署验收"
