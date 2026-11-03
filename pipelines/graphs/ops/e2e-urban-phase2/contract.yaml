@@ -1,0 +1,31 @@
+id: e2e-urban-phase2
+graph:
+  domain: ops
+  family: probe
+  goal: ops-e2e-urban-phase2
+  status: active
+input:
+  state: urban-acceptance-deployed
+  secretsRef: ../deploy-urban-acceptance/secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+  optionalSecrets:
+    - identityPassphrase
+    - port
+output:
+  state: urban-phase2-e2e-proved
+  artifacts:
+    - prepare/
+    - ssh-*/
+    - summary.json
+    - report.md
+invariants:
+  - all client traffic goes through the public gateway port, as a real client would
+  - probe data uses a fresh synthetic ProId per run and the E2E- attachment folder only
+  - every run deletes its records, attachment rows and files, online-status rows and Redis keys, and verifies zero residue
+  - the only call made behind the gateway is the record-B approval inside um-ingest (backplane proof)
+  - no secrets in argv or evidence; the sa password stays in the mssql container environment
+  - uses pipelines/_shared/ops/ssh helpers only; temporary .batch identity is deleted after cook
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

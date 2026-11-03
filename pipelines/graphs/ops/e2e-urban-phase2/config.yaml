@@ -1,0 +1,81 @@
+id: "e2e-urban-phase2"
+created: "2026-11-03"
+graph:
+  product: urban
+  domain: ops
+  family: probe
+  goal: ops-e2e-urban-phase2
+  status: active
+environment: acceptance
+stopOnError: false
+# SSH target (approval inside um-ingest, evidence, cleanup) is shared with the deploy Graph.
+secretsRef: ../deploy-urban-acceptance/secrets.local.yaml
+sockets:
+  start: urban-acceptance-deployed
+  end: urban-phase2-e2e-proved
+cook: new-object
+
+target:
+  baseUrl: http://191.12.234.212:5333
+  secretsRel: ../deploy-urban-acceptance/secrets.local.yaml
+  identityFileName: docker-linux-ed25519
+  # Attachment folder under the shared Uploads; must start with E2E- (cleanup deletes it).
+  probeLicenseNo: E2E-PROBE
+  backplaneWaitSeconds: 60
+  blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+
+prerequisites:
+  - ops/deploy-urban-acceptance pass (Phase 2 stack on 5333, host portproxy in place)
+  - .NET 10 SDK on this machine (UrbanE2EClient.cs is a file-based app)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/; synthetic ProId and ClientId
+  - id: client-flow
+    name: Hub WebSockets + SSE, UploadStatus, client-list, tus R9/R10, receive R2, approve via gateway + push, R3/R4
+  - id: ingest-approve
+    name: SSH; approve record B inside um-ingest (backplane path)
+  - id: backplane-push
+    name: Client on um-console receives WeighingRecordApproved for B
+  - id: evidence-cleanup
+    name: SSH; which role logged each push; delete probe rows, files, Redis keys; verify zero residue
+  - id: agent-analyze
+    name: prepare/e2e-parse.json, summary.json, report.md
+
+expect:
+  - id: client-reaches-hub
+    level: P0
+    description: Hub WebSockets connection through the gateway
+  - id: flow-completed
+    level: P1
+    description: Client finished and remote helper ran
+  - id: all-checks
+    level: P2
+    description: Every check in report.md passes, including backplane-ingest-push and cleanup
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  ssh: { required: true, sink: ssh-*/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+
+failurePolicy:
+  retries: 0
+  stopOnError: false
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-E2EUrbanPhase2.ps1
+    experimental: true
