@@ -32,26 +32,29 @@ target:
   # Absolute LocalPath prefix written by the IIS deployment; forward slashes avoid shell quoting of backslashes.
   legacyStorageRoot: C:/wwwroot/UrbanManagement/Uploads
   publicPort: 5333
+  # D14: Phase 2 without VM expansion; MSSQL cap lowered, VM available memory below the minimum => gate.
+  mssqlMemoryLimitMb: 1280
+  memMinAvailableMb: 500
   blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
-  openspecChange: openspec/changes/add-urban-docker-deployment
+  openspecChange: openspec/changes/add-urban-role-split
 
 prerequisites:
   - fev-u2-docker FEASIBLE (Docker + compose on the VM)
   - fev-u10-uploads-smb FEASIBLE (cifs-utils, /etc/um-uploads.cred, passwordless sudo)
-  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the add-urban-docker-deployment branch
+  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the add-urban-role-split branch (or main after merge)
   - secrets.local.yaml with host/user/port (+ identityPassphrase when key is encrypted)
 
 steps:
   - id: bind-config
     name: Read config/secrets; create runs/<ts>/
   - id: publish
-    name: dotnet publish App + DataImport; bundle with deploy/docker files (deploy only)
+    name: dotnet publish App + Gateway + DataImport; bundle with deploy/docker files (deploy only)
   - id: upload
     name: scp bundle and import source to /tmp/um-deploy/<run>/ (deploy only)
   - id: remote-deploy
-    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-app
+    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-migrator then um-ingest/um-console/um-worker + um-gateway (--remove-orphans)
   - id: remote-checks
-    name: Health, container mount/tus/keys/TZ, logs, memory (deploy and verify)
+    name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, mounts, logs, memory (deploy and verify)
   - id: external-check
     name: http://<host>:5333/health/ready from this machine
   - id: agent-analyze
@@ -66,7 +69,7 @@ expect:
     description: Remote script exit 0
   - id: stack-healthy
     level: P2
-    description: ready/live 200, Uploads is the SMB mount inside the container, tus writable, no secret json, import done or skipped
+    description: gateway ready/live/health 200; tus via gateway reaches ingest (204 + Tus-Version) and hub reaches console; roles ready; migrator exit 0; workers only on um-worker; backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
   - id: user-ack
     level: P3
     description: User-only (includes the client submit test)
@@ -84,6 +87,7 @@ humanGates:
   - deploy-approval
   - reset-database-approval
   - host-portproxy-required
+  - vm-memory-below-threshold
 
 failurePolicy:
   retries: 0

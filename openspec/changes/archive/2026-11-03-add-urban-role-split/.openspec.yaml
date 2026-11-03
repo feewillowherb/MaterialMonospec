@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "单仓 UrbanManagement：角色开关、backplane、YARP 网关项目、compose Phase 2；部署 Graph 改为按角色验证"

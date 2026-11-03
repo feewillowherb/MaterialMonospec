@@ -31,6 +31,8 @@ invariants:
   - the wwwroot share is mounted read-only and unmounted in the same run
   - import writes only into an empty database; a non-empty database is skipped unless -ResetDatabase
   - outbound sync stays off (BasePlatformSync__Enabled / BackgroundServices__Polling false, GovAddress empty)
+  - Phase 2 only: um-gateway is the only service publishing a port; sync switches can only be enabled on um-worker
+  - VM available memory below memMinAvailableMb yields gate vm-memory-below-threshold (D14), never an automatic VM change
   - the host side (portproxy, firewall, IIS) is never changed by this Graph
   - temporary .batch identity is deleted after cook
   - Pipeline result is not product APPROVED

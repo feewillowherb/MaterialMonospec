@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# UrbanManagement Phase 1 on the Docker VM: release -> SMB automount -> config -> .env -> image ->
-# mssql/redis -> database/login -> import -> um-app -> checks. "verify" runs the checks only.
+# UrbanManagement Phase 2 on the Docker VM: release -> SMB automount -> config -> .env -> image ->
+# mssql/redis -> database/login -> import -> migrator + ingest/console/worker + gateway -> checks.
+# "verify" runs the checks only.
 # Never echo secrets: passwords live only in $BASE/.env (600 root) and container environments.
 # stdin line 1 (optional): base64 of the local appsettings.secret.json, used only when the IIS config is unreadable.
 set -uo pipefail
 
 MODE="$1"; RUN_ID="$2"; HOST="$3"; UPLOADS_SHARE="$4"; WWWROOT_SHARE="$5"; CRED="$6"
-RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"
+RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"; MSSQL_MEM_MB="${11:-1280}"
+MEM_MIN_MB="${12:-500}"
+APP_ROLES="um-ingest um-console um-worker"
 
 STAGE="/tmp/um-deploy/$RUN_ID"
 BASE=/opt/urbanmanagement
@@ -190,6 +193,14 @@ deploy_env() {
   mark ENV created
 }
 
+env_set() {
+  if sudo grep -q "^$1=" "$BASE/.env"; then
+    sudo sed -i "s#^$1=.*#$1=$2#" "$BASE/.env"
+  else
+    echo "$1=$2" | sudo tee -a "$BASE/.env" >/dev/null
+  fi
+}
+
 load_env() {
   set -a
   # shellcheck disable=SC1090
@@ -223,7 +234,9 @@ deploy_infra() {
 
 deploy_database() {
   if [ "$RESET" = yes ]; then
-    dc stop um-app >/dev/null 2>&1 || true
+    # shellcheck disable=SC2086
+    dc stop um-gateway $APP_ROLES >/dev/null 2>&1 || true
+    sudo docker rm -f urbanmanagement-um-app-1 >/dev/null 2>&1 || true
     sqlsa >/tmp/um-sql.out 2>&1 <<'SQL' || { head -n 20 /tmp/um-sql.out; rm -f /tmp/um-sql.out; fail db-reset; }
 IF DB_ID(N'UrbanManagement') IS NOT NULL
 BEGIN
@@ -277,7 +290,8 @@ deploy_import() {
   sudo install -d -o 1654 -g 1654 -m 750 "$dir"
   sudo install -o 1654 -g 1654 -m 640 "$STAGE/source.db" "$dir/source-$RUN_ID.db"
   # The target connection comes from the service's own ConnectionStrings__Default; nothing secret on this host's argv.
-  dc run --rm --no-deps -T -v "$dir:/import" --entrypoint sh um-app -c \
+  # um-worker: has the Uploads mount the import checks attachments against.
+  dc run --rm --no-deps -T -v "$dir:/import" --entrypoint sh um-worker -c \
     "UM_IMPORT_TARGET=\"\$ConnectionStrings__Default\" exec dotnet /app/tools/import/UrbanManagement.DataImport.dll import --source /import/source-$RUN_ID.db --legacy-storage-root '$LEGACY_ROOT' --uploads-root /app/Uploads --report /import/$report" \
     >/tmp/um-import.log 2>&1
   local code=$?
@@ -315,49 +329,97 @@ PY
 }
 
 deploy_app() {
-  if dc up -d um-app >/tmp/um-up.log 2>&1; then mark APP_UP yes; else tail -n 20 /tmp/um-up.log; fail app-up; fi
+  # up waits for um-migrator (service_completed_successfully) before starting the roles;
+  # --remove-orphans drops the Phase 1 um-app container.
+  if dc up -d --remove-orphans >/tmp/um-up.log 2>&1; then mark APP_UP yes; else tail -n 20 /tmp/um-up.log; fail app-up; fi
   rm -f /tmp/um-up.log
 }
 
-http_code() { curl -s -o /dev/null -m 10 -w '%{http_code}' "$1" 2>/dev/null || true; }
+http_code() { curl -s -o /dev/null -m 10 -w '%{http_code}' "$@" 2>/dev/null || true; }
+
+# HTTP status of a request made inside a role container (the aspnet image has bash but no curl).
+role_http() {
+  dc exec -T "$1" timeout 10 bash -c \
+    'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "%s %s HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" "$0" "$1" >&3 && head -n 1 <&3' \
+    "$2" "$3" 2>/dev/null | awk '{print $2}' | tr -d '\r'
+}
+
+svc_exec() { dc exec -T "$1" sh -c "$2" 2>/dev/null | tr -d '\r'; }
 
 checks() {
   check_mount || mark UPLOADS_MOUNT_CHECK failed
-  local started=$SECONDS ready=""
+  local gw="http://127.0.0.1:$PUBLIC_PORT" started=$SECONDS ready=""
   for _ in $(seq 1 60); do
-    ready="$(http_code "http://127.0.0.1:$PUBLIC_PORT/health/ready")"
+    ready="$(http_code "$gw/health/ready")"
     [ "$ready" = 200 ] && break
     sleep 3
   done
   mark READY_HTTP "${ready:-none}"
   mark READY_WAIT_S "$((SECONDS - started))"
-  mark LIVE_HTTP "$(http_code "http://127.0.0.1:$PUBLIC_PORT/health/live")"
-  mark ROOT_HTTP "$(http_code "http://127.0.0.1:$PUBLIC_PORT/")"
+  mark GW_HEALTH_HTTP "$(http_code "$gw/health/gateway")"
+  mark LIVE_HTTP "$(http_code "$gw/health/live")"
+  mark ROOT_HTTP "$(http_code "$gw/")"
   local vm_ip
   vm_ip="$(hostname -I | awk '{print $1}')"
   mark VM_IP "$vm_ip"
   mark VM_IP_READY_HTTP "$(http_code "http://$vm_ip:$PUBLIC_PORT/health/ready")"
 
-  mark CONTAINER_TZ "$(dc exec -T um-app date +%Z 2>/dev/null | tr -d '\r')"
-  mark CONTAINER_UPLOADS_FS "$(dc exec -T um-app stat -f -c %T /app/Uploads 2>/dev/null | tr -d '\r')"
-  mark CONTAINER_UPLOADS_SAMPLE_READ "$(dc exec -T um-app sh -c 'f=$(find /app/Uploads -mindepth 2 -maxdepth 2 -type f -name "*.jpg" 2>/dev/null | head -n 1); [ -n "$f" ] && head -c 4096 "$f" >/dev/null && echo ok || echo none' 2>/dev/null | tr -d '\r')"
-  mark CONTAINER_TUS_WRITABLE "$(dc exec -T um-app sh -c 'test -w /app/tus && echo yes || echo no' 2>/dev/null | tr -d '\r')"
-  mark CONTAINER_KEYS "$(dc exec -T um-app sh -c 'ls /app/keys 2>/dev/null | wc -l' 2>/dev/null | tr -d '\r')"
-  mark CONTAINER_SECRET_JSON "$(dc exec -T um-app sh -c 'test -e /app/appsettings.secret.json && echo present || echo absent' 2>/dev/null | tr -d '\r')"
+  # Routing: only ingest maps tus; only console maps the hub (GET without connection id => 400, unmapped => 404).
+  local tus_headers
+  tus_headers="$(curl -s -o /dev/null -D - -m 10 -X OPTIONS -H 'Tus-Resumable: 1.0.0' "$gw/api/urban-attachment/tus/" 2>/dev/null | tr -d '\r')"
+  mark GW_TUS_OPTIONS_HTTP "$(printf '%s\n' "$tus_headers" | awk 'NR==1{print $2}')"
+  mark GW_TUS_VERSION "$(printf '%s\n' "$tus_headers" | sed -n 's/^[Tt]us-[Vv]ersion: *//p' | head -n 1)"
+  mark GW_HUB_HTTP "$(http_code "$gw/hubs/devicestatus")"
+  mark GW_NEGOTIATE_HTTP "$(http_code -X POST "$gw/hubs/devicestatus/negotiate?negotiateVersion=1")"
 
-  local logs
-  logs="$(dc logs --no-color um-app 2>/dev/null)"
-  local err_pattern='(ERR|FTL)\]|\[(Error|Fatal)|\| +fail:'
-  mark LOG_LINES "$(printf '%s\n' "$logs" | wc -l)"
-  mark LOG_ERRORS "$(printf '%s\n' "$logs" | grep -c -E "$err_pattern" || true)"
-  mark LOG_GOVSYNC_LINES "$(printf '%s\n' "$logs" | grep -c -i 'GovSync' || true)"
-  printf '%s\n' "$logs" | grep -i 'GovSync' | head -n 3 | cut -c1-300 | sed 's/^/LOG_GOVSYNC_SAMPLE: /'
-  printf '%s\n' "$logs" | grep -E "$err_pattern" | head -n 5 | cut -c1-300 | sed 's/^/LOG_ERR_SAMPLE: /'
+  local svc key
+  for svc in $APP_ROLES; do
+    key="$(echo "${svc#um-}" | tr '[:lower:]' '[:upper:]')"
+    mark "ROLE_${key}_READY" "$(role_http "$svc" GET /health/ready)"
+    mark "ROLE_${key}_HUB" "$(role_http "$svc" GET /hubs/devicestatus)"
+    mark "ROLE_${key}_UPLOADS_FS" "$(svc_exec "$svc" 'stat -f -c %T /app/Uploads')"
+  done
+  mark ROLE_INGEST_TUS_OPTIONS "$(role_http um-ingest OPTIONS /api/urban-attachment/tus/)"
+
+  local migrator_id
+  migrator_id="$(dc ps -a -q um-migrator 2>/dev/null | head -n 1)"
+  mark MIGRATOR_STATE "$( [ -n "$migrator_id" ] && sudo docker inspect -f '{{.State.Status}}' "$migrator_id" 2>/dev/null || echo missing)"
+  mark MIGRATOR_EXIT "$( [ -n "$migrator_id" ] && sudo docker inspect -f '{{.State.ExitCode}}' "$migrator_id" 2>/dev/null || echo none)"
+  mark UM_APP_PRESENT "$(sudo docker ps -a --format '{{.Names}}' | grep -cx 'urbanmanagement-um-app-1' || true)"
+
+  mark BACKPLANE_CHANNELS "$(dc exec -T redis redis-cli --raw PUBSUB CHANNELS 'UM:signalr*' 2>/dev/null | grep -c . || true)"
+
+  mark CONTAINER_TZ "$(svc_exec um-console 'date +%Z')"
+  mark CONTAINER_UPLOADS_SAMPLE_READ "$(svc_exec um-console 'f=$(find /app/Uploads -mindepth 2 -maxdepth 2 -type f -name "*.jpg" 2>/dev/null | head -n 1); [ -n "$f" ] && head -c 4096 "$f" >/dev/null && echo ok || echo none')"
+  mark CONTAINER_TUS_WRITABLE "$(svc_exec um-ingest 'test -w /app/tus && echo yes || echo no')"
+  mark CONTAINER_KEYS "$(svc_exec um-console 'ls /app/keys 2>/dev/null | wc -l')"
+  mark CONTAINER_SECRET_JSON "$(svc_exec um-ingest 'test -e /app/appsettings.secret.json && echo present || echo absent')"
+
+  local err_pattern='(ERR|FTL)\]|\[(Error|Fatal)|\| +fail:' logs total_err=0 n
+  for svc in um-migrator $APP_ROLES um-gateway; do
+    key="$(echo "${svc#um-}" | tr '[:lower:]' '[:upper:]')"
+    logs="$(dc logs --no-color "$svc" 2>/dev/null)"
+    n="$(printf '%s\n' "$logs" | grep -c -E "$err_pattern" || true)"
+    total_err=$((total_err + n))
+    mark "LOG_${key}_ERRORS" "$n"
+    mark "LOG_${key}_ROLES" "$(printf '%s\n' "$logs" | sed -n 's/.*Hosting roles: //p' | head -n 1 | cut -c1-60)"
+    mark "LOG_${key}_WORKERS_SKIPPED" "$(printf '%s\n' "$logs" | grep -c 'Background workers not registered' || true)"
+    mark "LOG_${key}_SNAPSHOT_REGISTERED" "$(printf '%s\n' "$logs" | grep -c 'ClientStatusSnapshotBackgroundWorker registered' || true)"
+    mark "LOG_${key}_GOVSYNC_REGISTERED" "$(printf '%s\n' "$logs" | grep -c 'GovSyncBackgroundWorker registered' || true)"
+    mark "LOG_${key}_MIGRATED" "$(printf '%s\n' "$logs" | grep -c 'Database migration completed' || true)"
+    printf '%s\n' "$logs" | grep -E "$err_pattern" | head -n 3 | cut -c1-300 | sed "s/^/LOG_ERR_SAMPLE[$svc]: /"
+  done
+  mark LOG_ERRORS "$total_err"
 
   mark DB_USER_ROWS "$(user_rows)"
-  mark SERVICES "$(dc ps --format '{{.Service}}:{{.State}}' 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
-  mark DOCKER_MEM "$(sudo docker stats --no-stream --format '{{.Name}}={{.MemUsage}}' 2>/dev/null | sed 's/ //g' | tr '\n' ',' | sed 's/,$//')"
-  mark MEM_AVAILABLE_MB "$(free -m | awk '/^Mem:/{print $7}')"
+  mark SERVICES "$(dc ps -a --format '{{.Service}}:{{.State}}' 2>/dev/null | tr '\n' ',' | sed 's/,$//')"
+  mark DOCKER_MEM "$(sudo docker stats --no-stream --format '{{.Name}}={{.MemUsage}}' 2>/dev/null | sed 's/ //g; s/urbanmanagement-//; s/-1=/=/' | tr '\n' ',' | sed 's/,$//')"
+  local avail
+  avail="$(free -m | awk '/^Mem:/{print $7}')"
+  mark MEM_AVAILABLE_MB "$avail"
+  mark MEM_MIN_MB "$MEM_MIN_MB"
+  mark MEM_OK "$( [ "${avail:-0}" -ge "$MEM_MIN_MB" ] && echo yes || echo no)"
+  mark MSSQL_MEMORY_LIMIT_MB "$(svc_exec mssql 'echo $MSSQL_MEMORY_LIMIT_MB')"
   mark DISK_AVAIL_ROOT "$(df -h / | awk 'NR==2{print $4}')"
 }
 
@@ -368,6 +430,7 @@ case "$MODE" in
     check_mount || fail uploads-mount
     deploy_config
     deploy_env
+    env_set UM_MSSQL_MEMORY_LIMIT_MB "$MSSQL_MEM_MB"
     load_env
     deploy_image
     deploy_infra

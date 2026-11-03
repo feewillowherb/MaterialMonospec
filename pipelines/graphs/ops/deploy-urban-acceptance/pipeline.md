@@ -2,9 +2,9 @@
 
 ## 目的 / Goal
 
-把 UrbanManagement Phase 1（`um-app` + `mssql` + `redis`）部署到 Docker 虚拟机的 `5333`，与 IIS（`5233`）并行验收（D8）。附件经 SMB 共用 IIS 的 `Uploads`（D10），导入测试库，关闭对外同步。
+把 UrbanManagement Phase 2（网关 `um-gateway` + 角色 `um-ingest` / `um-console` / `um-worker` + 一次性 `um-migrator` + `mssql` + `redis`）部署到 Docker 虚拟机的 `5333`，与 IIS（`5233`）并行验收（D8）。Phase 1 单应用形态不再验收（D13）；重跑 `deploy` 会以 `--remove-orphans` 移除旧 `um-app`。附件经 SMB 共用 IIS 的 `Uploads`（D10），导入测试库，关闭对外同步。
 
-蓝图：[`docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md) §2。OpenSpec：`openspec/changes/add-urban-docker-deployment`（design 决策 4–8）。上游：`ops/fev-u2-docker`、`ops/fev-u10-uploads-smb`。
+蓝图：[`docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md) §2。OpenSpec：`add-urban-docker-deployment`（基础设施，已归档）、`add-urban-role-split`（角色拆分，design §8–§9）。上游：`ops/fev-u2-docker`、`ops/fev-u10-uploads-smb`。
 
 Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipelines/graphs/ops/deploy-urban-acceptance/`
 
@@ -18,9 +18,9 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 
 | 模式 | 动作 | 副作用 |
 |------|------|--------|
-| `deploy`（须 `-Apply`） | 本机 `dotnet publish` App 与 DataImport → 打包 → scp → 虚拟机：解包到 `/opt/urbanmanagement/releases/<run>`、写 fstab 并启用 `/srv/um-uploads` automount、只读挂载 `wwwroot` 共享取 IIS `appsettings*.json` 合并为 `appsettings.Production.json`（去掉连接串 / Kestrel / 存储路径；读不到时用本机 `appsettings.secret.json` 兜底，`CONFIG_SOURCE=local`）、首次生成 `.env`、`docker build`、起 `mssql`/`redis`、建库与 `um_app` 登录、空库时导入、起 `um-app`、检查 | 改虚拟机（幂等）；验收期测试照片写入生产 `Uploads`（D10 已接受） |
+| `deploy`（须 `-Apply`） | 本机 `dotnet publish` App、Gateway 与 DataImport → 打包 → scp → 虚拟机：解包到 `/opt/urbanmanagement/releases/<run>`、写 fstab 并启用 `/srv/um-uploads` automount、只读挂载 `wwwroot` 共享取 IIS `appsettings*.json` 合并为 `appsettings.Production.json`（去掉连接串 / Kestrel / 存储路径；读不到时用本机 `appsettings.secret.json` 兜底，`CONFIG_SOURCE=local`）、首次生成 `.env`（每次把 `UM_MSSQL_MEMORY_LIMIT_MB` 设为 `mssqlMemoryLimitMb`，D14）、`docker build`、起 `mssql`/`redis`、建库与 `um_app` 登录、空库时导入（经 `um-worker` 服务定义运行导入工具）、`up -d --remove-orphans`（`um-migrator` 成功退出后才启动三个角色，网关最后）、检查 | 改虚拟机（幂等）；验收期测试照片写入生产 `Uploads`（D10 已接受） |
 | `deploy -ResetDatabase` | 同上，但先删除 `UrbanManagement` 库再导入 | 丢弃虚拟机库内数据（人闸 `reset-database-approval`） |
-| `verify` | 只做检查（健康、容器内挂载 / tus / 密钥 / 时区、日志、内存）+ 本机访问 `http://191.12.234.212:5333/health/ready` | 无 |
+| `verify` | 只做检查（网关健康与路由、各角色 ready、迁移容器退出码、backplane、各角色后台任务注册、挂载 / tus / 密钥 / 时区、日志、内存）+ 本机访问 `http://191.12.234.212:5333/health/ready` | 无 |
 
 **密钥：** `sa` 与 `um_app` 密码在虚拟机上生成，只存在 `/opt/urbanmanagement/.env`（`600 root`）与容器环境中；导入工具的目标连接串取自容器自身的 `ConnectionStrings__Default`。本机 `appsettings.secret.json` 只经 SSH 标准输入送达，且只在 IIS 配置读不到时落盘（`600 root`）。cook 后 Agent 应检索 `runs/` 确认无泄漏。
 
@@ -52,7 +52,8 @@ powershell -ExecutionPolicy Bypass -File $s -Mode verify -SkipConfirm
 
 | 证据 | result |
 |------|--------|
-| 远端完成，ready/live 200，容器内 `/app/Uploads` 为 SMB，tus 可写，镜像内无 `appsettings.secret.json`，导入完成或跳过，外部 `5333` 200 | `pass` |
+| 远端完成；网关 ready/live/`/health/gateway` 200；网关 `OPTIONS /api/urban-attachment/tus/` 204 且带 `Tus-Version`（只有 ingest 映射 tus）；网关 `GET /hubs/devicestatus` 400、negotiate 200，ingest 内同路径 404（只有 console 映射 Hub）；三个角色容器内 `/health/ready` 200；`um-migrator` 退出码 0 且日志有迁移完成；旧 `um-app` 不存在；ingest / console 日志写明跳过后台任务，worker 注册快照任务，任何角色未注册 GovSync；Redis 有 `UM:signalr*` 频道；三个角色 `/app/Uploads` 为 SMB；tus 可写；镜像内无 `appsettings.secret.json`；导入完成或跳过；虚拟机可用内存 ≥ `memMinAvailableMb`；外部 `5333` 200 | `pass` |
+| 栈健康但虚拟机可用内存低于 `memMinAvailableMb` | `blocked`（`vm-memory-below-threshold`，扩容由人决策，D14） |
 | 同上但外部 `5333` 不通 | `blocked`（`host-portproxy-required`） |
 | SSH 失败 | `blocked` |
 | 其他 | `fail`（`FAILED_AT` 指出步骤） |
@@ -64,8 +65,8 @@ powershell -ExecutionPolicy Bypass -File $s -Mode verify -SkipConfirm
 | P0 | SSH 可达、私钥可用 | Agent |
 | P1 | 远端脚本 exit 0 | Agent |
 | P2 | 栈在虚拟机内健康（不含外部可达） | Agent |
-| P3 | 是否采纳本 run（含客户端提交测试） | 用户 |
+| P3 | 是否采纳本 run（管理端页面与设备状态；客户端数据连通性按用户决定不验） | 用户 |
 
 ## Handoff
 
-Output socket：`urban-acceptance-deployed`。cook 后 Agent **MUST** 把 Run identity 与结果回写蓝图 `05` §2，并更新 `add-urban-docker-deployment` 的 `tasks.md`。产品通过仍须 Human `APPROVED`。
+Output socket：`urban-acceptance-deployed`。cook 后 Agent **MUST** 把 Run identity 与结果回写蓝图 `05`（Phase 2 段），并更新当前 change（`add-urban-role-split`）的 `tasks.md`。产品通过仍须 Human `APPROVED`。

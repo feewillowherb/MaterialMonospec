@@ -1,12 +1,14 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Ingest cook: deploy UrbanManagement Phase 1 (um-app + mssql + redis) to the Docker VM on 5333 and verify it.
+  Ingest cook: deploy UrbanManagement Phase 2 (gateway + ingest/console/worker/migrator + mssql + redis)
+  to the Docker VM on 5333 and verify it per role.
 .DESCRIPTION
   Modes:
-    deploy  mutating (requires -Apply): local dotnet publish -> bundle -> scp -> remote release, SMB automount,
-            config from the IIS site (read-only share; local fallback), .env, image, mssql/redis, database/login,
-            import into an empty database, um-app, checks. -ResetDatabase drops the database first (human gate).
+    deploy  mutating (requires -Apply): local dotnet publish (app, gateway, import tool) -> bundle -> scp ->
+            remote release, SMB automount, config from the IIS site (read-only share; local fallback), .env,
+            image, mssql/redis, database/login, import into an empty database, migrator + roles + gateway,
+            checks. -ResetDatabase drops the database first (human gate).
     verify  read-only: remote checks + external http://<host>:<port>/health/ready from this machine.
   Secrets: VM-generated passwords stay in /opt/urbanmanagement/.env; the local appsettings.secret.json
   (fallback only) travels on SSH stdin and is never written to evidence.
@@ -92,6 +94,8 @@ $iisSiteDir = C "iisSiteDir" "UrbanManagement"
 $credPath = C "credentialsPath" "/etc/um-uploads.cred"
 $legacyRoot = C "legacyStorageRoot" "C:/wwwroot/UrbanManagement/Uploads"
 $publicPort = C "publicPort" "5333"
+$mssqlMemMb = C "mssqlMemoryLimitMb" "1280"
+$memMinMb = C "memMinAvailableMb" "500"
 $urbanRepo = Join-Path $RepoRoot ((C "urbanRepoRel" "repos/UrbanManagement") -replace '/', '\')
 $sourceDb = Join-Path $RepoRoot ((C "importSourceRel" "_tmp/UrbanManagement_test.upgraded.db") -replace '/', '\')
 $stageRoot = Join-Path $RepoRoot ((C "stageRootRel" "_tmp/deploy-urban") -replace '/', '\')
@@ -147,13 +151,14 @@ try {
             New-Item -ItemType Directory -Force -Path (Join-Path $stageDir "ctx") | Out-Null
             $ctx = Join-Path $stageDir "ctx"
             $started = Get-Date
-            Write-Host "[deploy-urban-acceptance] dotnet publish (app, import tool)"
+            Write-Host "[deploy-urban-acceptance] dotnet publish (app, gateway, import tool)"
             Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.App\UrbanManagement.App.csproj"), "-c", "Release", "-o", (Join-Path $ctx "app"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-app.log")
+            Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.Gateway\UrbanManagement.Gateway.csproj"), "-c", "Release", "-o", (Join-Path $ctx "gateway"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-gateway.log")
             Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "tools\UrbanManagement.DataImport\UrbanManagement.DataImport.csproj"), "-c", "Release", "-o", (Join-Path $ctx "tools\import"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-import.log")
             foreach ($f in @("Dockerfile", "compose.yaml", ".env.example")) {
                 Copy-Item -LiteralPath (Join-Path $urbanRepo "deploy\docker\$f") -Destination (Join-Path $ctx $f)
             }
-            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "app", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
+            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "app", "gateway", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
             $build = [ordered]@{
                 skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty
                 bundleBytes = (Get-Item -LiteralPath $bundle).Length; publishSeconds = [int]((Get-Date) - $started).TotalSeconds
@@ -176,7 +181,7 @@ try {
     $body = [System.IO.File]::ReadAllText($remoteScript, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n" -replace "`r", "`n"
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($body))
     $reset = $(if ($ResetDatabase) { "yes" } else { "no" })
-    $remoteCommand = "bash <(echo $b64 | base64 -d) $Mode $runId $stableHost $uploadsShare $wwwrootShare $credPath $reset '$legacyRoot' $publicPort $iisSiteDir"
+    $remoteCommand = "bash <(echo $b64 | base64 -d) $Mode $runId $stableHost $uploadsShare $wwwrootShare $credPath $reset '$legacyRoot' $publicPort $iisSiteDir $mssqlMemMb $memMinMb"
 
     $probeError = $null
     $result = $null
@@ -216,16 +221,31 @@ try {
     $rationale = @()
     $gate = $null
     $resultText = "fail"
-    $remoteOk = (M "DONE") -eq "yes" -and (M "READY_HTTP") -eq "200" -and (M "LIVE_HTTP") -eq "200"
-    $containerOk = (M "CONTAINER_UPLOADS_FS") -in @("smb2", "cifs") -and (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and
-        (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
+    function N([string] $k) { $v = 0; [void][int]::TryParse((M $k), [ref]$v); return $v }
+    $remoteOk = (M "DONE") -eq "yes" -and (M "READY_HTTP") -eq "200" -and (M "LIVE_HTTP") -eq "200" -and (M "GW_HEALTH_HTTP") -eq "200"
+    $rolesOk = (M "ROLE_INGEST_READY") -eq "200" -and (M "ROLE_CONSOLE_READY") -eq "200" -and (M "ROLE_WORKER_READY") -eq "200" -and
+        (M "MIGRATOR_EXIT") -eq "0" -and (N "LOG_MIGRATOR_MIGRATED") -ge 1 -and (M "UM_APP_PRESENT") -eq "0"
+    $routingOk = (M "GW_TUS_OPTIONS_HTTP") -eq "204" -and -not [string]::IsNullOrWhiteSpace((M "GW_TUS_VERSION")) -and
+        (M "GW_HUB_HTTP") -eq "400" -and (M "GW_NEGOTIATE_HTTP") -eq "200" -and (M "ROLE_INGEST_HUB") -eq "404" -and (M "ROLE_CONSOLE_HUB") -eq "400"
+    $workersOk = (N "LOG_INGEST_WORKERS_SKIPPED") -ge 1 -and (N "LOG_CONSOLE_WORKERS_SKIPPED") -ge 1 -and (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and
+        ((N "LOG_INGEST_GOVSYNC_REGISTERED") + (N "LOG_CONSOLE_GOVSYNC_REGISTERED") + (N "LOG_WORKER_GOVSYNC_REGISTERED")) -eq 0
+    $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
+    $smb = @("smb2", "cifs")
+    $containerOk = (M "ROLE_INGEST_UPLOADS_FS") -in $smb -and (M "ROLE_CONSOLE_UPLOADS_FS") -in $smb -and (M "ROLE_WORKER_UPLOADS_FS") -in $smb -and
+        (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
+    $memOk = (M "MEM_OK") -eq "yes"
+    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $backplaneOk -and $containerOk -and $importOk
     if (-not $marks.Count) {
         $resultText = "blocked"
         $rationale += "SSH execution failed (exitCode=$exitCode): $probeError"
     }
-    elseif ($remoteOk -and $containerOk -and $importOk) {
-        if ($external -eq "200") { $resultText = "pass" }
+    elseif ($stackOk) {
+        if (-not $memOk) {
+            $resultText = "blocked"; $gate = "vm-memory-below-threshold"
+            $rationale += "Stack is healthy but VM available memory $(M 'MEM_AVAILABLE_MB') MB < $(M 'MEM_MIN_MB') MB (D14): VM expansion is a human decision."
+        }
+        elseif ($external -eq "200") { $resultText = "pass" }
         else {
             $resultText = "blocked"; $gate = "host-portproxy-required"
             $rationale += "Stack is healthy inside the VM, but $externalUrl from this machine is ${external}: host portproxy / firewall for $publicPort is a human step."
@@ -233,20 +253,24 @@ try {
     }
     else {
         if (M "FAILED_AT") { $rationale += "Remote step failed at $(M 'FAILED_AT')." }
-        if (-not $remoteOk) { $rationale += "Health: ready=$(M 'READY_HTTP') live=$(M 'LIVE_HTTP') done=$(M 'DONE')." }
-        if (-not $containerOk) { $rationale += "Container checks: uploads fs=$(M 'CONTAINER_UPLOADS_FS') host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
+        if (-not $remoteOk) { $rationale += "Gateway health: ready=$(M 'READY_HTTP') live=$(M 'LIVE_HTTP') gateway=$(M 'GW_HEALTH_HTTP') done=$(M 'DONE')." }
+        if (-not $rolesOk) { $rationale += "Roles: ingest=$(M 'ROLE_INGEST_READY') console=$(M 'ROLE_CONSOLE_READY') worker=$(M 'ROLE_WORKER_READY') migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
+        if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP') ingest hub=$(M 'ROLE_INGEST_HUB') console hub=$(M 'ROLE_CONSOLE_HUB')." }
+        if (-not $workersOk) { $rationale += "Workers: ingest skipped=$(M 'LOG_INGEST_WORKERS_SKIPPED') console skipped=$(M 'LOG_CONSOLE_WORKERS_SKIPPED') worker snapshot=$(M 'LOG_WORKER_SNAPSHOT_REGISTERED') govsync ingest/console/worker=$(M 'LOG_INGEST_GOVSYNC_REGISTERED')/$(M 'LOG_CONSOLE_GOVSYNC_REGISTERED')/$(M 'LOG_WORKER_GOVSYNC_REGISTERED')." }
+        if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
+        if (-not $containerOk) { $rationale += "Container checks: uploads fs ingest/console/worker=$(M 'ROLE_INGEST_UPLOADS_FS')/$(M 'ROLE_CONSOLE_UPLOADS_FS')/$(M 'ROLE_WORKER_UPLOADS_FS') host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }
     }
     $rationale += "Config source=$(M 'CONFIG_SOURCE') (IIS files: $(M 'IIS_FILES'); mount error: $(M 'IIS_MOUNT_ERROR')); Windows-path keys: $(M 'PROD_WINDOWS_PATH_KEYS')."
     $rationale += "Import=$(M 'IMPORT') rows=$(M 'IMPORT_SOURCE_ROWS') tables=$(M 'IMPORT_TABLES') blocking=$(M 'IMPORT_BLOCKING') checks failed=$(M 'IMPORT_CHECKS_FAILED')/$(M 'IMPORT_CHECKS') missing attachments=$(M 'IMPORT_MISSING_ATTACHMENTS'); DB rows now=$(M 'DB_USER_ROWS')."
-    $rationale += "Logs: $(M 'LOG_ERRORS') error lines of $(M 'LOG_LINES'); GovSync lines=$(M 'LOG_GOVSYNC_LINES'). Memory available=$(M 'MEM_AVAILABLE_MB') MB; $(M 'DOCKER_MEM')."
+    $rationale += "Logs: $(M 'LOG_ERRORS') error lines across roles. Memory available=$(M 'MEM_AVAILABLE_MB') MB (min $(M 'MEM_MIN_MB')); MSSQL cap=$(M 'MSSQL_MEMORY_LIMIT_MB') MB; $(M 'DOCKER_MEM')."
 
     $parse = [ordered]@{ stage = $Mode; analyzedBy = "agent"; result = $resultText; gate = $gate; markers = $marks; rationale = $rationale }
     Write-Utf8NoBom -Path (Join-Path $prepareDir "deploy-$Mode-parse.json") -Content ($parse | ConvertTo-Json -Depth 6)
 
     $p0 = [bool](Get-Command ssh -ErrorAction SilentlyContinue)
     $p1 = $exitCode -eq 0
-    $p2 = $p1 -and $remoteOk -and $containerOk -and $importOk
+    $p2 = $p1 -and $stackOk -and $memOk
     $summary = [ordered]@{
         graphId = "deploy-urban-acceptance"; graphPath = "pipelines/graphs/ops/deploy-urban-acceptance"
         runId = $runId; result = $resultText; mode = $Mode; resetDatabase = [bool]$ResetDatabase
