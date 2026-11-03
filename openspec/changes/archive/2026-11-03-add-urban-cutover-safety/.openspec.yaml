@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: M
+  tokens_estimate: "20万-40万"
+  notes: "单仓 UrbanManagement：导入工具 export-sqlite、备份侧车与还原脚本；monospec 新增演练 Graph、部署 Graph 带 ops 脚本"

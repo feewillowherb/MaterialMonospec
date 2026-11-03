@@ -35,6 +35,8 @@ deploy_release() {
   sudo mkdir -p "$RELEASE" && sudo tar -xzf "$STAGE/bundle.tgz" -C "$RELEASE" || fail extract
   sudo install -m 644 "$RELEASE/compose.yaml" "$BASE/compose.yaml"
   sudo install -m 644 "$RELEASE/.env.example" "$BASE/.env.example"
+  sudo install -d -m 755 "$BASE/ops"
+  sudo install -m 755 "$RELEASE"/ops/*.sh "$BASE/ops/" || fail ops-scripts
   mark RELEASE "$RELEASE"
 }
 
@@ -387,6 +389,8 @@ checks() {
   mark MIGRATOR_EXIT "$( [ -n "$migrator_id" ] && sudo docker inspect -f '{{.State.ExitCode}}' "$migrator_id" 2>/dev/null || echo none)"
   mark UM_APP_PRESENT "$(sudo docker ps -a --format '{{.Names}}' | grep -cx 'urbanmanagement-um-app-1' || true)"
 
+  mark BACKUP_SIDECAR "$(dc ps --format '{{.State}}' mssql-backup 2>/dev/null | head -n 1)"
+  mark BACKUP_SCHEDULE "$(dc logs --no-color mssql-backup 2>/dev/null | sed -n 's/.*backup schedule: //p' | tail -n 1)"
   mark BACKPLANE_CHANNELS "$(dc exec -T redis redis-cli --raw PUBSUB CHANNELS 'UM:signalr*' 2>/dev/null | grep -c . || true)"
 
   mark CONTAINER_TZ "$(svc_exec um-console 'date +%Z')"

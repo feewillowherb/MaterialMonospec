@@ -1,0 +1,75 @@
+id: "cutover-safety-drill"
+created: "2026-11-03"
+graph:
+  product: urban
+  domain: ops
+  family: probe
+  goal: ops-cutover-safety-drill
+  status: active
+environment: acceptance
+stopOnError: false
+# SSH target is shared with the deploy Graph.
+secretsRef: ../deploy-urban-acceptance/secrets.local.yaml
+sockets:
+  start: urban-acceptance-deployed
+  end: urban-cutover-safety-proved
+cook: new-object
+
+target:
+  secretsRel: ../deploy-urban-acceptance/secrets.local.yaml
+  identityFileName: docker-linux-ed25519
+  blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
+
+prerequisites:
+  - ops/deploy-urban-acceptance pass with an image that contains export-sqlite and the mssql-backup sidecar
+  - at least one pre-cutover SQLite copy under /opt/urbanmanagement/import/source-*.db (left by the deploy import)
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/
+  - id: backup
+    name: SSH; mssql-backup.sh once (full backup with CHECKSUM + VERIFYONLY)
+  - id: restore-check
+    name: SSH; restore that backup into <db>_RestoreCheck, CHECKDB, compare user-table rows, drop it
+  - id: rollback-export
+    name: SSH; export-sqlite of all SQL Server rows into a copy of the newest source-*.db inside a --rm container
+  - id: agent-analyze
+    name: prepare/drill-parse.json, summary.json, report.md
+
+expect:
+  - id: ssh-sudo
+    level: P0
+    description: SSH works and sudo is non-interactive
+  - id: drill-completed
+    level: P1
+    description: Remote drill ran to the end
+  - id: all-checks
+    level: P2
+    description: backup, restore check, rollback export (rows and storage formats) all pass
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  ssh: { required: true, sink: ssh-drill/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - missing-identity
+
+failurePolicy:
+  retries: 0
+  stopOnError: false
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-CutoverSafetyDrill.ps1
+    experimental: true
