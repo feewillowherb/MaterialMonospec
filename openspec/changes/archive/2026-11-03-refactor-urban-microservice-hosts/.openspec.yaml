@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: L
+  tokens_estimate: "40万-80万"
+  notes: "UrbanManagement.App 拆为 Hosting 共享库 + Ingest/Attachment/Realtime/Admin/Worker/Migrator 六个服务工程；每服务一镜像；按服务过滤 ABP auto API；compose / 部署 Graph 改为多镜像并加工程拆分结构检查；三条 ops Graph 回归"

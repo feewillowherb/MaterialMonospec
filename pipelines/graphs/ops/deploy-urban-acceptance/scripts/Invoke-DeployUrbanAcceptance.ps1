@@ -1,11 +1,11 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Ingest cook: deploy UrbanManagement Phase 2 (Phase 3: gateway + ingest x2/attachment/realtime/admin/worker/migrator + mssql + redis)
-  to the Docker VM on 5333 and verify it per role.
+  Ingest cook: deploy UrbanManagement (one image per service project: gateway, ingest x2, attachment, realtime, admin,
+  worker, migrator + mssql + redis) to the Docker VM on 5333 and verify it per service.
 .DESCRIPTION
   Modes:
-    deploy  mutating (requires -Apply): local dotnet publish (app, gateway, import tool) -> bundle -> scp ->
+    deploy  mutating (requires -Apply): local dotnet publish (each service, import tool) -> bundle -> scp ->
             remote release, SMB automount, config from the IIS site (read-only share; local fallback), .env,
             image, mssql/redis, database/login, import into an empty database, migrator + roles + gateway,
             checks. -ResetDatabase drops the database first (human gate).
@@ -142,6 +142,7 @@ try {
     $sshCommon = @{ HostName = $hostVal; User = $userVal; Port = $portVal; RepoRoot = $RepoRoot; IdentityFileName = $identityForSsh }
 
     $build = [ordered]@{ skipped = $true }
+    $services = @("Gateway", "Ingest", "Attachment", "Realtime", "Admin", "Worker", "Migrator")
     if ($Mode -eq "deploy") {
         $commit = (& git -C $urbanRepo rev-parse --short HEAD).Trim()
         $branch = (& git -C $urbanRepo rev-parse --abbrev-ref HEAD).Trim()
@@ -151,18 +152,19 @@ try {
             New-Item -ItemType Directory -Force -Path (Join-Path $stageDir "ctx") | Out-Null
             $ctx = Join-Path $stageDir "ctx"
             $started = Get-Date
-            Write-Host "[deploy-urban-acceptance] dotnet publish (app, gateway, import tool)"
-            Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.App\UrbanManagement.App.csproj"), "-c", "Release", "-o", (Join-Path $ctx "app"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-app.log")
-            Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.Gateway\UrbanManagement.Gateway.csproj"), "-c", "Release", "-o", (Join-Path $ctx "gateway"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-gateway.log")
+            Write-Host "[deploy-urban-acceptance] dotnet publish ($($services -join ', '), import tool)"
+            foreach ($svc in $services) {
+                Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.$svc\UrbanManagement.$svc.csproj"), "-c", "Release", "-o", (Join-Path $ctx "services\$svc"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-$($svc.ToLower()).log")
+            }
             Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "tools\UrbanManagement.DataImport\UrbanManagement.DataImport.csproj"), "-c", "Release", "-o", (Join-Path $ctx "tools\import"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-import.log")
             foreach ($f in @("Dockerfile", "compose.yaml", ".env.example")) {
                 Copy-Item -LiteralPath (Join-Path $urbanRepo "deploy\docker\$f") -Destination (Join-Path $ctx $f)
             }
-            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "app", "gateway", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
+            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "services", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
             $build = [ordered]@{
-                skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty
+                skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty; services = $services
                 bundleBytes = (Get-Item -LiteralPath $bundle).Length; publishSeconds = [int]((Get-Date) - $started).TotalSeconds
-                secretJsonInBundle = Test-Path -LiteralPath (Join-Path $ctx "app\appsettings.secret.json")
+                secretJsonInBundle = @(Get-ChildItem -Path (Join-Path $ctx "services") -Recurse -Filter "appsettings.secret.json").Count -gt 0
             }
         }
         elseif (-not (Test-Path -LiteralPath $bundle)) { throw "-SkipPublish needs an existing bundle: $bundle" }
@@ -173,7 +175,7 @@ try {
         [void](& $SharedInvoke @sshCommon -RemoteCommand "mv /tmp/um-deploy/$runId/$(Split-Path -Leaf $sourceDb) /tmp/um-deploy/$runId/source.db" -EvidenceDir (Join-Path $RunDir "ssh-stage-rename") -SkipDestructiveCheck)
     }
 
-    $localSecret = Join-Path $urbanRepo "src\UrbanManagement.App\appsettings.secret.json"
+    $localSecret = Join-Path $urbanRepo "src\UrbanManagement.Hosting\appsettings.secret.json"
     $stdinText = "`n"
     if ($Mode -eq "deploy" -and (Test-Path -LiteralPath $localSecret)) {
         $stdinText = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($localSecret)) + "`n"
@@ -234,19 +236,31 @@ try {
     $routingOk = (M "GW_TUS_OPTIONS_HTTP") -eq "204" -and -not [string]::IsNullOrWhiteSpace((M "GW_TUS_VERSION")) -and
         (M "GW_HUB_HTTP") -eq "400" -and (M "GW_NEGOTIATE_HTTP") -eq "200" -and $hubOk -and
         (M "ROLE_ATTACHMENT_TUS_OPTIONS") -eq "204" -and (M "ROLE_INGEST_TUS_OPTIONS") -ne "204" -and
-        (M "ROLE_ADMIN_ROOT") -in @("200", "302") -and
-        (M "GW_INTERNAL_HTTP") -eq "404" -and (M "ADMIN_TO_REALTIME_INTERNAL") -eq "200" -and (M "ADMIN_INTERNAL_LOCAL") -eq "404" -and
+        (M "ROLE_ADMIN_ROOT") -in @("200", "302") -and (M "ROLE_REALTIME_ROOT") -eq "404" -and
+        (M "GW_INTERNAL_HTTP") -eq "404" -and (M "ADMIN_TO_REALTIME_INTERNAL") -eq "200" -and
         (M "GW_CLIENT_LOG_APP_HTTP") -eq "200"
     $govSyncTotal = 0; foreach ($k in $roleKeys) { $govSyncTotal += (N "LOG_$($k)_GOVSYNC_REGISTERED") }
-    $workersOk = @($nonWorkerKeys | Where-Object { (N "LOG_$($_)_WORKERS_SKIPPED") -lt 1 }).Count -eq 0 -and
+    $workersOk = @($nonWorkerKeys | Where-Object { (N "LOG_$($_)_SNAPSHOT_REGISTERED") -ne 0 }).Count -eq 0 -and
         (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and $govSyncTotal -eq 0
+    # Project split: each container runs its own service assembly and carries no other service's assembly;
+    # tus only in attachment, Blazor only in admin, the import tool only in worker.
+    $serviceOf = @{ INGEST = "Ingest"; INGEST_2 = "Ingest"; ATTACHMENT = "Attachment"; REALTIME = "Realtime"; ADMIN = "Admin"; WORKER = "Worker" }
+    $splitBad = @($roleKeys | Where-Object {
+            $svc = $serviceOf[$_]
+            (M "LOG_$($_)_SERVICE") -ne "UrbanManagement.$svc" -or
+            (M "ROLE_$($_)_SERVICE_DLLS") -ne "UrbanManagement.$svc" -or
+            (M "ROLE_$($_)_TUS_DLL") -ne $(if ($svc -eq "Attachment") { "yes" } else { "no" }) -or
+            (M "ROLE_$($_)_BLAZOR_DLL") -ne $(if ($svc -eq "Admin") { "yes" } else { "no" }) -or
+            (M "ROLE_$($_)_IMPORT_TOOL") -ne $(if ($svc -eq "Worker") { "yes" } else { "no" })
+        })
+    $splitOk = $splitBad.Count -eq 0 -and (N "SERVICE_IMAGES") -eq 7
     $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
     $smb = @("smb2", "cifs")
     $containerOk = @($roleKeys | Where-Object { (M "ROLE_$($_)_UPLOADS_FS") -notin $smb }).Count -eq 0 -and
         (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
     $memOk = (M "MEM_OK") -eq "yes"
-    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $backplaneOk -and $containerOk -and $importOk
+    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $splitOk -and $backplaneOk -and $containerOk -and $importOk
     if (-not $marks.Count) {
         $resultText = "blocked"
         $rationale += "SSH execution failed (exitCode=$exitCode): $probeError"
@@ -266,8 +280,9 @@ try {
         if (M "FAILED_AT") { $rationale += "Remote step failed at $(M 'FAILED_AT')." }
         if (-not $remoteOk) { $rationale += "Gateway health: ready=$(M 'READY_HTTP') live=$(M 'LIVE_HTTP') gateway=$(M 'GW_HEALTH_HTTP') done=$(M 'DONE')." }
         if (-not $rolesOk) { $rationale += "Roles ready: $(RoleMarks 'READY'); migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
-        if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP'); role hub $(RoleMarks 'HUB'); tus attachment/ingest=$(M 'ROLE_ATTACHMENT_TUS_OPTIONS')/$(M 'ROLE_INGEST_TUS_OPTIONS'); root admin/realtime=$(M 'ROLE_ADMIN_ROOT')/$(M 'ROLE_REALTIME_ROOT'); gateway /internal=$(M 'GW_INTERNAL_HTTP'); admin->realtime internal=$(M 'ADMIN_TO_REALTIME_INTERNAL') admin local internal=$(M 'ADMIN_INTERNAL_LOCAL'); gateway /api/app/client-log=$(M 'GW_CLIENT_LOG_APP_HTTP')." }
-        if (-not $workersOk) { $rationale += "Workers: skipped $(LogMarks 'WORKERS_SKIPPED'); worker snapshot=$(M 'LOG_WORKER_SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal." }
+        if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP'); role hub $(RoleMarks 'HUB'); tus attachment/ingest=$(M 'ROLE_ATTACHMENT_TUS_OPTIONS')/$(M 'ROLE_INGEST_TUS_OPTIONS'); root admin/realtime=$(M 'ROLE_ADMIN_ROOT')/$(M 'ROLE_REALTIME_ROOT'); gateway /internal=$(M 'GW_INTERNAL_HTTP'); admin->realtime internal=$(M 'ADMIN_TO_REALTIME_INTERNAL'); gateway /api/app/client-log=$(M 'GW_CLIENT_LOG_APP_HTTP')." }
+        if (-not $workersOk) { $rationale += "Workers: snapshot registered $(LogMarks 'SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal." }
+        if (-not $splitOk) { $rationale += "Project split: images=$(M 'SERVICE_IMAGES'); mismatched $($splitBad -join ','); service $(LogMarks 'SERVICE'); dlls $(RoleMarks 'SERVICE_DLLS'); tus $(RoleMarks 'TUS_DLL'); blazor $(RoleMarks 'BLAZOR_DLL'); import $(RoleMarks 'IMPORT_TOOL')." }
         if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
         if (-not $containerOk) { $rationale += "Container checks: uploads fs $(RoleMarks 'UPLOADS_FS'); host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }

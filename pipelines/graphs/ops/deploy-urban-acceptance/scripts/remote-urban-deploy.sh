@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UrbanManagement Phase 2 on the Docker VM: release -> SMB automount -> config -> .env -> image ->
+# UrbanManagement on the Docker VM: release -> SMB automount -> config -> .env -> one image per service ->
 # mssql/redis -> database/login -> import -> migrator + ingest x2/attachment/realtime/admin/worker + gateway -> checks.
 # "verify" runs the checks only.
 # Never echo secrets: passwords live only in $BASE/.env (600 root) and container environments.
@@ -10,6 +10,7 @@ MODE="$1"; RUN_ID="$2"; HOST="$3"; UPLOADS_SHARE="$4"; WWWROOT_SHARE="$5"; CRED=
 RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"; MSSQL_MEM_MB="${11:-1280}"
 MEM_MIN_MB="${12:-500}"
 APP_ROLES="um-ingest um-ingest-2 um-attachment um-realtime um-admin um-worker"
+SERVICES="Gateway Ingest Attachment Realtime Admin Worker Migrator"
 
 STAGE="/tmp/um-deploy/$RUN_ID"
 BASE=/opt/urbanmanagement
@@ -208,16 +209,25 @@ load_env() {
   set +a
 }
 
+# One image per service project, all tagged with the run id (compose uses :latest).
 deploy_image() {
-  local started=$SECONDS
-  if sudo docker build -t "urbanmanagement-app:$RUN_ID" -t urbanmanagement-app:latest "$RELEASE" >/tmp/um-build.log 2>&1; then
-    mark IMAGE "urbanmanagement-app:$RUN_ID"
-    mark IMAGE_BUILD_S "$((SECONDS - started))"
-    rm -f /tmp/um-build.log
-  else
-    tail -n 20 /tmp/um-build.log
-    fail docker-build
-  fi
+  local started=$SECONDS svc name target built=0
+  for svc in $SERVICES; do
+    name="urbanmanagement-$(echo "$svc" | tr '[:upper:]' '[:lower:]')"
+    target=service
+    [ "$svc" = Worker ] && target=worker
+    if sudo docker build --target "$target" --build-arg "SERVICE=$svc" -t "$name:$RUN_ID" -t "$name:latest" "$RELEASE" \
+        >/tmp/um-build.log 2>&1; then
+      built=$((built + 1))
+    else
+      tail -n 20 /tmp/um-build.log
+      fail "docker-build-$svc"
+    fi
+  done
+  rm -f /tmp/um-build.log
+  mark IMAGE_TAG "$RUN_ID"
+  mark IMAGES_BUILT "$built"
+  mark IMAGE_BUILD_S "$((SECONDS - started))"
 }
 
 deploy_infra() {
@@ -361,6 +371,15 @@ checks() {
   done
   mark READY_HTTP "${ready:-none}"
   mark READY_WAIT_S "$((SECONDS - started))"
+  # Gateway /health/ready is answered by admin; realtime may still be starting.
+  local negotiate=""
+  for _ in $(seq 1 30); do
+    negotiate="$(http_code -X POST "$gw/hubs/devicestatus/negotiate?negotiateVersion=1")"
+    [ "$negotiate" = 200 ] && break
+    sleep 2
+  done
+  mark REALTIME_WAIT_S "$((SECONDS - started))"
+  mark SERVICE_IMAGES "$(dc ps -a --format '{{.Image}}' 2>/dev/null | grep '^urbanmanagement-' | sort -u | wc -l)"
   mark GW_HEALTH_HTTP "$(http_code "$gw/health/gateway")"
   mark LIVE_HTTP "$(http_code "$gw/health/live")"
   mark ROOT_HTTP "$(http_code "$gw/")"
@@ -385,13 +404,16 @@ checks() {
     mark "ROLE_${key}_READY" "$(role_http "$svc" GET /health/ready)"
     mark "ROLE_${key}_HUB" "$(role_http "$svc" GET /hubs/devicestatus)"
     mark "ROLE_${key}_UPLOADS_FS" "$(svc_exec "$svc" 'stat -f -c %T /app/Uploads')"
+    mark "ROLE_${key}_SERVICE_DLLS" "$(svc_exec "$svc" 'cd /app && ls UrbanManagement.*.dll | sed "s/\.dll$//" | grep -v -x -e UrbanManagement.Core -e UrbanManagement.Hosting | tr "\n" "," | sed "s/,$//"')"
+    mark "ROLE_${key}_TUS_DLL" "$(svc_exec "$svc" 'test -f /app/tusdotnet.dll && echo yes || echo no')"
+    mark "ROLE_${key}_BLAZOR_DLL" "$(svc_exec "$svc" 'test -f /app/Volo.Abp.AspNetCore.Components.Server.dll && echo yes || echo no')"
+    mark "ROLE_${key}_IMPORT_TOOL" "$(svc_exec "$svc" 'test -f /app/tools/import/UrbanManagement.DataImport.dll && echo yes || echo no')"
   done
   mark ROLE_INGEST_TUS_OPTIONS "$(role_http um-ingest OPTIONS /api/urban-attachment/tus/)"
   mark ROLE_ATTACHMENT_TUS_OPTIONS "$(role_http um-attachment OPTIONS /api/urban-attachment/tus/)"
   mark ROLE_ADMIN_ROOT "$(role_http um-admin GET /)"
   mark ROLE_REALTIME_ROOT "$(role_http um-realtime GET /)"
   mark ADMIN_TO_REALTIME_INTERNAL "$(peer_http um-admin um-realtime GET /internal/client-log/online-clients)"
-  mark ADMIN_INTERNAL_LOCAL "$(role_http um-admin GET /internal/client-log/online-clients)"
 
   local migrator_id
   migrator_id="$(dc ps -a -q um-migrator 2>/dev/null | head -n 1)"
@@ -414,8 +436,7 @@ checks() {
     n="$(printf '%s\n' "$logs" | grep -c -E "$err_pattern" || true)"
     total_err=$((total_err + n))
     mark "LOG_${key}_ERRORS" "$n"
-    mark "LOG_${key}_ROLES" "$(printf '%s\n' "$logs" | sed -n 's/.*Hosting roles: //p' | head -n 1 | cut -c1-60)"
-    mark "LOG_${key}_WORKERS_SKIPPED" "$(printf '%s\n' "$logs" | grep -c 'Background workers not registered' || true)"
+    mark "LOG_${key}_SERVICE" "$(printf '%s\n' "$logs" | sed -n 's/.*UrbanManagement service: \([A-Za-z.]*\).*/\1/p' | tail -n 1)"
     mark "LOG_${key}_SNAPSHOT_REGISTERED" "$(printf '%s\n' "$logs" | grep -c 'ClientStatusSnapshotBackgroundWorker registered' || true)"
     mark "LOG_${key}_GOVSYNC_REGISTERED" "$(printf '%s\n' "$logs" | grep -c 'GovSyncBackgroundWorker registered' || true)"
     mark "LOG_${key}_MIGRATED" "$(printf '%s\n' "$logs" | grep -c 'Database migration completed' || true)"

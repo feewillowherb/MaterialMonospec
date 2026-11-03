@@ -48,13 +48,13 @@ steps:
   - id: bind-config
     name: Read config/secrets; create runs/<ts>/
   - id: publish
-    name: dotnet publish App + Gateway + DataImport; bundle with deploy/docker files (deploy only)
+    name: dotnet publish each service project (Gateway, Ingest, Attachment, Realtime, Admin, Worker, Migrator) + DataImport; bundle with deploy/docker files (deploy only)
   - id: upload
     name: scp bundle and import source to /tmp/um-deploy/<run>/ (deploy only)
   - id: remote-deploy
-    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, image, mssql/redis, database/login, import, um-migrator then um-ingest x2/um-attachment/um-realtime/um-admin/um-worker + um-gateway (--remove-orphans)
+    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, one image per service, mssql/redis, database/login, import, um-migrator then um-ingest x2/um-attachment/um-realtime/um-admin/um-worker + um-gateway (--remove-orphans)
   - id: remote-checks
-    name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, mounts, logs, memory (deploy and verify)
+    name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, per-container service assembly / tus / Blazor / import tool, mounts, logs, memory (deploy and verify)
   - id: external-check
     name: http://<host>:5333/health/ready from this machine
   - id: agent-analyze
@@ -69,7 +69,7 @@ expect:
     description: Remote script exit 0
   - id: stack-healthy
     level: P2
-    description: gateway ready/live/health 200; tus via gateway reaches attachment (204 + Tus-Version) and hub reaches realtime; only attachment maps tus, only realtime maps the hub, only admin maps the Blazor hub; gateway refuses /internal; admin reaches realtime /internal/client-log; roles ready; migrator exit 0; workers only on um-worker; backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
+    description: gateway ready/live/health 200; tus via gateway reaches attachment (204 + Tus-Version) and hub reaches realtime; only attachment maps tus, only realtime maps the hub, only admin maps the Blazor hub; gateway refuses /internal; admin reaches realtime /internal/client-log; roles ready; migrator exit 0; workers only on um-worker; 7 service images built and each container carries only its own service assembly (tus only in attachment, Blazor only in admin, import tool only in worker); backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
   - id: user-ack
     level: P3
     description: User-only (includes the client submit test)
