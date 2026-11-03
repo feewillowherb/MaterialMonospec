@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-03
+effort:
+  tier: S
+  tokens_estimate: "3万-8万"
+  notes: "移除备份侧车与脚本；两个 ops Graph 同步；虚拟机清理演练备份文件"

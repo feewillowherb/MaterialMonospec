@@ -1,12 +1,10 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Probe cook: backup, restore check and rollback export against the deployed UrbanManagement Phase 2 stack.
+  Probe cook: rollback export against the deployed UrbanManagement Phase 2 stack.
 .DESCRIPTION
-  Over SSH: one full MSSQL backup (mssql-backup sidecar), restore of that backup into a scratch database with
-  CHECKDB and row comparison (scratch database dropped), then `export-sqlite` of all SQL Server rows into a copy of
-  the newest pre-cutover SQLite import source inside a throwaway container. The live database is only read.
-  Leaves one backup file in the um-mssql volume (normal retention applies) and the export JSON report under import/.
+  Over SSH: `export-sqlite` of all SQL Server rows into a copy of the newest pre-cutover SQLite import source
+  inside a throwaway container. The live database is only read; only the export JSON report is kept under import/.
 #>
 [CmdletBinding()]
 param(
@@ -58,7 +56,7 @@ $portVal = 2222; [void][int]::TryParse((Get-YamlScalar $secretsText "port" 0), [
 $passVal = Get-YamlScalar $secretsText "identityPassphrase" 0
 
 if (-not $SkipConfirm) {
-    Write-Host "[cutover-safety-drill] ssh=${userVal}@${hostVal}:$portVal (backup + scratch restore + rollback export; live DB read-only)"
+    Write-Host "[cutover-safety-drill] ssh=${userVal}@${hostVal}:$portVal (rollback export; live DB read-only)"
     if ((Read-Host "Continue? [y/N]") -notmatch '^(y|yes)$') { throw "Aborted by user." }
 }
 if ([string]::IsNullOrWhiteSpace($RunDir)) { $RunDir = Join-Path $GraphRoot ("runs\" + (Get-Date -Format "yyyy-MM-ddTHHmmss")) }
@@ -96,9 +94,6 @@ finally {
 
 function M([string] $k) { if ($marks.Contains($k)) { [string]$marks[$k] } else { "" } }
 $checks = [ordered]@{
-    "backup-sidecar"   = (M "BACKUP_SIDECAR") -eq "running"
-    "backup-once"      = -not [string]::IsNullOrWhiteSpace((M "BACKUP_FILE")) -and (M "BACKUP") -ne "failed"
-    "restore-check"    = (M "RESTORE_CHECK") -eq "ok" -and (M "RESTORE_CHECKDB") -eq "ok" -and (M "RESTORE_SCRATCH_LEFT") -eq "0"
     "rollback-export"  = (M "EXPORT_EXIT") -eq "0" -and (M "EXPORT_RESULT") -eq "passed" -and (M "EXPORT_CHECKS_FAILED") -eq "0" -and (M "EXPORT_BLOCKING") -eq "0"
     "export-formats"   = [int]("0" + (M "EXPORT_FORMAT_CHECKS")) -ge 1
 }

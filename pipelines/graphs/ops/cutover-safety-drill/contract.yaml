@@ -21,10 +21,9 @@ output:
     - summary.json
     - report.md
 invariants:
-  - the live database is only read; the restore check uses a scratch database that is dropped in the same run
+  - the live database is only read
   - the rollback SQLite file exists only inside a --rm container; only its JSON report is kept
-  - leaves one backup file in the um-mssql volume; the sidecar's normal retention prunes it
-  - no secrets in argv or evidence; the sa password stays in the sidecar environment
+  - no secrets in argv or evidence
   - uses pipelines/_shared/ops/ssh helpers only; temporary .batch identity is deleted after cook
   - Pipeline result is not product APPROVED
 acceptance: P0-P3

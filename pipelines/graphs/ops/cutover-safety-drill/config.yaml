@@ -21,16 +21,12 @@ target:
   blueprintDoc: docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md
 
 prerequisites:
-  - ops/deploy-urban-acceptance pass with an image that contains export-sqlite and the mssql-backup sidecar
+  - ops/deploy-urban-acceptance pass with an image that contains export-sqlite
   - at least one pre-cutover SQLite copy under /opt/urbanmanagement/import/source-*.db (left by the deploy import)
 
 steps:
   - id: bind-config
     name: Read config/secrets; create runs/<ts>/
-  - id: backup
-    name: SSH; mssql-backup.sh once (full backup with CHECKSUM + VERIFYONLY)
-  - id: restore-check
-    name: SSH; restore that backup into <db>_RestoreCheck, CHECKDB, compare user-table rows, drop it
   - id: rollback-export
     name: SSH; export-sqlite of all SQL Server rows into a copy of the newest source-*.db inside a --rm container
   - id: agent-analyze
@@ -45,7 +41,7 @@ expect:
     description: Remote drill ran to the end
   - id: all-checks
     level: P2
-    description: backup, restore check, rollback export (rows and storage formats) all pass
+    description: rollback export (rows and storage formats) passes
   - id: user-ack
     level: P3
     description: User-only

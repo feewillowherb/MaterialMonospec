@@ -158,12 +158,7 @@ try {
             foreach ($f in @("Dockerfile", "compose.yaml", ".env.example")) {
                 Copy-Item -LiteralPath (Join-Path $urbanRepo "deploy\docker\$f") -Destination (Join-Path $ctx $f)
             }
-            New-Item -ItemType Directory -Force -Path (Join-Path $ctx "ops") | Out-Null
-            foreach ($script in Get-ChildItem -LiteralPath (Join-Path $urbanRepo "deploy\docker\ops") -Filter "*.sh") {
-                $text = [IO.File]::ReadAllText($script.FullName).Replace("`r`n", "`n")
-                [IO.File]::WriteAllText((Join-Path $ctx "ops\$($script.Name)"), $text, (New-Object Text.UTF8Encoding($false)))
-            }
-            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "app", "gateway", "tools", "ops", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
+            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "app", "gateway", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
             $build = [ordered]@{
                 skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty
                 bundleBytes = (Get-Item -LiteralPath $bundle).Length; publishSeconds = [int]((Get-Date) - $started).TotalSeconds
@@ -235,13 +230,12 @@ try {
     $workersOk = (N "LOG_INGEST_WORKERS_SKIPPED") -ge 1 -and (N "LOG_CONSOLE_WORKERS_SKIPPED") -ge 1 -and (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and
         ((N "LOG_INGEST_GOVSYNC_REGISTERED") + (N "LOG_CONSOLE_GOVSYNC_REGISTERED") + (N "LOG_WORKER_GOVSYNC_REGISTERED")) -eq 0
     $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
-    $backupOk = (M "BACKUP_SIDECAR") -eq "running" -and -not [string]::IsNullOrWhiteSpace((M "BACKUP_SCHEDULE"))
     $smb = @("smb2", "cifs")
     $containerOk = (M "ROLE_INGEST_UPLOADS_FS") -in $smb -and (M "ROLE_CONSOLE_UPLOADS_FS") -in $smb -and (M "ROLE_WORKER_UPLOADS_FS") -in $smb -and
         (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
     $memOk = (M "MEM_OK") -eq "yes"
-    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $backplaneOk -and $backupOk -and $containerOk -and $importOk
+    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $backplaneOk -and $containerOk -and $importOk
     if (-not $marks.Count) {
         $resultText = "blocked"
         $rationale += "SSH execution failed (exitCode=$exitCode): $probeError"
@@ -263,9 +257,7 @@ try {
         if (-not $rolesOk) { $rationale += "Roles: ingest=$(M 'ROLE_INGEST_READY') console=$(M 'ROLE_CONSOLE_READY') worker=$(M 'ROLE_WORKER_READY') migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
         if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP') ingest hub=$(M 'ROLE_INGEST_HUB') console hub=$(M 'ROLE_CONSOLE_HUB')." }
         if (-not $workersOk) { $rationale += "Workers: ingest skipped=$(M 'LOG_INGEST_WORKERS_SKIPPED') console skipped=$(M 'LOG_CONSOLE_WORKERS_SKIPPED') worker snapshot=$(M 'LOG_WORKER_SNAPSHOT_REGISTERED') govsync ingest/console/worker=$(M 'LOG_INGEST_GOVSYNC_REGISTERED')/$(M 'LOG_CONSOLE_GOVSYNC_REGISTERED')/$(M 'LOG_WORKER_GOVSYNC_REGISTERED')." }
-        if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
-        if (-not $backupOk) { $rationale += "Backup sidecar: state=$(M 'BACKUP_SIDECAR') schedule=$(M 'BACKUP_SCHEDULE')." }
-        if (-not $containerOk) { $rationale += "Container checks: uploads fs ingest/console/worker=$(M 'ROLE_INGEST_UPLOADS_FS')/$(M 'ROLE_CONSOLE_UPLOADS_FS')/$(M 'ROLE_WORKER_UPLOADS_FS') host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
+        if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }        if (-not $containerOk) { $rationale += "Container checks: uploads fs ingest/console/worker=$(M 'ROLE_INGEST_UPLOADS_FS')/$(M 'ROLE_CONSOLE_UPLOADS_FS')/$(M 'ROLE_WORKER_UPLOADS_FS') host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }
     }
     $rationale += "Config source=$(M 'CONFIG_SOURCE') (IIS files: $(M 'IIS_FILES'); mount error: $(M 'IIS_MOUNT_ERROR')); Windows-path keys: $(M 'PROD_WINDOWS_PATH_KEYS')."

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Cutover safety drill on the Docker VM (non-destructive for the live database):
-#   1. one full backup now (mssql-backup sidecar)        2. restore it into a scratch database, CHECKDB, compare rows, drop it
-#   3. rollback export: newest import source (pre-cutover SQLite copy) + all SQL Server rows -> SQLite inside a throwaway container
-# Never echo secrets: the sa password stays in the sidecar environment; the app connection string in um-worker's.
+# Cutover safety drill on the Docker VM (live database is only read):
+#   rollback export: newest import source (pre-cutover SQLite copy) + all SQL Server rows -> SQLite inside a throwaway container
+# Never echo secrets: the app connection string stays in um-worker's environment.
 set -uo pipefail
 
 RUN_ID="$1"
@@ -11,19 +10,6 @@ mark() { echo "@@ $1=$2"; }
 dc() { sudo docker compose --project-directory "$BASE" -f "$BASE/compose.yaml" "$@"; }
 
 if sudo -n true 2>/dev/null; then mark SUDO_NOPASSWD yes; else mark SUDO_NOPASSWD no; exit 1; fi
-mark BACKUP_SIDECAR "$(dc ps --format '{{.State}}' mssql-backup 2>/dev/null | head -n 1)"
-
-started=$SECONDS
-dc exec -T mssql-backup bash /opt/um/mssql-backup.sh once 2>&1 | grep -E '^@@ |backup' | tr -d '\r'
-mark BACKUP_S "$((SECONDS - started))"
-
-started=$SECONDS
-dc exec -T mssql-backup bash /opt/um/mssql-backup.sh verify-restore 2>&1 | grep -E '^@@ ' | tr -d '\r'
-mark VERIFY_S "$((SECONDS - started))"
-mark BACKUP_FILES "$(dc exec -T mssql-backup sh -c 'ls -1 /var/opt/mssql/backup/*.bak 2>/dev/null | wc -l' | tr -d '\r')"
-mark BACKUP_DIR_BYTES "$(dc exec -T mssql-backup sh -c 'du -sb /var/opt/mssql/backup | cut -f1' | tr -d '\r')"
-mark DISK_AVAIL_ROOT "$(df -h / | awk 'NR==2{print $4}')"
-
 # import/ is 750 for the container user: expand the glob as root.
 template="$(sudo sh -c "ls -1t $BASE/import/source-*.db 2>/dev/null" | head -n 1)"
 if [ -z "$template" ]; then
