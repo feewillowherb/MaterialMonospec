@@ -3,3 +3,4 @@ created: "2026-11-04"
 updated: "2026-11-04"
 # Cost / UI impact of moving MaterialClient weight display (and related rounding) from 2 to 3 decimal tons
 # Trigger: Waybill 866676267929669 — DB 6.995/6.045 vs UI F2 7.00 / ~6.05; PlanWeight Round(2) false deviation
+# Scope locked: UI only for 毛重/皮重/净重. No DB rewrite. 超正差/超负差 out of scope. A1 hardcode 3dp or A2 setting. Live CurrentWeight default out.
