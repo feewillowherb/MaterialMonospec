@@ -31,7 +31,14 @@ target:
   credentialsPath: /etc/um-uploads.cred
   # Absolute LocalPath prefix written by the IIS deployment; forward slashes avoid shell quoting of backslashes.
   legacyStorageRoot: C:/wwwroot/UrbanManagement/Uploads
+  # After cutover (2026-11-04): this Graph is the daily formal release path.
+  # production — allow GovSync only on um-worker.
+  # acceptance — historical dry profile: GovSync must be off everywhere.
+  deployProfile: production
+  # VM compose publish + in-VM health (UM_PUBLIC_PORT). Host no longer exposes 5333.
   publicPort: 5333
+  # Host-side /health/ready after cutover (host 5233 → VM publicPort).
+  externalProbePort: 5233
   # D14: Phase 2 without VM expansion; MSSQL cap lowered, VM available memory below the minimum => gate.
   mssqlMemoryLimitMb: 1280
   memMinAvailableMb: 500
@@ -56,7 +63,7 @@ steps:
   - id: remote-checks
     name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, per-container service assembly / tus / Blazor / import tool, mounts, logs, memory (deploy and verify)
   - id: external-check
-    name: http://<host>:5333/health/ready from this machine
+    name: http://<host>:externalProbePort/health/ready (5233); VM still listens on publicPort
   - id: agent-analyze
     name: Agent writes prepare/deploy-<mode>-parse.json, summary.json, report.md
 
@@ -69,7 +76,7 @@ expect:
     description: Remote script exit 0
   - id: stack-healthy
     level: P2
-    description: gateway ready/live/health 200; tus via gateway reaches attachment (204 + Tus-Version) and hub reaches realtime; only attachment maps tus, only realtime maps the hub, only admin maps the Blazor hub; gateway refuses /internal; admin reaches realtime /internal/client-log; roles ready; migrator exit 0; workers only on um-worker; 7 service images built and each container carries only its own service assembly (tus only in attachment, Blazor only in admin, import tool only in worker); backplane channel present; Uploads is SMB in every role; tus writable; no secret json; import done or skipped; VM memory >= memMinAvailableMb
+    description: gateway/role routing and split checks; snapshot only on worker; GovSync per deployProfile (acceptance=none; production=worker-only); 7 images; SMB Uploads; host externalProbePort ready; VM memory >= memMinAvailableMb
   - id: user-ack
     level: P3
     description: User-only (includes the client submit test)

@@ -30,10 +30,13 @@ invariants:
   - the local appsettings.secret.json travels only on SSH stdin and is used only when the IIS config is unreadable
   - the wwwroot share is mounted read-only and unmounted in the same run
   - import writes only into an empty database; a non-empty database is skipped unless -ResetDatabase
-  - outbound sync stays off (BasePlatformSync__Enabled / BackgroundServices__Polling false, GovAddress empty)
+  - deployProfile=acceptance requires GovSync unregistered on every role (dry / parallel-IIS)
+  - deployProfile=production (default after cutover) allows GovSync only on um-worker; non-worker roles must stay at 0
+  - host-side health uses externalProbePort (5233) only; publicPort (5333) remains VM compose listen and is not host-facing
   - Phase 2 only: um-gateway is the only service publishing a port; sync switches can only be enabled on um-worker
   - VM available memory below memMinAvailableMb yields gate vm-memory-below-threshold (D14), never an automatic VM change
   - the host side (portproxy, firewall, IIS) is never changed by this Graph
+  - CONFIG_SOURCE=local after cutover (IIS wwwroot share unreadable) is expected and not a fail by itself
   - temporary .batch identity is deleted after cook
   - Pipeline result is not product APPROVED
 acceptance: P0-P3

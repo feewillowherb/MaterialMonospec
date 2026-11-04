@@ -2,7 +2,8 @@
 <#
 .SYNOPSIS
   Ingest cook: deploy UrbanManagement (one image per service project: gateway, ingest x2, attachment, realtime, admin,
-  worker, migrator + mssql + redis) to the Docker VM on 5333 and verify it per service.
+  worker, migrator + mssql + redis) to the Docker VM. Default deployProfile=production (host probe 5233 + worker GovSync OK);
+  acceptance profile keeps GovSync-off. VM still publishes publicPort (5333); host no longer uses 5333.
 .DESCRIPTION
   Modes:
     deploy  mutating (requires -Apply): local dotnet publish (each service, import tool) -> bundle -> scp ->
@@ -94,6 +95,12 @@ $iisSiteDir = C "iisSiteDir" "UrbanManagement"
 $credPath = C "credentialsPath" "/etc/um-uploads.cred"
 $legacyRoot = C "legacyStorageRoot" "C:/wwwroot/UrbanManagement/Uploads"
 $publicPort = C "publicPort" "5333"
+$externalProbePort = C "externalProbePort" "5233"
+if ([string]::IsNullOrWhiteSpace($externalProbePort)) { $externalProbePort = $publicPort }
+$deployProfile = (C "deployProfile" "production").ToLowerInvariant()
+if ($deployProfile -notin @("production", "acceptance")) {
+    throw "target.deployProfile must be 'production' or 'acceptance' (got '$deployProfile')."
+}
 $mssqlMemMb = C "mssqlMemoryLimitMb" "1280"
 $memMinMb = C "memMinAvailableMb" "500"
 $urbanRepo = Join-Path $RepoRoot ((C "urbanRepoRel" "repos/UrbanManagement") -replace '/', '\')
@@ -207,18 +214,28 @@ try {
     }
     function M([string] $k) { if ($marks.Contains($k)) { return [string]$marks[$k] } return "" }
 
-    $externalUrl = "http://${stableHost}:$publicPort/health/ready"
-    $external = "unreachable"
-    try {
-        # A system proxy would answer for the host (e.g. 502) and hide whether the port is really reachable.
-        [System.Net.WebRequest]::DefaultWebProxy = New-Object System.Net.WebProxy
-        $resp = Invoke-WebRequest -Uri $externalUrl -UseBasicParsing -TimeoutSec 8
-        $external = [string]$resp.StatusCode
+    function Test-ExternalReady([string] $port) {
+        if ([string]::IsNullOrWhiteSpace($port)) { return "skipped" }
+        $url = "http://${stableHost}:$port/health/ready"
+        try {
+            # A system proxy would answer for the host (e.g. 502) and hide whether the port is really reachable.
+            [System.Net.WebRequest]::DefaultWebProxy = New-Object System.Net.WebProxy
+            $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 8
+            return [string]$resp.StatusCode
+        }
+        catch {
+            if ($_.Exception.Response) { return [string][int]$_.Exception.Response.StatusCode }
+            return "unreachable"
+        }
     }
-    catch {
-        if ($_.Exception.Response) { $external = [string][int]$_.Exception.Response.StatusCode } else { $external = "unreachable" }
-    }
+
+    # Host cutover listens on externalProbePort (5233); VM compose still uses publicPort (5333).
+    $externalUrl = "http://${stableHost}:$externalProbePort/health/ready"
+    $external = Test-ExternalReady $externalProbePort
     $marks["EXTERNAL_READY_HTTP"] = $external
+    $marks["EXTERNAL_PROBE_PORT"] = $externalProbePort
+    $marks["VM_PUBLIC_PORT"] = $publicPort
+    $marks["DEPLOY_PROFILE"] = $deployProfile
 
     $rationale = @()
     $gate = $null
@@ -240,8 +257,16 @@ try {
         (M "GW_INTERNAL_HTTP") -eq "404" -and (M "ADMIN_TO_REALTIME_INTERNAL") -eq "200" -and
         (M "GW_CLIENT_LOG_APP_HTTP") -eq "200"
     $govSyncTotal = 0; foreach ($k in $roleKeys) { $govSyncTotal += (N "LOG_$($k)_GOVSYNC_REGISTERED") }
+    $govSyncNonWorker = 0; foreach ($k in $nonWorkerKeys) { $govSyncNonWorker += (N "LOG_$($k)_GOVSYNC_REGISTERED") }
+    # acceptance: no GovSync anywhere (parallel-IIS dry stack).
+    # production: GovSync may register on um-worker only (formal sync/polling enabled in .env).
+    $govSyncOk = if ($deployProfile -eq "production") {
+        $govSyncNonWorker -eq 0
+    } else {
+        $govSyncTotal -eq 0
+    }
     $workersOk = @($nonWorkerKeys | Where-Object { (N "LOG_$($_)_SNAPSHOT_REGISTERED") -ne 0 }).Count -eq 0 -and
-        (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and $govSyncTotal -eq 0
+        (N "LOG_WORKER_SNAPSHOT_REGISTERED") -ge 1 -and $govSyncOk
     # Project split: each container runs its own service assembly and carries no other service's assembly;
     # tus only in attachment, Blazor only in admin, the import tool only in worker.
     $serviceOf = @{ INGEST = "Ingest"; INGEST_2 = "Ingest"; ATTACHMENT = "Attachment"; REALTIME = "Realtime"; ADMIN = "Admin"; WORKER = "Worker" }
@@ -273,7 +298,7 @@ try {
         elseif ($external -eq "200") { $resultText = "pass" }
         else {
             $resultText = "blocked"; $gate = "host-portproxy-required"
-            $rationale += "Stack is healthy inside the VM, but $externalUrl from this machine is ${external}: host portproxy / firewall for $publicPort is a human step."
+            $rationale += "Stack is healthy inside the VM, but $externalUrl from this machine is ${external}: host portproxy / firewall for $externalProbePort (→ VM $publicPort) is a human step."
         }
     }
     else {
@@ -281,13 +306,16 @@ try {
         if (-not $remoteOk) { $rationale += "Gateway health: ready=$(M 'READY_HTTP') live=$(M 'LIVE_HTTP') gateway=$(M 'GW_HEALTH_HTTP') done=$(M 'DONE')." }
         if (-not $rolesOk) { $rationale += "Roles ready: $(RoleMarks 'READY'); migrator exit=$(M 'MIGRATOR_EXIT') migrated=$(M 'LOG_MIGRATOR_MIGRATED') um-app present=$(M 'UM_APP_PRESENT')." }
         if (-not $routingOk) { $rationale += "Routing: tus OPTIONS=$(M 'GW_TUS_OPTIONS_HTTP') Tus-Version=$(M 'GW_TUS_VERSION') hub=$(M 'GW_HUB_HTTP') negotiate=$(M 'GW_NEGOTIATE_HTTP'); role hub $(RoleMarks 'HUB'); tus attachment/ingest=$(M 'ROLE_ATTACHMENT_TUS_OPTIONS')/$(M 'ROLE_INGEST_TUS_OPTIONS'); root admin/realtime=$(M 'ROLE_ADMIN_ROOT')/$(M 'ROLE_REALTIME_ROOT'); gateway /internal=$(M 'GW_INTERNAL_HTTP'); admin->realtime internal=$(M 'ADMIN_TO_REALTIME_INTERNAL'); gateway /api/app/client-log=$(M 'GW_CLIENT_LOG_APP_HTTP')." }
-        if (-not $workersOk) { $rationale += "Workers: snapshot registered $(LogMarks 'SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal." }
+        if (-not $workersOk) {
+            $rationale += "Workers: snapshot registered $(LogMarks 'SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal nonWorker=$govSyncNonWorker profile=$deployProfile."
+        }
         if (-not $splitOk) { $rationale += "Project split: images=$(M 'SERVICE_IMAGES'); mismatched $($splitBad -join ','); service $(LogMarks 'SERVICE'); dlls $(RoleMarks 'SERVICE_DLLS'); tus $(RoleMarks 'TUS_DLL'); blazor $(RoleMarks 'BLAZOR_DLL'); import $(RoleMarks 'IMPORT_TOOL')." }
         if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
         if (-not $containerOk) { $rationale += "Container checks: uploads fs $(RoleMarks 'UPLOADS_FS'); host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }
     }
-    $rationale += "Config source=$(M 'CONFIG_SOURCE') (IIS files: $(M 'IIS_FILES'); mount error: $(M 'IIS_MOUNT_ERROR')); Windows-path keys: $(M 'PROD_WINDOWS_PATH_KEYS')."
+    $rationale += "Profile=$deployProfile; host probe $externalProbePort=$external; VM publish port=$publicPort."
+    $rationale += "Config source=$(M 'CONFIG_SOURCE') (IIS files: $(M 'IIS_FILES'); mount error: $(M 'IIS_MOUNT_ERROR')); Windows-path keys: $(M 'PROD_WINDOWS_PATH_KEYS'). After cutover, CONFIG_SOURCE=local with IIS mount denied is expected when wwwroot share is unavailable."
     $rationale += "Import=$(M 'IMPORT') rows=$(M 'IMPORT_SOURCE_ROWS') tables=$(M 'IMPORT_TABLES') blocking=$(M 'IMPORT_BLOCKING') checks failed=$(M 'IMPORT_CHECKS_FAILED')/$(M 'IMPORT_CHECKS') missing attachments=$(M 'IMPORT_MISSING_ATTACHMENTS'); DB rows now=$(M 'DB_USER_ROWS')."
     $rationale += "Logs: $(M 'LOG_ERRORS') error lines across roles. Memory available=$(M 'MEM_AVAILABLE_MB') MB (min $(M 'MEM_MIN_MB')); MSSQL cap=$(M 'MSSQL_MEMORY_LIMIT_MB') MB; $(M 'DOCKER_MEM')."
 
@@ -302,7 +330,9 @@ try {
         runId = $runId; result = $resultText; mode = $Mode; resetDatabase = [bool]$ResetDatabase
         host = $hostVal; user = $userVal; port = $portVal; exitCode = $exitCode
         levels = [ordered]@{ P0 = $p0; P1 = $p1; P2 = $p2; P3 = "user-only" }
-        gate = $gate; externalReady = $external; build = $build; error = $probeError
+        gate = $gate; deployProfile = $deployProfile
+        externalReady = $external; externalProbePort = $externalProbePort; vmPublicPort = $publicPort
+        build = $build; error = $probeError
     }
     Write-Utf8NoBom -Path (Join-Path $RunDir "summary.json") -Content ($summary | ConvertTo-Json -Depth 6)
 
