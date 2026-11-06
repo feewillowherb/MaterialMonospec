@@ -1,0 +1,16 @@
+version: "1"
+graphId: solidwaste-legacy-net-flag-ingest
+inputs:
+  - name: database
+    description: MaterialClient SQLite with Waybills.ExtraProperties
+  - name: targets
+    description: plateNumber + joinTime + outTime second prefixes (config scenario.targets)
+outputs:
+  - name: summary.json
+    description: Located ids, before/after ExtraProperties snippets, dryRun flag
+  - name: report.md
+    description: Human-readable cook report
+invariants:
+  - Exactly one Waybill per target or fail
+  - Never overwrite ExtraProperties wholesale; merge flag key only
+  - dryRun default true; write only with -Write / dryRun false

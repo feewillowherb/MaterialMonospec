@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-07
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "ExtraProperties bool + branch at export/print/UI; mark 3 legacy waybills separately"

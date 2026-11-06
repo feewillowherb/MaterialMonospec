@@ -224,6 +224,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 | waybill-softdelete-join-gap | probe | `graphs/materialclient/waybill-softdelete-join-probe/` | active |
 | solidwaste-oct-export-include-soft-masters | transform | `graphs/materialclient/solidwaste-oct-export-include-softdelete/` | active |
+| solidwaste-legacy-independent-net-flag | ingest | `graphs/materialclient/solidwaste-legacy-net-flag-ingest/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
 | ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |
