@@ -6,3 +6,7 @@ updated: "2026-11-10"
 # and repeat-stable must not re-upload.
 # Weight curve is not required: threshold crossing + last uploaded stable weight.
 # Experiment language for this topic: net10.0 replay. TS stays for sqlite cooks.
+# 03: illustrative normal / abnormal / busy timelines for plate pushes and weight.
+# Human: one LPR device on site. Plate events have no Enter/Exit split.
+# 04: scale 9-10m by 3m at site entrance; camera 45 deg, 3-4m, above plate.
+# Entry sees the front plate. Exit shows the rear; exit uploads are not required.
