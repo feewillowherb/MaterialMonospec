@@ -1,10 +1,11 @@
 # UrbanManagement — Windows Server 发布流程手册
 
-> 面向将 `UrbanManagement` 部署到 Windows Server 的运维与开发人员。
+> **生命周期：`HISTORICAL`（2026-11-04）。** 正式环境已切入 Docker Phase 3（口 `5233`）。现行运维见 [docker-server-deploy.md](./docker-server-deploy.md)；切流回写见 [`05` §3.1](../2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md)。
+> 本文仅保留 **观察期回滚到 IIS + SQLite** 时的参考步骤；**禁止**再对正式口做 IIS robocopy 发版。
 
 **版本**: 1.1  
-**最后更新**: 2026-06-18  
-**适用项目**: `repos/UrbanManagement`（.NET 10 / ABP / Blazor Server / SQLite）
+**最后更新**: 2026-11-04（标 HISTORICAL）  
+**适用项目**: `repos/UrbanManagement`（历史：.NET 10 / ABP / Blazor Server / SQLite / IIS）
 
 ---
 

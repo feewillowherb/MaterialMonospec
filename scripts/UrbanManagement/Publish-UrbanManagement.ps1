@@ -1,5 +1,9 @@
 ﻿# UrbanManagement 发布到 IIS 站点目录
 #
+# HISTORICAL（2026-11-04）：正式口 5233 已切入 Docker。日常发版用
+#   pipelines/graphs/ops/deploy-urban-acceptance/
+# 本脚本仅观察期回滚到 IIS 时参考；勿对正式 Docker 口做 robocopy。
+#
 # 服务器 IIS 物理路径: C:\wwwroot\UrbanManagement
 # 远程发布 UNC（SMB 共享 wwwroot）: \\191.12.234.212\wwwroot\UrbanManagement
 # 认证: 从凭据管理器读取 TERMSRV/191.12.234.212（用户 admin），脚本内不保存密码。

@@ -1,0 +1,5 @@
+topic: 2026-11-03-material-urban-client-log-upload-review
+created: "2026-11-03"
+updated: "2026-11-03"
+# Follow-up: empty-file hang + PullLogsByDate FilePath rewrite confirmed in source
+# Review of MaterialClient.Urban ↔ UrbanManagement Realtime "客户端日志" (server-pull over SignalR)

@@ -1,4 +1,5 @@
 topic: 2026-11-02-urbanmanagement-docker-mssql-upgrade
 created: "2026-11-02"
-updated: "2026-11-03"
+updated: "2026-11-04"
 # D19: microservice hosts stay in repos/UrbanManagement (no multi-repo)
+# 2026-11-04: Docker Phase 3 cut over to production port 5233 (Human confirmed)

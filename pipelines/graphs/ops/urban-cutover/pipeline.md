@@ -2,6 +2,8 @@
 
 切换日 Graph：把验收中的 Phase 3 栈切到现网流量（蓝图 [`05`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md) §3）。
 
+> **状态（2026-11-04）：** Human 确认正式口 `5233` 已切入 Docker Phase 3（回写 [`05` §3.1](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md)）。本 Graph 保留用于核对 / 复盘；日常发版用 `ops/deploy-urban-acceptance`。
+
 ## 做什么
 
 | Mode | 默认 | 作用 |
