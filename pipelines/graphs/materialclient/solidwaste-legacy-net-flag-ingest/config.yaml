@@ -1,0 +1,102 @@
+id: solidwaste-legacy-net-flag-ingest
+created: "2026-11-07"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: ingest
+  goal: solidwaste-legacy-independent-net-flag
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-idle
+  end: flag-written
+cook: in-place
+
+target:
+  # Default: local copy under _tmp (see pipeline.md). Override via secrets.local.yaml databasePath.
+  databaseRel: _tmp/1110/MaterialClient.db
+  flagKey: SolidWasteInfo.UseIndependentDisplayedNet
+  flagValue: true
+
+scenario:
+  dryRun: true
+  # Match Waybills by PlateNumber + JoinTime/OutTime second-precision prefix.
+  # 2026-11-03 rows whose Round(OrderGoodsWeight, 2) is the listed net.
+  targets:
+    - plateNumber: 浙A06L07
+      joinTime: "2026-11-03 08:22:24"
+      outTime: "2026-11-03 08:26:33"
+    - plateNumber: 浙A20B28
+      joinTime: "2026-11-03 08:32:38"
+      outTime: "2026-11-03 08:37:37"
+    - plateNumber: 浙A68L08
+      joinTime: "2026-11-03 09:03:25"
+      outTime: "2026-11-03 09:06:38"
+    - plateNumber: 浙A26E23
+      joinTime: "2026-11-03 11:18:04"
+      outTime: "2026-11-03 11:20:47"
+    - plateNumber: 浙A67E60
+      joinTime: "2026-11-03 13:14:53"
+      outTime: "2026-11-03 13:22:55"
+    - plateNumber: 浙A06L07
+      joinTime: "2026-11-03 13:38:39"
+      outTime: "2026-11-03 13:42:22"
+    - plateNumber: 浙A69G26
+      joinTime: "2026-11-03 14:33:28"
+      outTime: "2026-11-03 14:37:49"
+    - plateNumber: 浙A53R8T
+      joinTime: "2026-11-03 14:29:30"
+      outTime: "2026-11-03 14:38:51"
+
+steps:
+  - id: bind-paths
+    name: Resolve SQLite path / runDir
+  - id: locate-waybills
+    name: Locate Waybills by plate + join/out second prefix
+  - id: cook-flag
+    name: Merge ExtraProperties flag (dryRun or write)
+  - id: validate
+    name: Re-read ExtraProperties; assert flag present when write
+
+expect:
+  - id: db-reachable
+    level: L0
+    description: MaterialClient.db opens and Waybills exists
+  - id: targets-located
+    level: L1
+    description: Exactly one Waybill per target (8 rows)
+  - id: flag-applied
+    level: L2
+    description: After -Write, each ExtraProperties has UseIndependentDisplayedNet=true
+  - id: business-ok
+    level: L3
+    description: User confirms UI/export/print show independent net for these 8 — user only
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - dry-run-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ingest:
+    mode: script-invoke
+    script: scripts/Invoke-SolidwasteLegacyNetFlag.ps1
+    experimental: true
+    nodeTool: scripts/set-independent-net-flag.ts
