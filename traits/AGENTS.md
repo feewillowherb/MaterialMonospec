@@ -36,7 +36,7 @@
 | standard-words | `standard-words-trait.md` | 标准用语 |
 | guess-governance | `guess-governance-trait.md` | 猜测治理。其 L1–L3 是需求风险，不与 ICD L1–L4 或 Pipeline P0–P3 互推 |
 | bmad | `bmad-trait.md` | 选用 BMAD 仪式时。场景路由仍以 `docs/AGENTS.md` 为准 |
-| technology-first | `technology-first-trait.md` | 多个实现或依赖之间选型。不得重开已写定的 Node.js cook |
+| technology-first | `technology-first-trait.md` | 多个实现或依赖之间选型。默认 Node.js cook 保持不变；net10.0 实验运行时见 `pipelines/AGENTS.md` §4.2 |
 | chinese-technical-writing | `chinese-technical-writing-trait.md` | 新建或改写中文技术说明 |
 
 ## 非目标

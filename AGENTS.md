@@ -329,7 +329,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | icd | `traits/icd-trait.md` | 声明或评审 Capability 交付；tasks 勾选不等于交付 |
 | ced | `traits/ced-trait.md` | 已授权 Epic 的显式 STOP / Defer；状态 PENDING |
 | docs | `traits/docs-trait.md` | 新建或维护可复用项目知识；状态 PENDING |
-| pipelines | `traits/pipelines-trait.md` | Graph 的 Contract、Run identity、Evidence、P0–P3；不改 Node.js cook |
+| pipelines | `traits/pipelines-trait.md` | Graph 的 Contract、Run identity、Evidence、P0–P3；默认 Node.js cook 不改。net10.0 实验运行时见 `pipelines/AGENTS.md` §4.2 |
 
 ### effort-token-estimate（硬约束摘要）
 

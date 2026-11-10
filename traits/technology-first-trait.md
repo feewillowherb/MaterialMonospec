@@ -16,6 +16,6 @@ trait:
 
 ## Already decided
 
-`pipelines/AGENTS.md` §4 已经写定 Node.js cook：复杂 cook 用 TypeScript，短探针可用 `.mjs`。本 trait 不得把这次选型重新打开，也不得把 cook 改成 Python。
+`pipelines/AGENTS.md` §4 已经写定默认 Node.js cook：复杂 cook 用 TypeScript，短探针可用 `.mjs`。本 trait 不得把默认 cook 改成 Python，也不得把现有 Node cook 改写成 C#。§4.2 的 `net10.0` 是附加实验运行时，不是这次选型的替代。
 
 产品语言与框架以根 `AGENTS.md` 的子仓说明为准。权威分层升级不改变这些选择。

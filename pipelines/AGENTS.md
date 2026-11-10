@@ -142,7 +142,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 
 密钥：仅 `secrets.local.yaml`（gitignore）。**MUST NOT** 把密码写进 `pipeline.md` / `config.yaml`。
 
-**Node/TS runtime**：`pipelines/package.json` + pnpm；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。**MUST NOT** 在 pipeline 中引入 C# 小工具（避免 `bin/`/`obj/` 产物）；SQLite 用 Node ≥ 22.5 内置 `node:sqlite`。
+**Node/TS runtime**：`pipelines/package.json` + pnpm；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。默认 cook 仍是 Node。SQLite 的 Node cook 用 Node ≥ 22.5 内置 `node:sqlite`。可行性实验可另加 **net10.0** 控制台项目，规则见 §4.2。
 
 ### 4.1 Cook 脚本语言选型（Node）
 
@@ -163,6 +163,26 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 
 参考：`graphs/materialclient/solidwaste-pair-ingest/scripts/ingest-pair.ts`、`_shared/urban/tools/upsert-license-info/`。
 
+### 4.2 .NET 10 实验运行时
+
+默认 cook 保持 Node.js / TypeScript。需要用与 `MaterialClient` 相同的 TFM 重放纯逻辑时，Graph 内可以加一个 **net10.0** 控制台实验项目。这不替换现有 `.ts` cook，也不把产品工程引进 pipeline。
+
+| 规则 | 说明 |
+|------|------|
+| TFM | `net10.0` |
+| SDK | `pipelines/global.json` 指向 10.0，`rollForward: latestFeature`，`allowPrerelease: false` |
+| 位置 | `graphs/<domain>/<slug>/src/*.csproj` |
+| 调用 | 该 Graph 的 `scripts/*.ps1` 执行 `dotnet run --project <csproj> -- <args>` |
+| 脚手架 | 从 [`_template/dotnet/`](_template/dotnet/) 复制，再改命名空间与逻辑 |
+| 产物 | `bin/`、`obj/` 已由 `pipelines/.gitignore` 忽略；**MUST NOT** 提交 |
+| 边界 | 不 `ProjectReference` 到 `repos/`；不改产品行为；不写生产库；密钥仍只进 `secrets.local.yaml` |
+
+硬约束：
+
+- 现有 `node:sqlite` cook **保持 TypeScript**。不得把已有 Graph 内核改写成 C#。
+- 实验项目是 FEV 证据用途。cook 的 P0–P3 仍不代表产品通过。
+- 新建实验 Graph 仍走 §3 选型与 §5 清单；`pipeline.md` 写明 Cook 是 `dotnet run`，并标 `experimental`。
+
 ---
 
 ## 5. 新建 / 退役清单
@@ -175,6 +195,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 - [ ] 同 `goal` 无第二个 `active`
 - [ ] 脚本只放该 Graph 的 `scripts/`，标 `experimental`
 - [ ] 复杂 Node cook 用 `.ts` + `tsx`（见 §4.1）；短探针才允许 `.mjs`
+- [ ] 若该 Graph 含 .NET 实验：TFM `net10.0`，工程在 `src/`，经 `scripts/*.ps1` 调用；不提交 `bin/`、`obj/`（见 §4.2）
 
 **退役**
 

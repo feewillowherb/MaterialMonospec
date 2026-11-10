@@ -12,6 +12,7 @@ trait:
   status: Established
   type: Engineering Method
   runtime: nodejs
+  experimentRuntime: net10.0
 ```
 
 ## What a pipeline is
@@ -26,7 +27,7 @@ trait:
 |------|------|
 | Goal | 同一终态槽；同时只一条 `active` Graph |
 | Graph | `pipelines/graphs/<domain>/<slug>/` |
-| Cook | 按 `pipelines/AGENTS.md` §4 执行的 Node.js cook |
+| Cook | 按 `pipelines/AGENTS.md` §4 执行的 Node.js cook。§4.2 允许另加 net10.0 实验项目 |
 | Contract | `contract.yaml`：输入、输出、不变量 |
 | Evidence | 一次 Run 目录里的产物 |
 | Acceptance | 用 P0–P3 解释 Evidence |
@@ -74,4 +75,4 @@ ICD 使用 L1–L4。`guess-governance` 使用自己的 L1–L3。三者不得�
 
 ## Cook runtime
 
-本仓 cook runtime 是 Node.js。复杂 cook 用 TypeScript，短探针可用 `.mjs`。本 trait 不把 cook 改成 Python，也不重开这个选型。
+本仓默认 cook runtime 是 Node.js。复杂 cook 用 TypeScript，短探针可用 `.mjs`。本 trait 不把默认 cook 改成 Python。Human 已授权的附加实验运行时是 `net10.0`，位置与边界以 `pipelines/AGENTS.md` §4.2 为准。
