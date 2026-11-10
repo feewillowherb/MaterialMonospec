@@ -1,0 +1,8 @@
+topic: 2026-11-10-urban-busy-weighing-upload-on-stable
+created: "2026-11-10"
+updated: "2026-11-10"
+# Code archaeology: why Urban attended weighing waits for OffScale before Pending upload.
+# Human 2026-11-10: misread plates, exit+entry plates both visible while stable,
+# and repeat-stable must not re-upload.
+# Weight curve is not required: threshold crossing + last uploaded stable weight.
+# Experiment language for this topic: net10.0 replay. TS stays for sqlite cooks.
