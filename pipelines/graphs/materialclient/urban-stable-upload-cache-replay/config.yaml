@@ -1,0 +1,39 @@
+id: urban-stable-upload-cache-replay
+created: "2026-11-11"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: transform
+  goal: urban-stable-upload-cache-replay
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.example.yaml
+sockets:
+  start: scripted-weight-and-plate
+  end: bill-replay-compared
+cook: new-object
+experimentalRuntime: net10.0
+
+target:
+  fixture: fixtures/scenarios.json
+  doc: docs/2026-11-11-urban-stable-upload-cache/02-车牌时序.md
+  minWeightTons: 0.5
+  fallbackSeconds: 900
+
+steps:
+  - dotnet-run
+
+capture:
+  summary: summary.json
+  report: report.md
+
+expect:
+  - id: replay-matches-fixture
+    level: P2
+
+humanGates:
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

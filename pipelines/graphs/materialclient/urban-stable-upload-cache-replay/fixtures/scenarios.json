@@ -1,0 +1,126 @@
+[
+  {
+    "id": "same-plate-held",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 16.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 0.4, "plate": "浙A11111" },
+      { "t": 10.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 1, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "", "secondWeight": 0
+    }
+  },
+  {
+    "id": "other-plate-held",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 16.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 0.4, "plate": "浙A11111" },
+      { "t": 10.0, "plate": "浙B22222" }
+    ],
+    "expect": {
+      "pending": 1, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "", "secondWeight": 0
+    }
+  },
+  {
+    "id": "late-plate",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 16.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 10.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 1, "billCount": 1, "firstPlate": "", "firstAnomaly": "EmptyPlate", "firstWeight": 45.2,
+      "secondPlate": "", "secondWeight": 0
+    }
+  },
+  {
+    "id": "late-plate-rewrite",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 6.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 1, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "", "secondWeight": 0
+    }
+  },
+  {
+    "id": "offscale-same-plate",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 },
+      { "seconds": 8.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 12.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 2, "billCount": 2, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "浙A11111", "secondWeight": 45.2
+    }
+  },
+  {
+    "id": "threshold-flicker",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 0.4, "weight": 0.2 },
+      { "seconds": 8.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 12.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 2, "billCount": 2, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "浙A11111", "secondWeight": 45.2
+    }
+  },
+  {
+    "id": "fallback-same-plate",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 960.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "pending": 2, "billCount": 2, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "浙A11111", "secondWeight": 45.2
+    }
+  },
+  {
+    "id": "fallback-other-plate",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 960.0, "weight": 45.2 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 800.0, "plate": "浙B22222" },
+      { "t": 800.2, "plate": "浙B22222" },
+      { "t": 800.4, "plate": "浙B22222" }
+    ],
+    "expect": {
+      "pending": 2, "billCount": 2, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2,
+      "secondPlate": "浙B22222", "secondWeight": 45.2
+    }
+  }
+]

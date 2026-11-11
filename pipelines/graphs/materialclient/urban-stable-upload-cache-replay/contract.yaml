@@ -1,0 +1,16 @@
+graphId: urban-stable-upload-cache-replay
+inputs:
+  - fixtures/scenarios.json
+invariants:
+  - The replay follows docs/2026-11-11-urban-stable-upload-cache/02-车牌时序.md.
+  - A bill is created on the first stable window and marked Pending.
+  - The produced-cache key is the plate chosen at that create snapshot.
+  - While recordId is held and weight stays above MinWeightThreshold, another plate does not open a second bill.
+  - Entering OffScale uses weight < MinWeightThreshold and clears the produced cache.
+  - After that clear, the same plate may open a new bill on the next stable window.
+  - If OffScale has not happened for 900 seconds after the record, the produced cache and recordId clear and one new stable bill is allowed.
+  - The upload queue and the gate are not simulated.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml

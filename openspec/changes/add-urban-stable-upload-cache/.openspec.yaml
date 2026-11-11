@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-11
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "仅 MaterialClient。稳定后升 Pending、已产生车牌缓存、现行 OffScale 清空、900 秒兜底一笔。"

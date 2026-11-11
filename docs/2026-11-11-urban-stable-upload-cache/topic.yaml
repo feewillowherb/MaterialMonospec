@@ -16,4 +16,6 @@ updated: "2026-11-11"
 # Alternate mitigation of 2026-11-10-urban-busy-weighing-upload-on-stable.
 # Human confirmed 2026-11-11. Latch also clears on the existing OffScale transition.
 # Does not ingest a second overlapping vehicle via a new stable weight.
+# 02: plate arrival timelines versus the existing snapshot, rewrite, and OffScale clear.
+# Replay graph: pipelines/graphs/materialclient/urban-stable-upload-cache-replay
 # Not an OpenSpec change. Design itself is not Human APPROVED.
