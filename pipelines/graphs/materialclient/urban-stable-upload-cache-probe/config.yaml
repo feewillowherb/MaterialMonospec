@@ -1,0 +1,41 @@
+id: urban-stable-upload-cache-probe
+created: "2026-11-11"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: urban-stable-upload-cache-probe
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: diagnostic-host-idle
+  end: stable-upload-observed
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9933
+  databaseRel: repos/MaterialClient/.build-verify/Urban/MaterialClient.db
+  logRel: repos/MaterialClient/.build-verify/Urban/Logs
+  fixture: fixtures/scenarios.json
+  doc: docs/2026-11-11-urban-stable-upload-cache/00-调研总览.md
+
+steps:
+  - probe-diagnostic-host
+
+capture:
+  summary: summary.json
+  report: report.md
+  manifest: manifest.yaml
+
+expect:
+  - id: runtime-rows-match-fixture
+    level: P2
+
+humanGates:
+  - local-urban-process
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

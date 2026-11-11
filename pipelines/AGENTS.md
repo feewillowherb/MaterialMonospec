@@ -248,6 +248,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | solidwaste-legacy-independent-net-flag | ingest | `graphs/materialclient/solidwaste-legacy-net-flag-ingest/` | active |
 | urban-busy-weighing-sim | transform | `graphs/materialclient/urban-busy-weighing-sim/` | active |
 | urban-stable-upload-cache-replay | transform | `graphs/materialclient/urban-stable-upload-cache-replay/` | active |
+| urban-stable-upload-cache-probe | probe | `graphs/materialclient/urban-stable-upload-cache-probe/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
 | ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |

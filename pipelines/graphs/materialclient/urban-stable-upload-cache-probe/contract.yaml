@@ -1,0 +1,17 @@
+graphId: urban-stable-upload-cache-probe
+inputs:
+  - fixtures/scenarios.json
+  - a running MaterialClient.Urban with MinimalWebHost on target.baseUrl
+invariants:
+  - The probe calls the diagnostic HTTP API only. It does not reference repos/ project types.
+  - Evidence is the local SQLite rows and new log lines. The window is not scraped.
+  - Default scenarios stay under a few minutes. The 910-second fallback runs only with -IncludeFallback.
+  - The probe reads the database and does not delete weighing rows.
+  - Settings read at the start are posted back after the run.
+  - Cook P2 is not product acceptance. P3 is not judged by the agent.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml
+  - runs/<runId>/http.json
+  - runs/<runId>/log-excerpt.txt
