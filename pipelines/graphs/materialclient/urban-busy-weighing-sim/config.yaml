@@ -1,0 +1,40 @@
+id: urban-busy-weighing-sim
+created: "2026-11-10"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: transform
+  goal: urban-busy-weighing-sim
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.example.yaml
+sockets:
+  start: scripted-weight-and-plate
+  end: bill-replay-compared
+cook: new-object
+experimentalRuntime: net10.0
+
+target:
+  fixture: fixtures/scenarios.json
+  baselineTons: 45
+  minWeightTons: 0.5
+  stabilityBandTons: 0.1
+  periods: 15
+
+steps:
+  - dotnet-run
+
+capture:
+  summary: summary.json
+  report: report.md
+
+expect:
+  - id: replay-matches-fixture
+    level: P2
+
+humanGates:
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

@@ -1,6 +1,6 @@
 topic: 2026-11-10-urban-busy-weighing-upload-on-stable
 created: "2026-11-10"
-updated: "2026-11-10"
+updated: "2026-11-11"
 # Code archaeology: why Urban attended weighing waits for OffScale before Pending upload.
 # Human 2026-11-10: misread plates, exit+entry plates both visible while stable,
 # and repeat-stable must not re-upload.
@@ -10,3 +10,16 @@ updated: "2026-11-10"
 # Human: one LPR device on site. Plate events have no Enter/Exit split.
 # 04: scale 9-10m by 3m at site entrance; camera 45 deg, 3-4m, above plate.
 # Entry sees the front plate. Exit shows the rear; exit uploads are not required.
+# Legacy: every off-scale record uploads. Anomaly does not gate Pending.
+# Busy mode may keep the gap weight above 0.5 t, so off-scale never arrives.
+# 05: boarding moves the live reading; TotalWeight is frozen at first stable window.
+# Human baseline: one vehicle is about 45 t. Log tonnage does not replace it.
+# Whether two trucks can sit fully on the 9-10 m deck (about 90 t) is unmeasured.
+# 06: four logs have no weight curve. Their tonnage is not the baseline.
+# No busy-overlap weighbridge log exists, and none can be provided.
+# 07: naive stable-upload shows normal on N1 and bad bills on misread, two plates, late plate, repeat stable, overlap re-stable.
+# Gate timing stays PENDING_VALIDATION and is not part of the weight replay.
+# 03/07 timelines are the expected tables. A graph replays the same scripts and checks those tables.
+# Run 2026-11-10T114324 pass at P2. ResetCycle alone does not open a second bill.
+# Forcing OffScale while weight stays high opens one bill per 0.2 s sample. P3 not judged.
+# 2026-11-11: research status PENDING. Deeper study continues. Do not open a change from this folder.

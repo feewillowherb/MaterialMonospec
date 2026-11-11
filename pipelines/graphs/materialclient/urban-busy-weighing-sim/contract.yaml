@@ -1,0 +1,14 @@
+graphId: urban-busy-weighing-sim
+inputs:
+  - fixtures/scenarios.json
+invariants:
+  - Single-vehicle plateau is 45.2 t in the script. Log tonnage is not an input.
+  - Legacy promotes a bill to Pending only after weight falls below 0.5 t.
+  - resetOnly uploads on the first stable window and does not open another bill while status stays stabilized.
+  - restart treats cycle end as OffScale. Each later sample that is still inside a stable window opens another Pending bill.
+  - Overlap tons are script inputs. B1 uses 70 t. B1-dip uses 55 t.
+  - The gate is not simulated.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml

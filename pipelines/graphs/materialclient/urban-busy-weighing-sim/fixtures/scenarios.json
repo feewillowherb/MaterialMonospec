@@ -1,0 +1,143 @@
+[
+  {
+    "id": "N1",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 1.2, "plate": "浙A11111" },
+      { "t": 3.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "legacy": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 26, "inProgress": 0, "billCount": 26, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 25, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "E1",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 1.2, "plate": "浙A11111" },
+      { "t": 2.0, "plate": "浙A11117" },
+      { "t": 2.4, "plate": "浙A11117" },
+      { "t": 2.8, "plate": "浙A11117" },
+      { "t": 5.0, "plate": "浙A11111" },
+      { "t": 5.4, "plate": "浙A11111" },
+      { "t": 5.8, "plate": "浙A11111" },
+      { "t": 6.2, "plate": "浙A11111" },
+      { "t": 6.6, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "legacy": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11117", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 26, "inProgress": 0, "billCount": 26, "firstPlate": "浙A11117", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": -1, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "E2",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 2.4, "plate": "浙B22222" }
+    ],
+    "expect": {
+      "legacy": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 26, "inProgress": 0, "billCount": 26, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 25, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "E3",
+    "segments": [
+      { "seconds": 0.4, "weight": 0.1 },
+      { "seconds": 1.6, "weight": 6.5 },
+      { "seconds": 1.0, "weight": 0.2 }
+    ],
+    "plates": [],
+    "expect": {
+      "legacy": { "pending": 0, "inProgress": 0, "billCount": 0, "firstPlate": "", "firstAnomaly": "", "firstWeight": 0, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 0, "inProgress": 0, "billCount": 0, "firstPlate": "", "firstAnomaly": "", "firstWeight": 0, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 0, "inProgress": 0, "billCount": 0, "firstPlate": "", "firstAnomaly": "", "firstWeight": 0, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "E4",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 5.0, "weight": 45.2 },
+      { "seconds": 1.0, "weight": 44.0 },
+      { "seconds": 5.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 1.2, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "legacy": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 22, "inProgress": 0, "billCount": 22, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 21, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "E5",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 0.2 }
+    ],
+    "plates": [
+      { "t": 6.0, "plate": "浙A11111" }
+    ],
+    "expect": {
+      "legacy": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "", "firstAnomaly": "EmptyPlate", "firstWeight": 45.2, "emptyCount": 1, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 26, "inProgress": 0, "billCount": 26, "firstPlate": "", "firstAnomaly": "EmptyPlate", "firstWeight": 45.2, "emptyCount": 25, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" }
+    }
+  },
+  {
+    "id": "B1",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 8.0, "weight": 70 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 10.0, "plate": "浙B22222" }
+    ],
+    "expect": {
+      "legacy": { "pending": 0, "inProgress": 1, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 52, "inProgress": 0, "billCount": 52, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 50, "secondCount": 26, "secondWeight": 70, "secondFirstPlate": "浙B22222" }
+    }
+  },
+  {
+    "id": "B1-dip",
+    "segments": [
+      { "seconds": 1.0, "weight": 0.1 },
+      { "seconds": 8.0, "weight": 45.2 },
+      { "seconds": 2.0, "weight": 40 },
+      { "seconds": 8.0, "weight": 55 }
+    ],
+    "plates": [
+      { "t": 2.0, "plate": "浙A11111" },
+      { "t": 12.0, "plate": "浙B22222" }
+    ],
+    "expect": {
+      "legacy": { "pending": 0, "inProgress": 1, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "resetOnly": { "pending": 1, "inProgress": 0, "billCount": 1, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 0, "secondCount": 0, "secondWeight": 0, "secondFirstPlate": "" },
+      "restart": { "pending": 52, "inProgress": 0, "billCount": 52, "firstPlate": "浙A11111", "firstAnomaly": "", "firstWeight": 45.2, "emptyCount": 50, "secondCount": 26, "secondWeight": 55, "secondFirstPlate": "浙B22222" }
+    }
+  }
+]
