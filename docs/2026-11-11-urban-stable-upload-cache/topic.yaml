@@ -1,0 +1,19 @@
+topic: 2026-11-11-urban-stable-upload-cache
+created: "2026-11-11"
+updated: "2026-11-11"
+# Urban option: promote upload when weight first stabilizes.
+# Cache purpose: in busy mode, do not reproduce data that already
+# generated a weighing record or was already uploaded.
+# Separate that latch from PlateNumberService. Arm it when the record is created.
+# Departure is one sample with weight < 0.5 t. No stability check, no dwell.
+# That sample clears the produced-record latch.
+# Human 2026-11-11: a normal weigh lasts 2-10 minutes on the scale.
+# Fallback clear is 15 minutes from record creation.
+# The clock does not reset on another stable edge.
+# Human accepts a duplicate upload or a new weighing record after 15 minutes.
+# 2 minutes is not a clear time.
+# In-memory only. Ignore process restart. Do not persist the latch.
+# Alternate mitigation of 2026-11-10-urban-busy-weighing-upload-on-stable.
+# Human confirmed 2026-11-11. Latch releases only after confirmed departure.
+# Does not ingest a second overlapping vehicle via a new stable weight.
+# Not an OpenSpec change. Design itself is not Human APPROVED.

@@ -23,3 +23,7 @@ updated: "2026-11-11"
 # Run 2026-11-10T114324 pass at P2. ResetCycle alone does not open a second bill.
 # Forcing OffScale while weight stays high opens one bill per 0.2 s sample. P3 not judged.
 # 2026-11-11: research status PENDING. Deeper study continues. Do not open a change from this folder.
+# 2026-11-11: narrower alternate is 2026-11-11-urban-stable-upload-cache.
+# Its cache stops busy-mode data that already generated a weighing record,
+# or was already uploaded, from being produced again.
+# That latch releases only after confirmed departure and does not ingest a second vehicle.
