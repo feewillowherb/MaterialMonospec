@@ -1,0 +1,94 @@
+{
+  "settleMs": 8000,
+  "onScaleTons": 1.2,
+  "offScaleTons": 0.4,
+  "thresholdTons": 0.5,
+  "scenarios": [
+    {
+      "id": "flag-off-promotes-on-offscale",
+      "uploadOnStable": false,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "WeighingInProgress", "plate": "A" } },
+        { "weight": "off" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } }
+      ]
+    },
+    {
+      "id": "flag-on-same-plate-held",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } }
+      ]
+    },
+    {
+      "id": "flag-on-other-plate-held",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "plate": "B" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } }
+      ]
+    },
+    {
+      "id": "offscale-same-plate",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "weight": "off" },
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 2, "sync": "Pending", "plate": "A" } }
+      ]
+    },
+    {
+      "id": "threshold-equal-keeps-one",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "weight": "threshold" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } }
+      ]
+    },
+    {
+      "id": "threshold-flicker-second-bill",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "weight": "off" },
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 2, "sync": "Pending", "plate": "A" } }
+      ]
+    }
+  ],
+  "optionalScenarios": [
+    {
+      "id": "fallback-same-plate",
+      "uploadOnStable": true,
+      "actions": [
+        { "plate": "A" },
+        { "weight": "on" },
+        { "expect": { "count": 1, "sync": "Pending", "plate": "A" } },
+        { "waitSeconds": 910 },
+        { "expect": { "count": 2, "sync": "Pending" } }
+      ]
+    }
+  ]
+}

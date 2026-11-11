@@ -9,7 +9,8 @@
     "upsert-license-info": "tsx _shared/urban/tools/upsert-license-info/upsert-license-info.ts",
     "solidwaste-pair-ingest": "tsx graphs/materialclient/solidwaste-pair-ingest/scripts/ingest-pair.ts",
     "sand-addbatch-2026-01": "tsx graphs/govsync/XNYH20251113001/sand-addbatch-2026-01/scripts/expand-january.ts",
-    "solidwaste-oct-export-include-softdelete": "tsx graphs/materialclient/solidwaste-oct-export-include-softdelete/scripts/export-solidwaste-october.ts"
+    "solidwaste-oct-export-include-softdelete": "tsx graphs/materialclient/solidwaste-oct-export-include-softdelete/scripts/export-solidwaste-october.ts",
+    "urban-stable-upload-cache-probe": "tsx graphs/materialclient/urban-stable-upload-cache-probe/scripts/probe-stable-upload.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0"
