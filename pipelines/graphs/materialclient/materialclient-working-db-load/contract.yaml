@@ -1,0 +1,16 @@
+graphId: materialclient-working-db-load
+graphPath: pipelines/graphs/materialclient/materialclient-working-db-load
+inputs:
+  - config.yaml target.workingDb
+  - scripts/MaterialClient/Build-MaterialClient.ps1
+  - scripts/MaterialClient/Start-MaterialClient.ps1
+outputs:
+  - runs/<runId>/logs/host.log
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+invariants:
+  - _tmp/1110/MaterialClient.db is not written.
+  - The only database replaced is the Start-MaterialClient environment database, MaterialClient.db beside MaterialClient.exe.
+  - ERR and FTL lines are taken from the log bytes written after this start.
+  - Web Host startup ERR lines are ignored. Other ERR and FTL lines still fail the cook.
+  - This cook does not set P3.

@@ -18,5 +18,7 @@ MaterialClient（Avalonia 称重桌面）相关验收 Graph。
 | `urban-busy-weighing-sim` | transform | `urban-busy-weighing-sim` |
 | `urban-stable-upload-cache-replay` | transform | `urban-stable-upload-cache-replay` |
 | `urban-stable-upload-cache-probe` | probe | `urban-stable-upload-cache-probe` |
+| `standard-solidwaste-schema-upgrade` | probe | `standard-solidwaste-schema-upgrade-verify` |
+| `materialclient-working-db-load` | probe | `materialclient-working-db-load` |
 
 新 Graph：**MUST** 落在本目录下独立 slug；**MUST NOT** 与已有 `goal` 并存第二个 `active`。

@@ -1,0 +1,19 @@
+graphId: standard-solidwaste-schema-upgrade
+graphPath: pipelines/graphs/materialclient/standard-solidwaste-schema-upgrade
+inputs:
+  - config.yaml target.sourceDb
+  - the SolidWaste migration SQL file named by target.solidWasteMigration
+  - the extension key constants in the file named by target.extensionSource
+  - kernel migration file names under target.kernelMigrationsDir
+outputs:
+  - runs/<runId>/prepare/pre-schema.json
+  - runs/<runId>/schema/post-schema.json
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+invariants:
+  - The source database file is opened read-only and its bytes do not change.
+  - The working copy is the only database written.
+  - Kernel WeighingRecords and Waybills primary keys and row counts stay the same.
+  - Extension rows are inserted only for WeighingMode 1 rows that are not soft-deleted and do not already have that logical id.
+  - A second backfill does not change existing extension rows.
+  - This cook does not set P3.

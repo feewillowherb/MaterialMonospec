@@ -1,0 +1,69 @@
+id: materialclient-working-db-load
+created: "2026-11-12"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: materialclient-working-db-load
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: working-sqlite-copy
+  end: host-log-checked
+cook: new-object
+
+target:
+  workingDb: pipelines/graphs/materialclient/standard-solidwaste-schema-upgrade/runs/2026-11-12T170520/working/MaterialClient.db
+  startScript: scripts/MaterialClient/Start-MaterialClient.ps1
+  buildScript: scripts/MaterialClient/Build-MaterialClient.ps1
+  app: MaterialClient
+  exeName: MaterialClient.exe
+  environmentDbName: MaterialClient.db
+  migrationCompleted: "Standard and SolidWaste database migration completed."
+  migrationFailed: "数据库迁移失败"
+  waitSeconds: 120
+
+expect:
+  - id: environment-db-replaced
+    level: P0
+    description: The Start-MaterialClient environment db is replaced by the working copy. The formal sample _tmp/1110/MaterialClient.db is not written.
+  - id: process-started
+    level: P1
+    description: MaterialClient.exe from .build-verify/MaterialClient starts and writes a log file.
+  - id: load-log
+    level: P2
+    description: The new log contains the migration completed line. Web Host startup ERR lines are ignored. Other ERR or FTL lines fail.
+  - id: user-accepts
+    level: P3
+    description: User accepts the run. The cook must not set this.
+
+steps:
+  - id: build-host
+    name: Build through scripts/MaterialClient/Build-MaterialClient.ps1
+  - id: replace-environment-db
+    name: Overwrite .build-verify/MaterialClient/MaterialClient.db with the working copy
+  - id: start-host
+    name: Start through scripts/MaterialClient/Start-MaterialClient.ps1 -NoBuild
+  - id: scan-log
+    name: Read the new log slice and report ERR/FTL plus the migration line
+
+humanGates:
+  - missing-working-db
+  - confirm-overwrite-environment-db
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  invoke:
+    mode: script-invoke
+    script: scripts/Invoke-MaterialClientWorkingDbLoad.ps1
+    experimental: true
+  cook:
+    mode: node-log-scan
+    script: scripts/scan-load-log.ts
+    experimental: true

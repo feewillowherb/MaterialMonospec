@@ -1,0 +1,93 @@
+id: standard-solidwaste-schema-upgrade
+created: "2026-11-12"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: standard-solidwaste-schema-upgrade-verify
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sqlite-client-snapshot
+  end: schema-upgrade-checked
+cook: new-object
+
+target:
+  sourceDb: _tmp/1110/MaterialClient.db
+  workingDbName: MaterialClient.db
+  kernelHistoryTable: __EFMigrationsHistory_Kernel
+  standardHistoryTable: __EFMigrationsHistory_Standard
+  solidWasteHistoryTable: __EFMigrationsHistory_SolidWaste
+  standardMigrationId: 20261112000000_InitialStandardProduct
+  solidWasteMigrationId: 20261112000000_InitialSolidWasteProduct
+  solidWasteMigration: repos/MaterialClient/src/MaterialClient.Common.SolidWaste/Migrations/20261112000000_InitialSolidWasteProduct.cs
+  extensionSource: repos/MaterialClient/src/MaterialClient.Common/Entities/SolidWasteInfoExtensions.cs
+  kernelMigrationsDir: repos/MaterialClient/src/MaterialClient.Common.EntityFrameworkCore/Migrations
+  openspecChange: openspec/changes/refactor-standard-solidwaste-schema-isolation/
+
+expect:
+  - id: source-copied
+    level: P0
+    description: Source snapshot exists. Working copy is under runs/<ts>/working/. Source bytes stay unchanged.
+  - id: kernel-history-current
+    level: P1
+    description: Kernel history ids match the kernel migration files and stay unchanged.
+  - id: product-schema-applied
+    level: P1
+    description: Product migration SQL from the SolidWaste migration file is applied on the copy. Standard and SolidWaste history rows exist.
+  - id: kernel-keys-kept
+    level: P2
+    description: WeighingRecords and Waybills primary-key hashes and row counts stay the same. Mode 0 rows get no extension.
+  - id: backfill-idempotent
+    level: P2
+    description: SolidWaste-mode rows missing an extension are inserted. A second pass does not change existing extension rows.
+  - id: user-accepts
+    level: P3
+    description: User accepts the run. The cook must not set this.
+
+steps:
+  - id: bind-config
+    name: Read config and create runs/<ts>/
+  - id: copy-source-db
+    name: node:sqlite backup of sourceDb into working/. Source stays read-only.
+  - id: snapshot-pre
+    name: Write prepare/pre-schema.json
+  - id: apply-product-sql
+    name: Replay the product migration SQL and extension backfill rules on the copy
+  - id: verify-post
+    name: Compare kernel keys, history, and backfill idempotence. Write schema/post-schema.json and summary.json
+
+capture:
+  prepare:
+    required: true
+    sink: prepare/pre-schema.json
+  schema:
+    required: true
+    sink: schema/post-schema.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+
+humanGates:
+  - missing-source-db
+  - confirm-local-copy-only
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  invoke:
+    mode: script-invoke
+    script: scripts/Invoke-StandardSolidWasteSchemaUpgrade.ps1
+    experimental: true
+  cook:
+    mode: node-sqlite
+    script: scripts/upgrade-verify.ts
+    experimental: true
