@@ -40,3 +40,11 @@ repositories:
       - weight
       - gov
       - desktop
+  - path: repos/FdSoft.SSO
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_Component/FdSoft.SSO.git
+    displayName: FdSoft.SSO
+    type: Service
+    icon: 🔑
+    optional: false
+    tags:
+      - sso
