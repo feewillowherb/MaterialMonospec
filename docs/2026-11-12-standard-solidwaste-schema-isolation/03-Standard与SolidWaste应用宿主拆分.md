@@ -70,4 +70,4 @@ MaterialClient HEAD：`495aa3e3ba5c514dc705061ba4886533566f0ba5`，提交为 `re
 
 ## OpenSpec 交接
 
-建议独立 change：`refactor-standard-solidwaste-app-isolation`。提案需收敛宿主依赖、产品身份、迁移启动顺序、旧安装接续与验收矩阵，再进入实现。此文不代表该 change 已创建或方案已验收，不授权 commit/push。
+用户已于 2026-11-13 确认数据库拆分验收，并要求拆分独立客户端。对应 change 为 `refactor-standard-solidwaste-app-isolation`。宿主依赖、产品身份、迁移顺序和旧数据目录接续以该 change 的 design 为准。此文仍是调查入口，不代替该 change 的验收。

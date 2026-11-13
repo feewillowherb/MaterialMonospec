@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-13
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "MaterialClient only. New SolidWaste WinExe, Standard host stops loading SolidWaste, data-directory upgrade and separate installer."
