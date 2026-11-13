@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-13
+effort:
+  tier: L
+  tokens_estimate: "40万-100万"
+  notes: "UrbanManagement Admin 鉴权与会话；SSO 与客户端路由回归需要单独核对"
