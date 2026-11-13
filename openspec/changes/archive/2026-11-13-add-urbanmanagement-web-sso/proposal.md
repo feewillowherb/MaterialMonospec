@@ -23,5 +23,5 @@ UrbanManagement 的 Web 管理页面目前没有登录边界，匿名请求可�
 
 - **子仓库**：仅 `repos/UrbanManagement` 的 Admin 宿主。Gateway 继续按现有路由把管理页面和 `/_blazor/**` 送到 Admin；客户端优先路由不变。
 - **分支**：Mode A — `add-urbanmanagement-web-sso`
-- **输入**：[`docs/2026-11-13-urbanmanagement-fdsoft-sso/`](../../../docs/2026-11-13-urbanmanagement-fdsoft-sso/00-调研总览.md)。135 产品数据 Verdict 为 FEASIBLE；刷新 135 的 `AllTable` / `JCProduct` 后，匹配口令 `GetToken` 返回 `code=200`、产品 5040 且带有令牌，登录 Verdict 为 FEASIBLE。证据在 `.local/fev-sso-db135-login5040-refresh/result.json`，不含口令或令牌。错误口令证据在 `.local/fev-sso-db135-login5040/result.json`。
+- **输入**：[`docs/2026-11-13-urbanmanagement-fdsoft-sso/`](../../../docs/2026-11-13-urbanmanagement-fdsoft-sso/00-调研总览.md)。135 产品数据 Verdict 为 FEASIBLE；刷新 135 的 `AllTable` / `JCProduct` 后，匹配口令 `GetToken` 返回 `code=200`、产品 5040 且带有令牌，登录 Verdict 为 FEASIBLE。证据在 `pipelines/graphs/.local/fev-sso-db135-login5040-refresh/result.json`，不含口令或令牌。错误口令证据在 `pipelines/graphs/.local/fev-sso-db135-login5040/result.json`。
 - **人闸**：本提案只建立变更工件。调研结论进入产品代码前仍要 Human `APPROVED`。本文件不宣称该批准已经给出。
