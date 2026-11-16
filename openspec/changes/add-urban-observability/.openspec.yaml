@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-16
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "UrbanManagement 单仓。Hosting、网关、XiaoShanResource 和 compose 各加一处导出。"
