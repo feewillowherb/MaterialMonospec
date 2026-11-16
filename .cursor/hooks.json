@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "cmd /c \"if exist .cursor\\skills\\impeccable\\scripts\\impeccable.cmd call .cursor\\skills\\impeccable\\scripts\\impeccable.cmd hook\"",
+        "matcher": "^Write$",
+        "timeout": 5
+      }
+    ]
+  }
+}

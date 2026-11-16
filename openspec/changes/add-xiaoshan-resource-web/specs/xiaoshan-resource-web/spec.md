@@ -34,7 +34,7 @@ XiaoShanResource SHALL create cookie `XiaoShanResource.Session` only when the SS
 
 ### Requirement: Authenticated shell shows only the three pictured surfaces
 
-After login, XiaoShanResource SHALL serve a Vue 3 and Element Plus shell. The header title SHALL be 「渣土消纳一体化平台」 and SHALL show the session user name. The sidebar SHALL contain only 「车辆管理」 and 「合同管理」. A tab label SHALL appear only after that page is opened, and SHALL disappear when the tab is closed. Login SHALL open 「车辆管理」 with only that tab. 「新建合同」 SHALL be a dialog on the contract page and SHALL NOT have its own menu item or tab. The shell SHALL NOT show 仪表盘, 消纳场地, 生产管理, 运输清单, or 系统管理.
+After login, XiaoShanResource SHALL serve a Vue 3 and Element Plus shell. The header title SHALL be 「萧山资源化利用网页端」 and SHALL show the session user name. The sidebar SHALL contain only 「车辆管理」 and 「合同管理」. A tab label SHALL appear only after that page is opened, and SHALL disappear when the tab is closed. Login SHALL open 「车辆管理」 with only that tab. 「新建合同」 SHALL be a dialog on the contract page and SHALL NOT have its own menu item or tab. The shell SHALL NOT show 仪表盘, 消纳场地, 生产管理, 运输清单, or 系统管理.
 
 #### Scenario: Login opens the vehicle page
 
