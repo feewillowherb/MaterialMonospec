@@ -228,6 +228,7 @@ repositories:                # 子仓库列表
 - **类型**：Web 应用（ABP Framework）
 - **技术栈**：ABP Framework / .NET
 - **用途**：城市管理 Web 应用（不是工控前台客户端）
+- **Demo UI**：页面文案仅业务名词与操作；禁止把 proposal / design / Mock·FEV 说明写进 Vue（见 `repos/UrbanManagement/AGENTS.md` · XiaoShanResource）
 
 ### FdSoft.BasePlatform
 
