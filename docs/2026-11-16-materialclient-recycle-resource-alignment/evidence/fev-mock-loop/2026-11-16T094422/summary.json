@@ -1,0 +1,12 @@
+{
+  "pass": 15,
+  "environment": "Testing",
+  "target": "local",
+  "baseUrl": "http://127.0.0.1:5341",
+  "cityOutbound": false,
+  "scope": "UrbanManagement.Recycle mock loop; in-memory; no city HTTP; no MaterialClient; not unit-test",
+  "closedTransportId": 21,
+  "fail": 0,
+  "verdict": "FEASIBLE",
+  "next": "re-run same HTTP script against http://192.168.3.138:5334 with SSO"
+}
