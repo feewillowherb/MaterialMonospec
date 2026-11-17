@@ -430,7 +430,16 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - CED 状态为 PENDING。只在已授权 Epic 内显式 STOP / Defer，不授权 commit 或覆盖 `strategic-fallback`。
 - Pipeline cook 用 P0–P3。Agent 不得把 cook 结果自评为产品通过。
 - Pipeline / DOCS 结论要进入产品行为时，须有 Human `APPROVED`。该决定不授权 commit 或 push。
-- 不引入自动 commit。仅用户明确要求时 commit。
+- 主仓库 Markdown 的提交遵循下文「Markdown 随改随提交」常驻授权；其他改动仍需用户明确授权 commit。不自动 push。
+
+## Markdown 随改随提交（常驻授权）
+
+- 用户已明确授权：Agent 在 MaterialMonospec 主仓库新增、修改、删除或移动任何 Markdown 文件（`.md`，扩展名不区分大小写）后，MUST 在本次连贯文档编辑完成并做必要校验后立即 git commit，不积压到后续任务，不再询问提交许可。
+- 范围包括根 AGENTS.md、docs、traits、OpenSpec 等主仓库 Markdown；不扩展到 `repos/` 下独立子仓库代码或文档。
+- MUST 精确暂存本次自己负责的文档变更；不得使用 `git add -A` 夹带其他 Agent、Cursor 或用户的未提交工作。与文档不可分割的元数据（如同一 Topic 的 topic.yaml）可同批提交。
+- 并行编辑同一文件时先核对 diff，仅提交可明确归属本次任务的改动；无法安全拆分时报告具体阻碍，不覆盖或擅自提交他人工作。
+- OpenSpec 的既有分支、Mode A/B 和 squash 规则仍生效；此授权不允许擅自切换其他 Agent 正在使用的分支、merge、promote、archive 或 push。
+- commit 只表示文档已保存，不代表方案获批、Capability 交付或产品行为变更获授权。提交后报告 commit SHA 与范围。
 
 ## OpenSpec 与技术债务
 
