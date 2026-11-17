@@ -1,10 +1,6 @@
 <#
 .SYNOPSIS
-  Build MaterialClient (main WinExe) into repos/MaterialClient/.build-verify/MaterialClient
-
-.EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Build-MaterialClient.ps1
-  powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Build-MaterialClient.ps1 -StopRunning
+  Compatibility shim → Build-MaterialClient.Standard.ps1
 #>
 [CmdletBinding()]
 param(
@@ -16,13 +12,7 @@ param(
     [switch] $ShowNuGetAudit
 )
 
-. (Join-Path $PSScriptRoot '_common.ps1')
-
-Invoke-MaterialClientBuild `
-    -ProjectRelativePath 'src\MaterialClient\MaterialClient.csproj' `
-    -App 'MaterialClient' `
-    -ExpectedExeName 'MaterialClient.exe' `
+& (Join-Path $PSScriptRoot 'Build-MaterialClient.Standard.ps1') `
     -Configuration $Configuration `
     -StopRunning:$StopRunning `
-    -ShowNuGetAudit:$ShowNuGetAudit | Out-Null
-
+    -ShowNuGetAudit:$ShowNuGetAudit

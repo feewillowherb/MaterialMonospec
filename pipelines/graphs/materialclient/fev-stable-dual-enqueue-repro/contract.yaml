@@ -1,0 +1,18 @@
+graphId: fev-stable-dual-enqueue-repro
+inputs:
+  - running MaterialClient.exe with MinimalWebHost (Start-MaterialClient.ps1 -EnableDiagnosticHost)
+  - fixtures/scenario.json
+  - repos/MaterialClient/.build-verify/MaterialClient/MaterialClient.db
+  - repos/MaterialClient/.build-verify/MaterialClient/Logs
+invariants:
+  - This Graph is pre-fix FEV integration only. It does not apply OpenSpec changes.
+  - Cook drives the diagnostic HTTP API only. It does not ProjectReference repos/.
+  - Cook does not modify MaterialClient.db, appsettings, ScaleType, or DataDirectory. User prepares TestMode.
+  - result pass means dual-enqueue + dual same-ton rows were observed, not that the product is fixed.
+  - After single-enqueue lands, retire this Graph or invert expectations in a separate regression Graph.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml
+  - runs/<runId>/http.json
+  - runs/<runId>/log-excerpt.txt

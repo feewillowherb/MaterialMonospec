@@ -1,0 +1,13 @@
+{
+  "onScaleTons": 8.815,
+  "offScaleTons": 0.3,
+  "weightToleranceTons": 0.05,
+  "settleMs": 12000,
+  "dualRowWaitMs": 45000,
+  "pollMs": 1000,
+  "expectMinRows": 2,
+  "logNeedles": [
+    "Weight stabilized (status transition)",
+    "Weight stabilized (backup check)"
+  ]
+}

@@ -5,6 +5,7 @@
 | 位置 | 职责 |
 |------|------|
 | `scripts/` | 配置校验、迁移校验、文档 Topic 校验、子仓构建与发布 |
+| `scripts/MaterialClient/` | Standard / SolidWaste / Urban / Recycle 宿主 Build·Start；见 [`MaterialClient/AGENTS.md`](MaterialClient/AGENTS.md) |
 | `pipelines/graphs/**/scripts/` | 该 Graph 的 cook / invoke。实验性脚本仍标在 Graph 内 |
 | `pipelines/_shared/` | 跨 Graph 复用的 Node cook 与证据清单约定 |
 

@@ -51,13 +51,16 @@ function Get-MaterialClientBuildOutDir {
         [Parameter(Mandatory)]
         [string] $RepoRoot,
 
-        # Per-app subdir under .build-verify so Main/Urban/Recycle do not lock each other.
+        # Per-app subdir under .build-verify so hosts do not lock each other.
+        # MaterialClient = Standard; SolidWaste / Urban / Recycle are separate hosts.
         [Parameter(Mandatory)]
-        [ValidateSet('MaterialClient', 'Urban', 'Recycle')]
+        [ValidateSet('MaterialClient', 'SolidWaste', 'Urban', 'Recycle')]
         [string] $App
     )
     # Align with repos/MaterialClient/AGENTS.md — stay under .build-verify.
-    return (Join-Path $RepoRoot ".build-verify\$App")
+    # SolidWaste keeps folder name MaterialClient.SolidWaste (matches exe product name).
+    $leaf = if ($App -eq 'SolidWaste') { 'MaterialClient.SolidWaste' } else { $App }
+    return (Join-Path $RepoRoot ".build-verify\$leaf")
 }
 
 function Stop-MaterialClientLockingProcesses {
@@ -85,7 +88,7 @@ function Invoke-MaterialClientBuild {
         [string] $ProjectRelativePath,
 
         [Parameter(Mandatory)]
-        [ValidateSet('MaterialClient', 'Urban', 'Recycle')]
+        [ValidateSet('MaterialClient', 'SolidWaste', 'Urban', 'Recycle')]
         [string] $App,
 
         [Parameter(Mandatory)]
@@ -156,7 +159,7 @@ function Start-MaterialClientApp {
         [string] $ProjectRelativePath,
 
         [Parameter(Mandatory)]
-        [ValidateSet('MaterialClient', 'Urban', 'Recycle')]
+        [ValidateSet('MaterialClient', 'SolidWaste', 'Urban', 'Recycle')]
         [string] $App,
 
         [Parameter(Mandatory)]

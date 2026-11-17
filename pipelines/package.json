@@ -12,7 +12,8 @@
     "solidwaste-oct-export-include-softdelete": "tsx graphs/materialclient/solidwaste-oct-export-include-softdelete/scripts/export-solidwaste-october.ts",
     "urban-stable-upload-cache-probe": "tsx graphs/materialclient/urban-stable-upload-cache-probe/scripts/probe-stable-upload.ts",
     "standard-solidwaste-schema-upgrade": "tsx graphs/materialclient/standard-solidwaste-schema-upgrade/scripts/upgrade-verify.ts",
-    "materialclient-working-db-load": "tsx graphs/materialclient/materialclient-working-db-load/scripts/scan-load-log.ts"
+    "materialclient-working-db-load": "tsx graphs/materialclient/materialclient-working-db-load/scripts/scan-load-log.ts",
+    "fev-stable-dual-enqueue-repro": "tsx graphs/materialclient/fev-stable-dual-enqueue-repro/scripts/probe-fev-dual-enqueue.ts"
   },
   "dependencies": {
     "exceljs": "^4.4.0"
