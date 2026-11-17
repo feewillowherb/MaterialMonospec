@@ -32,12 +32,12 @@
 ## 孵化记录
 
 - 2026-08-27 登记（open），由 draft promote；决策 D1（原临时号 INT-004，同日重排为 INT-001）
-- 2026-08-27 absorbed → `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/`（脚手架 S）
+- 2026-08-27 absorbed → `docs/legacy-planning/planning-artifacts/xiaoshan-platform-upload-epic/`（脚手架 S）
 - 2026-08-27 proposed → `openspec/changes/add-xiaoshan-upload-config-dual-edit`
 
 ## 消化后回填
 
 | 字段 | 值 |
 |------|-----|
-| absorbed_into | `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/` |
+| absorbed_into | `docs/legacy-planning/planning-artifacts/xiaoshan-platform-upload-epic/` |
 | change | `openspec/changes/add-xiaoshan-upload-config-dual-edit` |

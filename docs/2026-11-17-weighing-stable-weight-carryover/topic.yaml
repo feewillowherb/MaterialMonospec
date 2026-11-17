@@ -1,0 +1,15 @@
+topic: 2026-11-17-weighing-stable-weight-carryover
+created: "2026-11-17"
+updated: "2026-11-17"
+# FEV (2026-11-17): SingleStabilize dual-insert → FEASIBLE; see 05-FEV-同回调双入队复现.md
+# OpenSpec: openspec/changes/fix-weighing-stable-single-enqueue (apply not implied by FEV).
+# Unit repro (2026-11-17): WeighingStableWeightCarryoverReproductionTests — 3 Passed.
+# Code archaeology: previous cycle StableWeight written onto a later WeighingRecord.
+# Evidence: _tmp/1117/MaterialClient-20261117.log (IDs 19262-19281, morning 07:41-08:34).
+# Root: status-transition + backup both enqueue OnWeightStabilizedAsync while recordId still null;
+# CreateWeighingRecordAsync lacks the "already non-null recordId" guard in attended-weighing spec;
+# weight is closed over at enqueue; sound PlayTextV2Async shares Merge(maxConcurrent:5) queue
+# and 8x TCP timeouts delay the second create past OffScale / next vehicle.
+# Related: docs/2026-07-13-weighing-list-duplicate-localevent (UI ghost rows; noted backup double-enqueue).
+# Related: docs/2026-11-10-urban-busy-weighing-upload-on-stable (cycle / ResetCycle / stable create).
+# This folder does not authorize OpenSpec or code change.

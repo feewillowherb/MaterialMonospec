@@ -56,6 +56,6 @@ description: 登记 Intake 草稿纸（不占 INT 序号）— 碎聊 / 未想�
 ## 约束
 
 - 中文输出；路径/theme/slug 保持英文标识
-- 不写完整 PRD / OpenSpec / BMAD
+- 不写完整 PRD / OpenSpec
 - 不 `/opsx:propose`
 - 不把业务专名写入可迁移的 trait 文件

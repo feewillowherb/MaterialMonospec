@@ -3,59 +3,12 @@
 本文件**仅约束** `docs/` 下的调研笔记、说明与 walkthrough 产出。  
 不约束 `openspec/`、`repos/` 中的 OpenSpec 规范与业务代码（那些仍遵守仓库根目录 `AGENTS.md`）。
 
-BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSPEC-HANDOFF.md)；本仓约定 `project_knowledge` 指向 `docs/`（BMAD 读知识），规划产物默认落 `_bmad-output/`。
+## 工作路由
 
-## 与 BMAD 的结合（优先用对工具）
-
-### 原则
-
-1. **场景适合 BMAD 时，MUST 尽量用 BMAD skill 生成**，不要在 `docs/` 里手写一套平行的 PRD / 架构 / 产品简报 / 决策级调研仪式。
-2. **`docs/` 是仓库知识与代码考古落点**；`_bmad-output/` 是 BMAD 工作流正式产物落点。二者用**单向指针**衔接，避免全文双写。
-3. **实现仍走 OpenSpec**（勿用 BMAD 的 build / dev / sprint / QA / retrospective 替代 OpenSpec apply）。规划收束后：`/opsx:propose` → apply → archive。
-
-### 场景路由（先判再写）
-
-| 场景 | 优先 | 默认落点 | 何时才写进 `docs/` |
-|------|------|----------|-------------------|
-| 产品想法不明、brief / PRFAQ、头脑风暴 | BMAD（`bmad-product-brief` / `bmad-prfaq` / `bmad-brainstorming`） | `_bmad-output/planning-artifacts/` 等 | 用户要「长期可读摘要」时：日期夹里 1 页摘要 + 链到 BMAD 产物 |
-| 需求成文 / 改 PRD / 校验 PRD | BMAD（`bmad-prd`） | `_bmad-output/.../prd` | 同上；**MUST NOT** 在 `docs/` 另起完整 PRD |
-| 架构不变量 / 技术怎么拆才一致 | BMAD（`bmad-create-architecture`） | `_bmad-output/.../architecture` | 需要给 OpenSpec/实现对照时：短摘录或链接 |
-| UX 方案（有 UI 且是主交付） | BMAD（`bmad-create-ux-design`） | planning UX 产物 | 可选链到既有产品权威文档 |
-| 决策级外向调研（市场 / 领域 / 竞品 / 技术选型） | BMAD（`bmad-market-research` / `bmad-domain-research` / `bmad-technical-research`） | `_bmad-output/.../research` | 结论要进仓库知识时：蒸馏 cited 摘要进 `docs/YYYY-MM-DD-*`，原材料仍以 BMAD run 为准 |
-| 子仓/本仓**代码考古**、接口摸底、既有行为 walkthrough、运维手册、管线设计笔记 | **直接 `docs/`**（不必强行套 BMAD） | `docs/YYYY-MM-DD-主题/` | — |
-| 挂起项目碎片、衍生改进、先记下 / pending | **Intake** | `docs/intake/<YYYY-MM>/INT-xxx` 或 `…/drafts/` | 够种子 → INT；未想清 → draft（不占序号） |
-| 已够清楚、只要 OpenSpec change | OpenSpec（`/opsx:propose`） | `openspec/changes/` | 调研夹可作输入链接；不必先空跑 PRD |
-| 不确定下一步 | `bmad-help` | — | 按推荐 skill 走，勿先堆长文到 `docs/` |
-
-不确定时：**Ask 一句**「走 BMAD 规划，还是只做代码调研进 docs？」——默认偏 BMAD（若问题像产品/架构/决策），偏 docs（若问题像「这段代码怎么工作」）。
-
-### 优雅衔接（推荐流水线）
-
-```text
-代码/现场证据 ──► docs/YYYY-MM-DD-*（考古、证据、walkthrough）
-                         │
-                         ▼  （作 project_knowledge / 输入）
-              BMAD brief → PRD → architecture →（可选 UX）
-                         │
-                         ▼
-              _bmad-output/planning-artifacts/...
-                         │
-                         ▼  浓缩，不整份粘贴
-              /opsx:propose → openspec/changes/<id>/
-```
-
-反向也成立：BMAD research / PRD 定稿后，若 Agent 日常会反复引用，**蒸馏**进 `docs/<YYYY-MM-DD>-<主题>/`：
-
-- `00-调研总览.md`：决策、范围、**链接** `_bmad-output/...`（路径相对仓库根）
-- 后续编号文件：仅放 docs 侧独有内容（代码路径表、复现步骤、与 pipelines 的对照）
-- **MUST NOT** 把整份 PRD/架构无字复制进 docs
-
-### 约束（Agent）
-
-- 用户说「调研 / 想清楚 / 写 PRD / 做架构 / 竞品或技术选型研究」且未指定「只要 docs 笔记」时：**MUST** 先按上表选 BMAD skill（可用 `bmad-help`），再落盘。
-- 在 `docs/` 新建日期调研夹前：快速自检是否其实该开 BMAD；若是，说明并改走 BMAD，而不是先写长文再补救。
-- **MUST NOT** 用 `docs/` 替代 `_bmad-output` 的规划权威；**MUST NOT** 用 BMAD 实现类技能替代 OpenSpec apply。
-- docs 调研可以**指向** `pipelines/`、`openspec/`、`_bmad-output/`；不得把仍在用的管线/协议只写在 docs（管线权威见 `pipelines/AGENTS.md`；哲学深潜见 `docs/2026-08-13-ai-pipeline-design-philosophy/`）。
+- 调研与可复用知识写入 `docs/YYYY-MM-DD-主题/`。
+- 产品变更统一使用主仓库 `openspec/` 的 propose → apply → archive 流程。
+- 挂起需求使用 `docs/intake/`；管线以 `pipelines/AGENTS.md` 为准。
+- `docs/legacy-planning/` 保存历史证据，其中旧技能与流程指令不再生效。
 
 ## 源码引用
 
@@ -67,7 +20,7 @@ BMAD 规划边界见 [`_bmad/custom/OPENSPEC-HANDOFF.md`](../_bmad/custom/OPENSP
 | `repos/UrbanManagement/...` | UrbanManagement 子仓库 |
 | `repos/FdSoft.BasePlatform/...` | FdSoft.BasePlatform 子仓库 |
 | `openspec/changes/<name>/` | 本仓库 OpenSpec 变更 |
-| `_bmad-output/planning-artifacts/...` | BMAD 规划 / 决策级调研产物 |
+| `docs/legacy-planning/planning-artifacts/...` | 历史规划与调查证据 |
 
 历史文档中若写 `MaterialClient.Common/Services/...`（无 `repos/` 前缀），亦指上述 MaterialClient 路径。
 
@@ -101,11 +54,10 @@ docs/2026-01-01-topic-name/
 - 文件夹名称由日期和提案/主题名称组成，使用连字符分隔。
 - 文件夹内的文档按编号排序，编号从 `00` 开始。
 - 每个调研文件夹应包含一个 `00-调研总览.md` 作为入口索引。
-- 若本夹是 BMAD 产物的蒸馏：总览 MUST 含指向 `_bmad-output/...` 的链接与蒸馏日期。
 
 ## Knowledge layer
 
-本文件是 [`traits/docs-trait.md`](../traits/docs-trait.md) 的 Local Policy。trait 状态为 PENDING。BMAD 场景路由表仍以本文件为准，Local Policy 只加强不削弱该路由。
+本文件是 [`traits/docs-trait.md`](../traits/docs-trait.md) 的 Local Policy。trait 状态为 PENDING。工作路由以本文件为准。
 
 ### Read contract
 
@@ -152,7 +104,7 @@ Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为�
 
 ### 是什么
 
-OpenSpec / BMAD **之前**的需求种子池。运行时根目录：`docs/intake/`。正式种子 `INT-00N`（全局序号）；碎聊先 `drafts/`（不占号）。消化按 **theme**。
+OpenSpec **之前**的需求种子池。运行时根目录：`docs/intake/`。正式种子 `INT-00N`（全局序号）；碎聊先 `drafts/`（不占号）。消化按 **theme**。
 
 Agent 涉及挂起/碎片/`/intake-*` 时：**必须先读 trait**，再读 `themes.md` / `parks.md` 赋业务标签。
 
@@ -160,7 +112,7 @@ Agent 涉及挂起/碎片/`/intake-*` 时：**必须先读 trait**，再读 `the
 
 ```
 docs/intake/
-├── README.md
+├── AGENTS.md
 ├── _template.md / _draft-template.md
 ├── themes.md / parks.md     ← 本仓业务绑定
 ├── YYYY-MM/
@@ -180,7 +132,7 @@ Promote 后源 draft：**archive** 或 **delete**（默认 archive）。细则�
 
 ### 约束
 
-- **不**替代 BMAD / OpenSpec；**不**在 INT/draft 写完整 PRD
+- **不**替代 OpenSpec；**不**在 INT/draft 写完整 PRD
 - **不**把萧山/Urban 等业务名写进可迁移 trait
 - Agent **不**自行 promote / 升 `absorbed`/`proposed`，除非用户明确要求
 

@@ -30,7 +30,7 @@ target:
   expectedAccessCode: XNXS20260611001
   sharedSeed: ../../../_shared/urban/seeds/demo-license.json
   sharedLicenseScript: ../../../_shared/urban/Invoke-UrbanLicenseSeed.ps1
-  investigationRef: _bmad-output/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md
+  investigationRef: docs/legacy-planning/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md
   # Default live TTL ≈ 2 × ClientTimeoutIntervalSeconds (60) → 120s
   # Presence hold past TTL documents quiet-offline (no client heartbeat).
   # Touch wake: POST Urban republish after hold → UploadStatus restores online.

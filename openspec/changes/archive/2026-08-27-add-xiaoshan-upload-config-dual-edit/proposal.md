@@ -23,5 +23,5 @@
 
 - **Repos**: MaterialClient（`MaterialClient.Urban` 设置/配置 UI 与本地存储）、UrbanManagement（项目侧配置管理、AppService/API、持久化）。
 - **集成分支**: `epic/xiaoshan-platform-upload`（阶段完工合入该分支，不合 `main`）。
-- **追溯**: INT-001；Epic `_bmad-output/planning-artifacts/xiaoshan-platform-upload-epic/`。
+- **追溯**: INT-001；Epic `docs/legacy-planning/planning-artifacts/xiaoshan-platform-upload-epic/`。
 - **依赖后续**: INT-002/003/004 依赖本能力落地。

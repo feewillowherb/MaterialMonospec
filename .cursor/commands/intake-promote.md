@@ -52,6 +52,6 @@ description: 将 draft 晋升为 1–N 条 INT，源 draft 可 archive 或 delet
 
 ## 约束
 
-- promote **不**等于消化：勿自行开 BMAD Epic / `/opsx:propose`
+- promote **不**等于消化：勿自行开 `/opsx:propose`
 - 一对多时尽量一次占连续 INT 号；失败则向用户说明
 - 中文输出；标识符保持英文

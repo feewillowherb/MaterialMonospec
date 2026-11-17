@@ -1,3 +1,5 @@
+> 历史资料：旧规划工具及其技能已退役；其中相关流程不再生效。现行工作遵循根 AGENTS.md、docs/AGENTS.md 与 OpenSpec。
+
 # Intake（需求收件）
 
 OpenSpec / BMAD **之前**的种子池。设计权威：`docs/2026-08-27-intake-parking/`。

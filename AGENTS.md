@@ -61,11 +61,8 @@ MaterialMonospec/
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
 ├── pipelines/                            # 可 cook 验收 Graph（框架 + graphs/）；约定见 pipelines/AGENTS.md
-├── _bmad/                                # BMAD 配置与工作流（仅主仓库，子仓库不安装）
-├── _bmad-output/                         # BMAD 规划/实现产出
-├── .agents/skills/                       # Cursor BMAD skills
 ├── AGENTS.md                             # 本文件
-└── .gitignore                            # 排除 repos/、BMAD 个人配置
+└── .gitignore                            # 排除 repos/ 与本地文件
 ```
 
 ## Monospec 工作流程
