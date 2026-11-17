@@ -48,3 +48,13 @@ repositories:
     optional: false
     tags:
       - sso
+  - path: repos/FdSoft.BasePlatform.PublicApi
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_BasePlatform/FdSoft.BasePlatform.PublicApi.git
+    displayName: FdSoft.BasePlatform.PublicApi
+    type: Service
+    icon: 🔑
+    optional: false
+    tags:
+      - aspnet
+      - public-api
+      - auth
