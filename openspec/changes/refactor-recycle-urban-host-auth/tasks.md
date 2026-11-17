@@ -16,10 +16,10 @@
 
 ## 3. UrbanManagement Admin — 并存授权
 
-- [ ] 3.1 Core `ProductCode` 枚举增加 Recycle=5020；拉取规范化接受 5001 与 5020
-- [ ] 3.2 `GovProject`（或等价）持久化产品区分，保证同项目双授权不互盖；迁移与唯一约束
-- [ ] 3.3 Admin 项目管理展示产品；Recycle 行不导航城管称重落点
-- [ ] 3.4 如需：Recycle 激活代理（对齐 Urban Ingest activate，产品码 5020）
+- [x] 3.1 Core `ProductCode` 枚举增加 Recycle=5020；拉取规范化接受 5001 与 5020
+- [x] 3.2 `GovProject`（或等价）持久化产品区分，保证同项目双授权不互盖；迁移与唯一约束
+- [x] 3.3 Admin 项目管理展示产品；Recycle 行不导航城管称重落点
+- [x] 3.4 如需：Recycle 激活代理（对齐 Urban Ingest activate，产品码 5020）
 
 ## 4. MaterialClient.Recycle — Urban 同构宿主
 
