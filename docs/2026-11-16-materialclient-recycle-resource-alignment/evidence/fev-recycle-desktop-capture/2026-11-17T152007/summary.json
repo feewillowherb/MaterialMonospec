@@ -1,0 +1,10 @@
+{
+  "scaleType": "TestMode",
+  "fail": 0,
+  "baseUrl": "http://127.0.0.1:9933",
+  "scaleApi": "POST /api/scale/weight",
+  "lprApi": "POST /api/lpr/test-plate",
+  "uiOps": false,
+  "pass": 3,
+  "verdict": "FEASIBLE"
+}

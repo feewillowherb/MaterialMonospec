@@ -1,0 +1,12 @@
+=== GET / ===
+PASS: {"service":"MaterialClient.Recycle Diagnostic API","version":"1.0","endpoints":["/api/scale/weight","/api/lpr/test-plate"]}
+=== POST /api/scale/weight ===
+FAIL: Response status code does not indicate success: 400 (Bad Request).
+
+{
+  "success": false,
+  "message": "\u5F53\u524D\u4E0D\u662F\u5730\u78C5\u6D4B\u8BD5\u6A21\u5F0F"
+}
+=== POST /api/lpr/test-plate ===
+PASS: status=200 body={"success":true,"message":"完成","plateNumber":"浙DE5145","deviceType":"Huaxiazhixin","deviceName":"FevApi","colorType":null,"timestamp":"2026-11-17T15:18:55.0039314+08:00"}
+pass=2 fail=1 verdict=INCONCLUSIVE

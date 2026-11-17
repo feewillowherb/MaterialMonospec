@@ -1,0 +1,7 @@
+=== GET / ===
+PASS: {"service":"MaterialClient.Recycle Diagnostic API","version":"1.0","endpoints":["/api/scale/weight","/api/lpr/test-plate"]}
+=== POST /api/scale/weight ===
+PASS: status=200 body={"success":true,"message":"完成","weight":32.5}
+=== POST /api/lpr/test-plate ===
+PASS: status=200 body={"success":true,"message":"完成","plateNumber":"浙DE5145","deviceType":"Huaxiazhixin","deviceName":"FevApi","colorType":null,"timestamp":"2026-11-17T15:20:07.7719082+08:00"}
+pass=3 fail=0 verdict=FEASIBLE

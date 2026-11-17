@@ -1,0 +1,21 @@
+{
+  "goal": "form WeighingRecord via off-scale -> plate -> stable on-scale",
+  "verdict": "FEASIBLE",
+  "note": "WeighingRecords row Id=2 plate=FEV152145 totalWeight=32.5 mode=301. Waybills still 0 until Complete. Prior API-only FEV did not claim pound-bill.",
+  "weighingRecords": [
+    {
+      "id": 1,
+      "plate": "浙DE5145",
+      "totalWeight": 32.5,
+      "mode": 301
+    },
+    {
+      "id": 2,
+      "plate": "FEV152145",
+      "totalWeight": 32.5,
+      "mode": 301
+    }
+  ],
+  "waybillCount": 0,
+  "baseUrl": "http://127.0.0.1:9933"
+}

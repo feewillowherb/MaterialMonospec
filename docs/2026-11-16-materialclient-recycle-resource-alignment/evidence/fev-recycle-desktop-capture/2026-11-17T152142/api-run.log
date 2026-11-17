@@ -1,0 +1,9 @@
+GET / ok
+baseline WeighingRecords maxId=1
+POST weight=0.1 status=200 {"success":true,"message":"完成","weight":0.1}
+POST plate=FEV152145 status=200 {"success":true,"message":"完成","plateNumber":"FEV152145","deviceType":"Huaxiazhixin","deviceName":"FevBill","colorType":null,"timestamp":"2026-11-17T15:21:45.488937+08:00"}
+POST weight=32.5 status=200 {"success":true,"message":"完成","weight":32.5}
+waiting settle 8s for stable enqueue...
+new WeighingRecords: 
+recent Waybills: []
+newWeighingRecordCount= verdict=INFEASIBLE (pound-bill formation)

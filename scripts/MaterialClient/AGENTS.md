@@ -8,10 +8,10 @@ MaterialClient 各**独立宿主**的构建 / 启动入口。共享逻辑在 `_c
 
 | 宿主 | Build | Start | 输出目录 | 诊断口默认 |
 |------|-------|-------|----------|------------|
-| **Standard** | `Build-MaterialClient.Standard.ps1` | `Start-MaterialClient.Standard.ps1` | `.build-verify/MaterialClient` | `http://localhost:9960` |
-| **SolidWaste** | `Build-MaterialClient.SolidWaste.ps1` | `Start-MaterialClient.SolidWaste.ps1` | `.build-verify/MaterialClient.SolidWaste` | `http://localhost:9961` |
+| **Standard** | `Build-MaterialClient.Standard.ps1` | `Start-MaterialClient.Standard.ps1` | `.build-verify/MaterialClient` | `http://localhost:9933` |
+| **SolidWaste** | `Build-MaterialClient.SolidWaste.ps1` | `Start-MaterialClient.SolidWaste.ps1` | `.build-verify/MaterialClient.SolidWaste` | `http://localhost:9933` |
 | Urban | `Build-MaterialClient.Urban.ps1` | `Start-MaterialClient.Urban.ps1` | `.build-verify/Urban` | `http://localhost:9933` |
-| Recycle | `Build-MaterialClient.Recycle.ps1` | `Start-MaterialClient.Recycle.ps1` | `.build-verify/Recycle` | （按该脚本） |
+| Recycle | `Build-MaterialClient.Recycle.ps1` | `Start-MaterialClient.Recycle.ps1` | `.build-verify/Recycle` | `http://localhost:9933` |
 
 兼容：无后缀的 `Build-MaterialClient.ps1` / `Start-MaterialClient.ps1` **只**转发到 `.Standard`；新用法请写带后缀名。
 

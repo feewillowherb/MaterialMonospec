@@ -4,8 +4,8 @@
   .build-verify/MaterialClient.SolidWaste
 
 .PARAMETER EnableDiagnosticHost
-  Set MinimalWebHost__EnableOnStartup=true so http://localhost:9961 serves
-  /api/scale/weight and /api/lpr/test-plate (SolidWaste diagnostic port; Standard uses 9960).
+  Set MinimalWebHost__EnableOnStartup=true so http://localhost:9933 serves
+  /api/scale/weight and /api/lpr/test-plate (all hosts default diagnostic port 9933).
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialClient.SolidWaste.ps1
@@ -33,7 +33,7 @@ param(
 if ($EnableDiagnosticHost) {
     $env:MinimalWebHost__EnableOnStartup = "true"
     if ([string]::IsNullOrWhiteSpace($env:MinimalWebHost__Urls)) {
-        $env:MinimalWebHost__Urls = "http://localhost:9961"
+        $env:MinimalWebHost__Urls = "http://localhost:9933"
     }
     Write-Host "MinimalWebHost__EnableOnStartup=$($env:MinimalWebHost__EnableOnStartup)"
     Write-Host "MinimalWebHost__Urls=$($env:MinimalWebHost__Urls)"

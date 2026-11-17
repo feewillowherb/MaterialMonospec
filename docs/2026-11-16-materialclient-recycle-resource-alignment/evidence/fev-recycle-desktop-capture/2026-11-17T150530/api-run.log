@@ -1,0 +1,9 @@
+runId=2026-11-17T150530
+question=After capture-only refactor, can Recycle inject scale weight and LPR plate via MinimalWebHost without UI?
+start=Start-MaterialClient.Recycle.ps1 -Configuration Release -StopRunning
+pid=36536 (exited before probe completed)
+GET http://127.0.0.1:9933/ => connection timeout / refused; process gone
+POST /api/scale/weight => NOT RUN
+POST /api/lpr/test-plate => NOT RUN
+observation=Recycle process does not stay up; no LISTEN on 9933; likely auth/login gate cancelled or startup aborted before host usable
+verdict=INCONCLUSIVE

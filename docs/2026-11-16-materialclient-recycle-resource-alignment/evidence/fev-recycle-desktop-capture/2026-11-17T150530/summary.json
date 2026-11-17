@@ -1,0 +1,10 @@
+{
+  "lprApi": "POST /api/lpr/test-plate",
+  "reason": "Recycle exited before MinimalWebHost:9933 accepted connections; activation/login gate not cleared",
+  "cityOutbound": false,
+  "verdict": "INCONCLUSIVE",
+  "baseUrl": "http://127.0.0.1:9933",
+  "scaleApi": "POST /api/scale/weight",
+  "uiOps": false,
+  "next": "User complete first-time activation/login and keep process running; re-run HTTP FEV"
+}
