@@ -33,7 +33,7 @@ Status: **active**
 - `./secrets.example.yaml`
 - 共享 seed：`pipelines/_shared/urban/seeds/demo-license.json`
 - 共享授权：`pipelines/_shared/urban/Invoke-UrbanLicenseSeed.ps1`
-- 调查背景：`_bmad-output/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md`
+- 调查背景：`docs/legacy-planning/implementation-artifacts/investigations/urban-client-offline-after-boot-investigation.md`
 
 ## 前置
 

@@ -1,3 +1,5 @@
+> 历史资料：旧规划工具及其技能已退役；其中相关流程不再生效。现行工作遵循根 AGENTS.md、docs/AGENTS.md 与 OpenSpec。
+
 # MaterialMonospec 操作手册
 
 > 基于 BMAD-METHOD + OpenSpec + Cursor 三工具分工方法论，面向 MaterialMonospec 项目的完整操作指南。
@@ -165,7 +167,7 @@ MaterialMonospec/
 │   ├── MaterialClient/             # Avalonia 桌面应用
 │   └── UrbanManagement/            # ABP Web 应用
 ├── _bmad/                          # BMAD 配置
-├── _bmad-output/                   # BMAD 规划产出
+├── docs/legacy-planning/                   # BMAD 规划产出
 │   ├── planning-artifacts/         # 规划制品
 │   └── implementation-artifacts/   # 实施制品
 ├── .agents/skills/                 # Cursor BMAD skills
@@ -309,7 +311,7 @@ bmad-help，把这个 Epic 拆成 N 个可独立交付的 OpenSpec change。
 **推荐产出目录结构**：
 
 ```
-_bmad-output/planning-artifacts/<epic-slug>/
+docs/legacy-planning/planning-artifacts/<epic-slug>/
 ├── project-context.md          # 可选，跨 change 的实现约束
 ├── architecture.md             # 可选，架构产出
 ├── slices/
@@ -379,7 +381,7 @@ BMAD 规划完成后，**用户需要手工将**每个 BMAD slice 对应的 `pro
 
 ### 5.2 衔接步骤
 
-对每个 `_bmad-output/planning-artifacts/<epic>/slices/<name>/`：
+对每个 `docs/legacy-planning/planning-artifacts/<epic>/slices/<name>/`：
 
 #### 步骤 1：确认目标仓库
 
@@ -560,7 +562,7 @@ bmad-help，把这个 Epic 拆成可独立交付的 OpenSpec change。
 每个 slice 只输出 proposal.md 和概要 design.md，不要生成 tasks。
 ```
 
-预期产出（在 `_bmad-output/planning-artifacts/` 中）：
+预期产出（在 `docs/legacy-planning/planning-artifacts/` 中）：
 
 ```
 slices/
@@ -591,7 +593,7 @@ openspec create add-batch-queue-management
 
 **B2. 导入 proposal**
 
-将 `_bmad-output/planning-artifacts/.../slices/01-batch-queue-management/proposal.md` 的内容导入：
+将 `docs/legacy-planning/planning-artifacts/.../slices/01-batch-queue-management/proposal.md` 的内容导入：
 
 ```
 /opsx:propose add-batch-queue-management

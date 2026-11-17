@@ -30,4 +30,4 @@ MaterialClient 三种宿主共用 `MaterialClient.Common` 里的单一 `Material
 - **MaterialClient**：`Common`、新 `Common.EntityFrameworkCore`、`Common.Urban`、`Common.Recycle`、三宿主 csproj/ABP 模块、sln、测试项目引用
 - **UrbanManagement / FdSoft.BasePlatform**：本 change **不改**
 - 无对外 HTTP **BREAKING**；本地 SQLite 旧库可能残留产品表（不强制删除）
-- 调研依据：`_bmad-output/planning-artifacts/research/technical-materialclient-product-ef-isolation-research-2026-08-28.md`
+- 调研依据：`docs/legacy-planning/planning-artifacts/research/technical-materialclient-product-ef-isolation-research-2026-08-28.md`

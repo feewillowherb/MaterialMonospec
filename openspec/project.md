@@ -18,7 +18,7 @@
 | Agent 行为契约 | `traits/` |
 | 可复用知识 | `docs/` |
 | Node.js cook 与验收 Graph | `pipelines/` |
-| 规划仪式产物 | `_bmad-output/`，路由见 `docs/AGENTS.md` |
+| 历史规划证据 | `docs/legacy-planning/`，路由见 `docs/AGENTS.md` |
 
 ## 技术栈边界
 

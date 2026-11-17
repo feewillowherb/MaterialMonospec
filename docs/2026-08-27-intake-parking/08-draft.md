@@ -1,3 +1,5 @@
+> 历史资料：旧规划工具及其技能已退役；其中相关流程不再生效。现行工作遵循根 AGENTS.md、docs/AGENTS.md 与 OpenSpec。
+
 # 08 · Intake Draft（草稿纸）
 
 与 Agent **边聊边碎**、尚未够格写成正式 INT 时，先落 **draft**，**不占**全局 `INT-00N` 序号。

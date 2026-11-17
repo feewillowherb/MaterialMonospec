@@ -1,0 +1,11 @@
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/proposal.md
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/design.md
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/tasks.md
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/.openspec.yaml
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/specs/attended-weighing/spec.md
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/specs/sound-device-playback/spec.md
+openspec/changes/fix-sound-fire-and-forget-offline-suppress/specs/sound-device-test/spec.md
+repos/MaterialClient/src/MaterialClient.Common/Services/SoundDeviceService.cs
+repos/MaterialClient/src/MaterialClient.Common/Services/AttendedWeighing/AttendedWeighingService.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/SoundDevicePlaybackSuppressTests.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/AttendedWeighingSoundFireAndForgetTests.cs

@@ -108,7 +108,7 @@ This trait must stay **domain-agnostic**. Load project facts from files under `{
 - Never self-promote Draft → INT unless user asks to 收件 / 落成 INT / promote (or confirms seed-ready).
 - Never self-raise INT to `absorbed` / `proposed` unless user asks to digest / open a change.
 - Parked window: only `open` / `triaged`; no placeholder Epics; no bookkeeping proposes.
-- Do not use Intake as BMAD sprint / OpenSpec apply substitute.
+- Do not use Intake as OpenSpec apply substitute.
 
 ## Prompt
 
