@@ -1,0 +1,8 @@
+# Scope: fix-weighing-stable-single-enqueue implementation diff only.
+# origin/main...HEAD is empty (uncommitted). Unrelated dirty docs and other changes are excluded.
+repos/MaterialClient/src/MaterialClient.Common/Services/AttendedWeighing/AttendedWeighingService.cs
+repos/MaterialClient/tests/MaterialClient.Common.Tests/Tests/WeighingStableWeightCarryoverReproductionTests.cs
+openspec/changes/fix-weighing-stable-single-enqueue/proposal.md
+openspec/changes/fix-weighing-stable-single-enqueue/design.md
+openspec/changes/fix-weighing-stable-single-enqueue/tasks.md
+openspec/changes/fix-weighing-stable-single-enqueue/specs/attended-weighing/spec.md

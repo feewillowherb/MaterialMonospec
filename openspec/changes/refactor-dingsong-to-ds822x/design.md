@@ -71,7 +71,7 @@ Git：**Mode A**。Apply 时仅在 MaterialClient 从 trunk 切 `refactor-dingso
 
 - [BREAKING：旧 12 字节现场读不到重量] → 提案已标注；设置说明 / 实施时依赖仪表改 `Adr`/`modE`。
 - [C 帧启发式与其它固件不一致] → 金标绑 `_tmp/text.txt`；偏差另开 change。
-- [A 帧 22 字节粘包半帧] → 粘包缓冲 + 长度门闩，不齐不解析。
+- [A 帧 22 字节粘包半帧] → 粘包缓冲 + 长度检查，不齐不解析。
 - [Parity 7E1 vs 代码固定 8N1] → 保持现有串口参数与其它秤型一致；现场 `modE=6`（8N1）对齐；7 位校验差异不在本 change 改串口层。
 
 ## Migration Plan

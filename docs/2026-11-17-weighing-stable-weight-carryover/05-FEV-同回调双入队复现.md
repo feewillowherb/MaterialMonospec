@@ -11,7 +11,7 @@
 
 > 同一次 `OnWeightAndStatusChanged`（`WaitingForStability → WeightStabilized`）因 status-transition 与 backup **各入队一次** `OnWeightStabilizedAsync`，日志同时出现两行，并对仓库产生 **≥ 2** 条同吨 `WeighingRecords`？
 
-若能复现，则 `fix-weighing-stable-single-enqueue` 所针对的双任务源成立，可继续按 design 做「本回调已入队」门闩。  
+若能复现，则 `fix-weighing-stable-single-enqueue` 所针对的双任务源成立，可继续按 design 做「本回调已入队」标志。  
 若不能复现，则不得把「同帧双入队」写成当前主干上的已证实缺陷。
 
 ## 2. 实验（Experiment）
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File pipelines/graphs/materialclient/fev-sta
 | 命令 | 上表 Start + Invoke |
 | 工作目录 | 仓库根；库/日志在 `repos/MaterialClient/.build-verify/MaterialClient/` |
 | 观察 | 以该次 `summary.json` 的 `fevVerdict` / `observations` / `log-excerpt.txt` / 新行账单为准 |
-| 产品代码基线 | 当时 `AttendedWeighingService.OnWeightAndStatusChanged` **尚未**加「本回调已入队」门闩 |
+| 产品代码基线 | 当时 `AttendedWeighingService.OnWeightAndStatusChanged` **尚未**加「本回调已入队」标志 |
 | 不含密钥 | 是 |
 
 （首次 cook 完成后把本表 `runId` / `fevVerdict` 填实。）
