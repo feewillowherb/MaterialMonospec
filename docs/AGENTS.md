@@ -95,6 +95,7 @@ Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为�
 |------|------|
 | 用 Pipeline 代替人力测试 | [`2026-09-11-pipeline-replace-manual-testing/`](2026-09-11-pipeline-replace-manual-testing/00-调研总览.md)（权威选型仍以 [`pipelines/AGENTS.md`](../pipelines/AGENTS.md) 为准） |
 | 138 实验口 Recycle 授权发布 | [`2026-11-18-recycle-auth-lab-publish/`](2026-11-18-recycle-auth-lab-publish/00-调研总览.md)（正式 Docker 口仍走 `deploy-urban-acceptance`） |
+| Recycle Web 持久化 FEV | [`2026-11-18-recycle-web-persistence-fev/`](2026-11-18-recycle-web-persistence-fev/00-调研总览.md) |
 
 ## Intake 需求收件（Parking）
 

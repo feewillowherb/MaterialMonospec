@@ -1,0 +1,7 @@
+topic: 2026-11-18-recycle-web-table-design
+created: "2026-11-18"
+updated: "2026-11-18"
+# Discussion board for Recycle Web persistence.
+# Independent tables were adopted 2026-11-16; column names and DbContext
+# placement stay PENDING_VALIDATION until a Human approves an OpenSpec design.
+# Does not authorize migrations or product behavior changes.

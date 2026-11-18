@@ -90,7 +90,7 @@ MaterialClient.Recycle          UrbanManagement.Recycle              杭州市�
 | 附件文件目录 | 可复用现有 Uploads 类基础设施，用路径/业务 Id 区分；元数据仍归 Recycle 表 |
 | 继续只用 XiaoShanResource 进程内存 mock | 不够：两跳上传与 Web 管理需要可持久化、可重试的数据 |
 
-依据：产品码与城管分离（5020/5041 vs 5001/5040）；第二跳字段与城管通道不同；客户端 Topic 要求主数据与采集记录落在我方 Recycle 平台。具体表名、是否独立 DbContext / migration 程序集，仍 PENDING_VALIDATION，在 OpenSpec `design.md` 定。
+依据：产品码与城管分离（5020/5041 vs 5001/5040）；第二跳字段与城管通道不同；客户端 Topic 要求主数据与采集记录落在我方 Recycle 平台。具体表名、是否独立 DbContext / migration 程序集，仍 PENDING_VALIDATION。讨论记录在 [`docs/2026-11-18-recycle-web-table-design/`](../2026-11-18-recycle-web-table-design/00-调研总览.md)，定稿进入 OpenSpec `design.md`。
 
 ## 与客户端重构的接口契约（待开 change 细化）
 

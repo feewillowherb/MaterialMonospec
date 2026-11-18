@@ -1,0 +1,7 @@
+topic: 2026-11-18-recycle-web-persistence-fev
+created: "2026-11-18"
+updated: "2026-11-18"
+# FEV of UrbanManagement.Recycle against LocalDB UrbanManagement.
+# Question: can the web host persist vehicles, a weigh, and a contract
+# through the Recycle AppServices instead of the memory mock?
+# Verdict: FEASIBLE. Not an ICD delivery claim.
