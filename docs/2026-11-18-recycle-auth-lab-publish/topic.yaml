@@ -1,0 +1,9 @@
+topic: 2026-11-18-recycle-auth-lab-publish
+created: "2026-11-18"
+updated: "2026-11-18"
+# Lab publish checklist for Recycle 5020 activation:
+# MaterialClient.Recycle -> 192.168.3.138:5333 /api/urban/auth/activate
+# -> Ingest -> 192.168.3.135:8551 /Api/Auth/ActivateUrban.
+# Not the production Docker publisher (host 5233 / deploy-urban-acceptance).
+# Evidence: 2026-11-18 client log, PublicApi fdsoftlogs, Ingest container logs.
+# Does not authorize OpenSpec or another deploy.

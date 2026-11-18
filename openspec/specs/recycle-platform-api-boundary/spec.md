@@ -3,39 +3,38 @@
 ## Purpose
 
 定义 Recycle 独立客户端对 BasePlatform / MaterialPlatform / Recycle 外部数据接口的 Refit 客户端边界：授权走 BasePlatform，登录仅用 MaterialPlatform，业务数据上报走 §2.2 `IRecycleDataApi`。
-
 ## Requirements
-
 ### Requirement: Recycle 使用 IBasePlatformApi 进行授权
-Recycle 客户端 SHALL 通过 `IBasePlatformApi` 完成授权码验证与 License 获取；该 API SHALL 在 `MaterialClientRecycleModule` 中通过 `AddMaterialClientRefitClients` 注册。
+Recycle 客户端授权主路径 SHALL 为 **5020 在线激活**（经平台代理或 PublicApi 同形接口：激活码 + 机器码 → JWT）。`GetAuthClientLicenseAsync` SHALL NOT 作为产品主路径。
 
-#### Scenario: BasePlatform 客户端已注册
+#### Scenario: 在线激活客户端可解析
 - **WHEN** `MaterialClientRecycleModule.ConfigureServices` 执行
-- **THEN** `IBasePlatformApi` SHALL 可通过 DI 解析
-- **AND** Recycle 授权流程 SHALL 可调用 `GetAuthClientLicenseAsync`
+- **THEN** 在线激活所用 HTTP 客户端 SHALL 可通过 DI 解析
+- **AND** Recycle 激活流程 SHALL 可提交 5020 + 机器码
 
 ### Requirement: Recycle 使用 IMaterialPlatformApi 仅用于登录
-Recycle 客户端 SHALL 仅通过 `IMaterialPlatformApi.UserLoginAsync` 建立操作员会话；SHALL NOT 调用 MaterialPlatform 业务数据同步接口（如 `SynchronizationOrderAsync`、运单上传、附件 OSS 同步等）。
+Recycle 客户端 SHALL NOT 要求 MaterialPlatform 账号登录作为启动前置。SHALL NOT 调用 MaterialPlatform 业务数据同步接口（如 `SynchronizationOrderAsync`、运单上传、附件 OSS 同步等）。
 
-#### Scenario: 登录接口可用
-- **WHEN** Recycle 用户提交用户名密码登录
-- **THEN** SHALL 调用 `IMaterialPlatformApi.UserLoginAsync`
-- **AND** 登录成功后 SHALL 建立本地 `UserSession`
+#### Scenario: 启动不依赖 Material 登录
+- **WHEN** Recycle 用户完成激活或已有有效授权
+- **THEN** SHALL 进入称重主界面
+- **AND** SHALL NOT 调用 `IMaterialPlatformApi.UserLoginAsync` 作为必经步骤
 
 #### Scenario: 不注册 MaterialPlatform 同步 BackgroundWorker
 - **WHEN** Recycle 应用初始化后台服务
 - **THEN** SHALL NOT 注册 `MaterialClient.Backgrounds.PollingBackgroundService`
 - **AND** SHALL NOT 注册依赖 MaterialPlatform 同步的 Waybill 上报 Worker
 
-#### Scenario: 业务数据走 §2.2 外部接口
+#### Scenario: 业务采集上传走我方 Recycle 平台
 - **WHEN** Recycle 称重记录需要上报
-- **THEN** SHALL 由 `RecycleDataSyncService` 经 `IRecycleDataApi` 提交至 `/dataCenter/resourcePlace/productTransportRecord/v1/addBatch`
-- **AND** SHALL NOT 经 `IMaterialPlatformApi` 提交
+- **THEN** SHALL 上传至我方 Recycle Web / 平台接收 API
+- **AND** SHALL NOT 经 `IMaterialPlatformApi` 提交业务主数据
+- **AND** 市平台 HMAC 直连 SHALL NOT 作为产品主路径
 
 ### Requirement: Recycle Refit 客户端注册边界
-`MaterialClientRecycleModule` SHALL 注册三类 HTTP 客户端：`IBasePlatformApi`、`IMaterialPlatformApi`（Common 共享注册）、`IRecycleDataApi`（Recycle 专属 HMAC）。
+`MaterialClientRecycleModule` SHALL 注册支持在线激活与我方平台上传所需的 HTTP 客户端。市平台 `IRecycleDataApi` HMAC 客户端 MAY 保留但默认 SHALL NOT 作为产品主路径。
 
-#### Scenario: 三类客户端均可解析
+#### Scenario: 激活与平台上传客户端可解析
 - **WHEN** Recycle 应用 DI 容器构建完成
-- **THEN** `IBasePlatformApi`、`IMaterialPlatformApi`、`IRecycleDataApi` SHALL 均可解析
-- **AND** `IRecycleDataApi` SHALL 附加 `RecycleHmacDelegatingHandler`
+- **THEN** 在线激活客户端与 Recycle 平台上传客户端 SHALL 可解析
+
