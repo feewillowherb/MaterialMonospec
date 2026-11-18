@@ -23,10 +23,10 @@
 
 ## 4. MaterialClient.Recycle — Urban 同构宿主
 
-- [ ] 4.1 撤销/停用 AttendedWeighing 主窗 + Material 登录启动链
-- [ ] 4.2 新增 Recycle 激活窗（只填激活码，自动机器码）与启动门禁
-- [ ] 4.3 新增 Recycle 称重主窗（WeighingWindowBase 壳；无退出登录/Material 同步）；接采集与平台上传
-- [ ] 4.4 模块注册与配置：在线激活客户端、平台 BaseUrl；诊断 MinimalWebHost 保持
+- [x] 4.1 撤销/停用 AttendedWeighing 主窗 + Material 登录启动链
+- [x] 4.2 新增 Recycle 激活窗（只填激活码，自动机器码）与启动门禁
+- [x] 4.3 新增 Recycle 称重主窗（WeighingWindowBase 壳，对齐 UrbanAttendedWeighing；无退出登录/Material 同步）；采集经 Attended 管线落 WeighingRecord(Recycle)；上传事件已接，我方 receive 实现见 5.3
+- [x] 4.4 模块注册与配置：在线激活客户端、平台 BaseUrl；诊断 MinimalWebHost 保持
 
 ## 5. 验证
 
