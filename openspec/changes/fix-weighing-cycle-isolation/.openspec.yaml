@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-18
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "MaterialClient cycle isolation, per-cycle creation and bounded finalization recovery"
