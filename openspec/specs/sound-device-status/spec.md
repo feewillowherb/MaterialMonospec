@@ -48,15 +48,15 @@
 
 ### 需求：设备状态 API 集成
 
-系统应通过远程 API 查询音柱设备状态，并将响应映射为设备在线状态。
+系统 MUST 通过 ls21 业务服务器 API 查询音柱设备状态，并将响应映射为设备在线状态。播放路径仍使用 `{SoundIP}:8888`。
 
 #### 场景：调用远程 API 查询设备状态
 - **假设** 音柱设备序列号为 `"020021EA63AC"`
-- **且** 设备 IP 为 `"192.168.1.100"`
+- **且** `LocalIP` 为 `"192.168.1.100"`
 - **当** 调用 `SoundDeviceService.IsOnlineAsync()` 时
 - **则** 系统应将设备序列号格式化为 `"ls20://020021EA63AC"`
-- **且** 创建 HTTP 客户端，BaseURL 为 `"http://192.168.1.100:8888"`
-- **且** 调用 `GET /api/devices/getDeviceBySN?type=req&app=ls20&sn=ls20://020021EA63AC`
+- **且** 创建 HTTP 客户端，BaseURL 为 `"http://192.168.1.100:17808"`
+- **且** 调用 `POST /api/devices/getDeviceBySN`，JSON body 为 `{ "type": "req", "app": "ls20", "sn": "ls20://020021EA63AC" }`
 - **且** 超时设为 5 秒
 
 #### 场景：解析在线状态响应
@@ -88,6 +88,10 @@
 - **且** 将 `status == 3` 判定为离线（关机视为离线）
 - **且** 返回 `false`
 - **且** 记录警告：“Device is powered off”
+
+#### 场景：设备未找到时视为离线
+- **当** 远程 API 返回 HTTP 200 且 body 为 `{ "msg": "device not found" }`（无 `status` 字段）
+- **则** 系统判定为离线并返回 `false`
 
 ### 需求：状态栏 UI 显示
 

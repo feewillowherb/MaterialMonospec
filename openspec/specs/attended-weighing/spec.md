@@ -499,11 +499,20 @@ WeighingStateManager SHALL manage an AttendedWeighingStatus state machine with e
 
 ### Requirement: Force WaitingForDeparture when record exists and weight is above threshold
 
-WeighingStateManager SHALL prevent regression from WaitingForDeparture to WeightStabilized or WaitingForStability when a weighing record already exists and weight remains above threshold.
+WeighingStateManager SHALL prevent regression from WaitingForDeparture to WeightStabilized or WaitingForStability when a weighing record already exists and weight remains above threshold. When `EnableUploadOnStable` is true on the Urban weighing path and the produced-plate hold for that open record reaches 900 seconds without off-scale, this force MUST NOT keep the cycle closed: the open record id MUST be cleared and status MUST become WaitingForStability while weight remains above threshold. Until that 900-second edge, or whenever stable upload is off, the force rule remains in effect.
 
 #### Scenario: State forced to WaitingForDeparture
+
 - **WHEN** a weighing record exists (recordId > 0), weight > MinWeightThreshold, and computed state is WeightStabilized or WaitingForStability
+- **AND** the Urban 900-second stable-upload fallback has not released that record
 - **THEN** state SHALL be forced to WaitingForDeparture
+
+#### Scenario: Nine-hundred-second fallback returns to WaitingForStability
+
+- **WHEN** `EnableUploadOnStable` is true on the Urban weighing path, the open record's produced-plate hold is at least 900 seconds old, weight remains above MinWeightThreshold, and off-scale has not occurred
+- **THEN** the open record id MUST be cleared
+- **AND** state MUST be WaitingForStability
+- **AND** state MUST NOT be OffScale solely because the hold expired
 
 ---
 
@@ -554,23 +563,43 @@ WeighingStreamPipeline SHALL create a buffered weight stream (IObservable<decima
 ### Requirement: Construct stability stream with valid-data filtering
 
 WeighingStreamPipeline SHALL create a stability stream (IObservable<WeightStabilityInfo>) that:
-1. Buffers weight data over StabilityWindowMs with StabilityCheckIntervalMs sliding interval
-2. Filters data points above MinWeightThreshold for stability calculation
-3. Requires minimum data points (max(8, windowMs/intervalMs * 0.5))
-4. Determines stability when range (max-min of valid points) <= WeightStabilityThreshold * 2 AND has enough valid data points
-5. Emits DistinctUntilChanged on IsStable property
+1. First downsamples the shared weight source by buffering over StabilityCheckIntervalMs and taking the last value of each non-empty buffer (one sample per check interval)
+2. Then maintains a sliding window of exactly `periods` downsampled samples, where `periods = max(1, floor(StabilityWindowMs / StabilityCheckIntervalMs))`
+3. Treats the window as ready for stability evaluation only when it contains exactly `periods` samples
+4. Requires every sample in the ready window to be above MinWeightThreshold (no below-threshold samples allowed in a stable window)
+5. Determines stability when the ready window's range (max-min) <= WeightStabilityThreshold * 2
+6. When stable, StableWeight SHALL be (min+max)/2; otherwise StableWeight SHALL be null and IsStable SHALL be false
+7. Emits DistinctUntilChanged on IsStable property
 
-#### Scenario: Sufficient valid stable data
-- **WHEN** 20 data points arrive within StabilityWindowMs, all above MinWeightThreshold, with range <= threshold*2
+AttendedWeighingService's inline stability stream used for record StableWeight SHALL apply the same rules as CreateStabilityStream.
+
+#### Scenario: Full window of valid stable samples
+- **WHEN** StabilityWindowMs is 3000 and StabilityCheckIntervalMs is 200 (periods=15)
+- **AND** 15 consecutive downsampled samples all exceed MinWeightThreshold
+- **AND** range (max-min) <= WeightStabilityThreshold * 2
 - **THEN** IsStable SHALL be true, StableWeight SHALL be (min+max)/2
 
-#### Scenario: Insufficient valid data points
-- **WHEN** only 3 valid data points arrive within StabilityWindowMs
-- **THEN** IsStable SHALL be false regardless of range
+#### Scenario: Premature plateau shorter than full window
+- **WHEN** StabilityWindowMs is 3000 and StabilityCheckIntervalMs is 200 (periods=15)
+- **AND** fewer than 15 consecutive downsampled samples above MinWeightThreshold have been collected since the weight rose above threshold
+- **THEN** IsStable SHALL be false regardless of how small the range is among the available samples
+
+#### Scenario: Window contains a below-threshold sample
+- **WHEN** a ready window of `periods` downsampled samples includes at least one value <= MinWeightThreshold
+- **THEN** IsStable SHALL be false, StableWeight SHALL be null
+
+#### Scenario: Full window but range exceeds threshold
+- **WHEN** a ready window of `periods` samples are all above MinWeightThreshold
+- **AND** range (max-min) > WeightStabilityThreshold * 2
+- **THEN** IsStable SHALL be false, StableWeight SHALL be null
 
 #### Scenario: No valid data points above threshold
-- **WHEN** all data points in the window are below MinWeightThreshold
+- **WHEN** all downsampled points in the current partial or ready window are below MinWeightThreshold
 - **THEN** IsStable SHALL be false, StableWeight SHALL be null
+
+#### Scenario: Mid-ascent short plateau must not lock
+- **WHEN** weight crosses MinWeightThreshold and briefly plateaus near 0.55t for less than StabilityWindowMs with small range
+- **THEN** IsStable SHALL remain false until a full periods window of above-threshold samples has elapsed
 
 ---
 
@@ -737,19 +766,22 @@ AttendedWeighingOrchestrator SHALL implement IAttendedWeighingService, providing
 AttendedWeighingOrchestrator SHALL subscribe to:
 - LicensePlateRecognizedEventData → delegate to PlateNumberService
 - GhostGateSessionResetEventData → remove abandoned plate and publish updated plate
-- SettingsSavedEventData → refresh runtime configuration (EnableLatestPlateNumber, EnablePlateRewrite, EnableMatchOnStable)
+- SettingsSavedEventData → refresh runtime configuration (EnableLatestPlateNumber, EnablePlateRewrite, EnableMatchOnStable, EnableUploadOnStable)
 
 #### Scenario: License plate event triggers plate cache update
+
 - **WHEN** LicensePlateRecognizedEventData with plate "京A12345" is received
 - **THEN** SHALL call PlateNumberService recognition method and publish PlateNumberChangedEventData
 
 #### Scenario: Ghost gate session reset
+
 - **WHEN** GhostGateSessionResetEventData with AbandonedPlateNumber="京A12345" is received
 - **THEN** SHALL remove the plate from cache and publish PlateNumberChangedEventData with updated most frequent plate
 
 #### Scenario: Settings saved refreshes runtime config
+
 - **WHEN** SettingsSavedEventData is received
-- **THEN** SHALL reload EnableLatestPlateNumber, EnablePlateRewrite, and EnableMatchOnStable from settings
+- **THEN** SHALL reload EnableLatestPlateNumber, EnablePlateRewrite, EnableMatchOnStable, and EnableUploadOnStable from settings
 
 ---
 
