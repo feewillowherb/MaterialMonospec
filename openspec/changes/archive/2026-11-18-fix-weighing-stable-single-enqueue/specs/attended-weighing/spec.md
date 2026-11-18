@@ -9,12 +9,14 @@ When `OnWeightAndStatusChanged` handles a weighing update, the orchestrator SHAL
 - **AND** the orchestrator enqueues create-on-stable for that transition
 - **THEN** the backup stabilize check in the same `OnWeightAndStatusChanged` invocation MUST NOT enqueue another create-on-stable
 
-#### Scenario: Backup may still run on a later callback
-- **WHEN** status is already WeightStabilized
+#### Scenario: Backup remains available when the handler is invoked
+- **WHEN** `OnWeightAndStatusChanged` is actually invoked with WeightStabilized and the current status is already WeightStabilized
 - **AND** stability remains true
 - **AND** recordId is still null
 - **AND** this callback did not already enqueue create-on-stable
 - **THEN** the orchestrator MAY enqueue a single create-on-stable as backup
+
+This requirement does not require repeated callbacks while status remains unchanged. Existing status-stream deduplication remains unchanged; preserving backup does not guarantee automatic retry after scheduling or creation failure. The at-most-once constraint applies to one callback invocation, not an entire weighing cycle.
 
 ## MODIFIED Requirements
 

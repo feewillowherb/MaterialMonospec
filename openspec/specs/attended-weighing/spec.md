@@ -826,6 +826,28 @@ AttendedWeighingOrchestrator SHALL provide an async operation queue using Subjec
 
 ---
 
+### Requirement: At most one stabilize-create enqueue per status callback
+
+When `OnWeightAndStatusChanged` handles a weighing update, the orchestrator SHALL enqueue `OnWeightStabilizedAsync` (or equivalent create-on-stable work) at most once for that callback invocation. If the WaitingForStability → WeightStabilized status-transition path already enqueued create work, the same-callback backup path MUST NOT enqueue a second create.
+
+#### Scenario: Status transition enqueue skips same-callback backup
+
+- **WHEN** status transitions from WaitingForStability to WeightStabilized and recordId is null
+- **AND** the orchestrator enqueues create-on-stable for that transition
+- **THEN** the backup stabilize check in the same `OnWeightAndStatusChanged` invocation MUST NOT enqueue another create-on-stable
+
+#### Scenario: Backup remains available when the handler is invoked
+
+- **WHEN** `OnWeightAndStatusChanged` is actually invoked with WeightStabilized and the current status is already WeightStabilized
+- **AND** stability remains true
+- **AND** recordId is still null
+- **AND** this callback did not already enqueue create-on-stable
+- **THEN** the orchestrator MAY enqueue a single create-on-stable as backup
+
+This requirement does not require repeated callbacks while status remains unchanged. Existing status-stream deduplication remains unchanged; preserving backup does not guarantee automatic retry after scheduling or creation failure. The at-most-once constraint applies to one callback invocation, not an entire weighing cycle.
+
+---
+
 ### Requirement: Handle status change side-effects
 
 AttendedWeighingOrchestrator SHALL process status transition side-effects:
@@ -835,11 +857,14 @@ AttendedWeighingOrchestrator SHALL process status transition side-effects:
 - WeightStabilized → OffScale: reset cycle (MUST NOT trigger LPR active capture)
 - WaitingForDeparture → OffScale: reset cycle, log completion (MUST NOT trigger LPR active capture)
 
+Create-on-stable scheduling for WaitingForStability → WeightStabilized MUST obey "At most one stabilize-create enqueue per status callback".
+
 #### Scenario: Weight stabilized triggers record creation
 
 - **WHEN** status transitions from WaitingForStability to WeightStabilized
-- **THEN** SHALL enqueue weighing record creation with stable weight
+- **THEN** SHALL enqueue weighing record creation with stable weight at most once for that callback
 - **AND** SHALL enqueue LPR active capture (`CaptureOnWeightStabilized`) when EnableTriggerLprCapture is true
+- **AND** MUST NOT also enqueue a second create via the same-callback backup check
 
 #### Scenario: Normal departure resets cycle without LPR trigger
 
