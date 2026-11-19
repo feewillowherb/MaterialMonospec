@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-16
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "UrbanManagement 单仓。扩展既有 XiaoShanResource mock 两页，不落库、不接市平台。"

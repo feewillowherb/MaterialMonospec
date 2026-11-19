@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Build (unless -NoBuild) and start MaterialClient.Recycle.exe from .build-verify/Recycle
+  Build (unless -NoBuild) and start MaterialClient.Recycle.exe from .build-verify/MaterialClient.Recycle
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialClient.Recycle.ps1

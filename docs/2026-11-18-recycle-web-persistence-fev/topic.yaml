@@ -1,0 +1,7 @@
+topic: 2026-11-18-recycle-web-persistence-fev
+created: "2026-11-18"
+updated: "2026-11-18"
+# FEV of UrbanManagement.Recycle against LocalDB UrbanManagement.
+# 00: persist vehicles, a weigh, and a contract. Verdict FEASIBLE.
+# 01: four pages, anonymous 401, cross-project, scale, snapshot.
+# Page kilogram inputs are INFEASIBLE. Not an ICD delivery claim.

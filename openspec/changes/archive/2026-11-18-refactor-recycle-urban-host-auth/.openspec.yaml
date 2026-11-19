@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-17
+effort:
+  tier: XL
+  tokens_estimate: "100万+"
+  notes: "跨 PublicApi/BasePlatform/Admin/MaterialClient.Recycle；Mode B squash 入 dev-recycle-resource-alignment"

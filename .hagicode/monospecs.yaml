@@ -48,3 +48,31 @@ repositories:
     optional: false
     tags:
       - sso
+  - path: repos/FdSoft.BasePlatform.PublicApi
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_BasePlatform/FdSoft.BasePlatform.PublicApi.git
+    displayName: FdSoft.BasePlatform.PublicApi
+    type: Service
+    icon: 🔑
+    optional: false
+    tags:
+      - aspnet
+      - public-api
+      - auth
+  - path: repos/FdSoft.Common
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Common_Lib/FdSoft.Common.git
+    displayName: FdSoft.Common
+    type: Library
+    icon: 📦
+    optional: false
+    tags:
+      - shared
+      - library
+  - path: repos/FdSoft.ThirdPlatformAPI
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_Component/FdSoft.ThirdPlatformAPI.git
+    displayName: FdSoft.ThirdPlatformAPI
+    type: Library
+    icon: 📦
+    optional: false
+    tags:
+      - shared
+      - third-party-api

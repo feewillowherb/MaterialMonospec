@@ -58,8 +58,12 @@ function Get-MaterialClientBuildOutDir {
         [string] $App
     )
     # Align with repos/MaterialClient/AGENTS.md — stay under .build-verify.
-    # SolidWaste keeps folder name MaterialClient.SolidWaste (matches exe product name).
-    $leaf = if ($App -eq 'SolidWaste') { 'MaterialClient.SolidWaste' } else { $App }
+    # SolidWaste / Recycle folder names match exe product name (MaterialClient.*).
+    $leaf = switch ($App) {
+        'SolidWaste' { 'MaterialClient.SolidWaste' }
+        'Recycle' { 'MaterialClient.Recycle' }
+        default { $App }
+    }
     return (Join-Path $RepoRoot ".build-verify\$leaf")
 }
 

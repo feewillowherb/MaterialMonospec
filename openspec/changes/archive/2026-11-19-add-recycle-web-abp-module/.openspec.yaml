@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-18
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "仅 UrbanManagement。依赖 add-recycle-business-persistence 的模型与 AppService；宿主接入与页面改接可分会话。"

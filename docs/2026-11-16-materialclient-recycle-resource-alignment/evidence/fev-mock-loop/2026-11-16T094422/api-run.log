@@ -1,0 +1,17 @@
+baseUrl=http://127.0.0.1:5341 env=Testing memory-store utc=2026-11-16T094422
+PASS health health/live=200
+PASS S1 phase=待补全 net=51.7
+PASS S2 status=400 msg=未命中启用车辆池：浙Z99999
+PASS S3 phase=待出厂上报
+PASS S4 msg=已模拟 §2.2 出厂 1 条（未外呼）
+PASS S4-phase phase=已出厂上报
+PASS S6 msg=车次 浙DQ04158 须先完成出厂上报，当前 待补全
+PASS S7 msg=车次 浙DQ04158 未齐 §2.2 出厂最小集（产品/净重/出货时间/出货凭证）
+PASS S5-enrich phase=待收货上报
+PASS S5 msg=已模拟 §2.2 收货补传 1 条（未外呼）
+PASS S5-phase phase=已闭环 id=21
+PASS S8-contract msg=已模拟合同上报 1 条（未外呼）
+PASS S8-prod msg=已模拟 §2.5 上报 1 条（未外呼）
+PASS S8-vehicle msg=已模拟 §2.6 上报 1 辆（未外呼市平台）
+PASS web-same-store id=21 已闭环 — open http://127.0.0.1:5341 运输清单
+VERDICT=FEASIBLE pass=15 fail=0 outDir=d:\Github\MaterialMonospec\docs\2026-11-16-materialclient-recycle-resource-alignment\evidence\fev-mock-loop\2026-11-16T094422

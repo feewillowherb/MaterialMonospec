@@ -6,6 +6,8 @@
 |------|------|
 | `scripts/` | 配置校验、迁移校验、文档 Topic 校验、子仓构建与发布 |
 | `scripts/MaterialClient/` | Standard / SolidWaste / Urban / Recycle 宿主 Build·Start；见 [`MaterialClient/AGENTS.md`](MaterialClient/AGENTS.md) |
+| `scripts/UrbanManagement/` | UrbanManagement IIS / 远程发布与可达性探测 |
+| `scripts/FdSoft.BasePlatform.PublicApi/` | PublicApi 本机测试站发布；见 [`FdSoft.BasePlatform.PublicApi/AGENTS.md`](FdSoft.BasePlatform.PublicApi/AGENTS.md) |
 | `pipelines/graphs/**/scripts/` | 该 Graph 的 cook / invoke。实验性脚本仍标在 Graph 内 |
 | `pipelines/_shared/` | 跨 Graph 复用的 Node cook 与证据清单约定 |
 

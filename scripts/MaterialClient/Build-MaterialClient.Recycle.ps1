@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Build MaterialClient.Recycle into repos/MaterialClient/.build-verify/Recycle
+  Build MaterialClient.Recycle into repos/MaterialClient/.build-verify/MaterialClient.Recycle
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Build-MaterialClient.Recycle.ps1
