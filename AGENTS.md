@@ -33,6 +33,7 @@ ViewModel / 界面层 **不得**直接使用 Repository：规则在 `traits/view
 | 可复用调研知识 | [`docs/AGENTS.md`](docs/AGENTS.md) |
 | Node.js cook / 验收 Graph | [`pipelines/AGENTS.md`](pipelines/AGENTS.md) |
 | 根脚本与 Graph 脚本边界 | [`scripts/AGENTS.md`](scripts/AGENTS.md) |
+| 本机密钥（禁止写脚本） | [`.local/AGENTS.md`](.local/AGENTS.md) |
 | 可行性 / 交付 / Epic 停止 | `traits/fev-trait.md`、`traits/icd-trait.md`、`traits/ced-trait.md` |
 
 本仓技术栈不因 Monospec 权威分层而改变。硬约束摘要仍在下文。
@@ -69,6 +70,7 @@ MaterialMonospec/
 ├── PROPOSAL_DESIGN_GUIDELINES.md         # 提案设计指南
 ├── traits/                               # Agent 行为 traits（可被本文件 require）
 ├── pipelines/                            # 可 cook 验收 Graph（框架 + graphs/）；约定见 pipelines/AGENTS.md
+├── .local/                               # 本机密钥；约定见 .local/AGENTS.md。禁止放脚本
 ├── AGENTS.md                             # 本文件
 └── .gitignore                            # 排除 repos/ 与本地文件
 ```
@@ -310,7 +312,8 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - 现行 Graph：`pipelines/graphs/<domain>/<slug>/`（模板 `pipelines/_template/`）
 - 命令：`.cursor/commands/gen-pipeline.md`、`run-pipeline.md`，以及 `/gen-<family>-pipeline`、`/run-<family>-pipeline`
 - Family：`observe` | `ingest` | `probe` | `reconcile` | `transform`
-- **禁止**：修产品行为走 OpenSpec，不塞进 runner；密钥进 `secrets.local.yaml`；覆盖旧 `runs/`；Agent 把 cook 结果自评为产品通过
+- **禁止**：修产品行为走 OpenSpec，不塞进 runner；把密钥值写进已跟踪文件；覆盖旧 `runs/`；Agent 把 cook 结果自评为产品通过
+- 需要重复执行的部署、探测、验收做成 Graph。密钥放各图 `secrets.local.yaml`，或由 Graph 引用仓库根 `.local/`（见 `.local/AGENTS.md`）
 - **刻度**：Pipeline Acceptance 用 P0–P3（见 `traits/pipelines-trait.md`）。ICD 用 L1–L4。`guess-governance` 用自己的 L1–L3。三者不互推
 
 生成默认只写工件。用户确认后才执行。Agent 不得把 cook 的 P3 或历史说法中的 L3 宣布为产品通过。
@@ -487,3 +490,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **目录说明仅用 AGENTS.md；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口**（参见「Required traits」· agents-md-only）
 - **大规模改动或复杂调用链受阻时策略性挂起；禁止伪实现污染基线**（参见「Required traits」· strategic-fallback）
 - **只使用本目录一份检出；禁止 git worktree 与额外工作区**（参见「单一工作区」）
+- **`.local/` 只保管本机密钥。需要重复执行的部署做成 Graph，密钥引用可以指向 `.local/`**（参见 `.local/AGENTS.md`）

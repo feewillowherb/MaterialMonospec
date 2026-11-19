@@ -19,11 +19,12 @@
 | 私钥 | `.local/.ssh/docker-linux-ed25519`（相对仓库根） |
 | 公钥（可选） | `.local/.ssh/docker-linux-ed25519.pub` |
 | known_hosts | `.local/.ssh/known_hosts` |
-| gitignore | 整个 `.local/`（根 `.gitignore`）；**用户自行放入 / 替换私钥** |
+| gitignore | `.local/*` 不提交，仅 `.local/AGENTS.md` 跟踪；**用户自行放入 / 替换私钥** |
 
 - **MUST NOT** 把私钥 / 公钥提交进 Git。
 - **MUST NOT** 在 `pipeline.md` / `config.yaml` / 本文件写真实主机密码。
-- 主机、用户、端口只来自调用参数或 Graph 的 `secrets.local.yaml`。
+- 主机、用户、端口来自调用参数、Graph 的 `secrets.local.yaml`，或 Graph 对仓库根 `.local/` 的路径引用。
+- 需要重复执行的部署做成 `graphs/ops/<slug>/`。Graph 可以用路径引用 `.local/` 里的密钥。
 
 ### Agent 调用（共享）
 
@@ -45,6 +46,9 @@ powershell -ExecutionPolicy Bypass -File pipelines/_shared/ops/ssh/Invoke-SshRem
 | `graphs/ops/fev-u2-docker/` | `ops-fev-u2-docker` | FEV U2 安装 Docker Engine + MSSQL 容器验证 |
 | `graphs/ops/fev-u10-uploads-smb/` | `ops-fev-u10-uploads-smb` | FEV U10 虚拟机经 SMB 共用 IIS Uploads（reach / mount-test） |
 | `graphs/ops/deploy-urban-acceptance/` | `ops-deploy-urban-acceptance` | UrbanManagement Phase 1 部署到虚拟机 `5333` 并验证（ssh + scp） |
+| `graphs/ops/deploy-urban-lab-138/` | `ops-deploy-urban-lab-138` | 实验口 138 的八服务镜像发布（ssh + scp；`deploy` 需 `-Apply`） |
+
+密码认证是可选项：调用方把密码传给 `-Password`。helper 用临时 `SSH_ASKPASS` 交给子进程，不把密码写入命令行、askpass 文件、日志或证据，用完删除临时目录并清掉环境变量。没有 `-Password` 时仍只用 `.local/.ssh/docker-linux-ed25519`。
 
 ## MUST / MUST NOT
 

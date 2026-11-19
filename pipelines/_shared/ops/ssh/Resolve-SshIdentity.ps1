@@ -11,7 +11,8 @@ param(
     [string] $RepoRoot = "",
     [string] $IdentityFileName = "docker-linux-ed25519",
     [switch] $HardenAcl,
-    [switch] $PassThru
+    [switch] $PassThru,
+    [switch] $AllowMissingIdentity
 )
 
 Set-StrictMode -Version Latest
@@ -47,22 +48,35 @@ $pub = "$identity.pub"
 $knownHosts = Join-Path $sshDir "known_hosts"
 
 if (-not (Test-Path -LiteralPath $sshDir)) {
-    throw @"
+    if ($AllowMissingIdentity) {
+        New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
+    }
+    else {
+        throw @"
 Missing SSH dir: $sshDir
 Create it and place private key as: $IdentityFileName
 (.local/ is gitignored; replace the key yourself — do not commit it.)
 "@
+    }
 }
 
-if (-not (Test-Path -LiteralPath $identity)) {
-    throw @"
+$identityPresent = Test-Path -LiteralPath $identity
+if (-not $identityPresent) {
+    if (-not $AllowMissingIdentity) {
+        throw @"
 Missing SSH private key: $identity
 Copy/replace your docker-linux-ed25519 key into .local/.ssh/ (gitignored).
 "@
+    }
+    $identity = $null
+}
+
+if (-not (Test-Path -LiteralPath $knownHosts)) {
+    New-Item -ItemType File -Force -Path $knownHosts | Out-Null
 }
 
 $onWindows = ($env:OS -match "Windows") -or ($PSVersionTable.Platform -eq "Win32NT") -or (-not $PSVersionTable.Platform)
-if ($HardenAcl -and $onWindows) {
+if ($HardenAcl -and $onWindows -and $identityPresent) {
     # OpenSSH on Windows rejects keys with overly broad ACLs.
     try {
         & icacls.exe $identity /inheritance:r | Out-Null
@@ -79,11 +93,16 @@ $result = [ordered]@{
     identityFile   = $identity
     publicKeyFile  = $(if (Test-Path -LiteralPath $pub) { $pub } else { $null })
     knownHostsFile = $knownHosts
-    identityExists = $true
+    identityExists = [bool]$identityPresent
     publicKeyExists = [bool](Test-Path -LiteralPath $pub)
 }
 
-Write-Host "[ops-ssh] identity=$identity"
+if ($identityPresent) {
+    Write-Host "[ops-ssh] identity=$identity"
+}
+else {
+    Write-Host "[ops-ssh] identity=missing"
+}
 Write-Host "[ops-ssh] known_hosts=$knownHosts"
 
 if ($PassThru) {

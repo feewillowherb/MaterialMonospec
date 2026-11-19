@@ -26,7 +26,9 @@ param(
     [switch] $AllowDestructive,
     [switch] $SkipDestructiveCheck,
     # Sent to the remote command's stdin; never printed or written to evidence. Use for secrets.
-    [string] $StdinText = ""
+    [string] $StdinText = "",
+    # Lab hosts that have no authorized key. Never written to argv, evidence, or the askpass file.
+    [string] $Password = ""
 )
 
 Set-StrictMode -Version Latest
@@ -60,6 +62,7 @@ Refuse to run. Pass -AllowDestructive only after an explicit human gate.
     }
 }
 
+$usePassword = -not [string]::IsNullOrEmpty($Password)
 $resolveArgs = @{
     IdentityFileName = $IdentityFileName
     PassThru         = $true
@@ -67,7 +70,10 @@ $resolveArgs = @{
 if (-not [string]::IsNullOrWhiteSpace($RepoRoot)) {
     $resolveArgs.RepoRoot = $RepoRoot
 }
-if (-not $SkipHardenAcl) {
+if ($usePassword) {
+    $resolveArgs.AllowMissingIdentity = $true
+}
+elseif (-not $SkipHardenAcl) {
     $resolveArgs.HardenAcl = $true
 }
 
@@ -88,11 +94,22 @@ if (-not $sshExe) {
     throw "ssh client not found on PATH. Install Windows OpenSSH Client or ensure ssh.exe is available."
 }
 
-$sshArgs = @(
-    "-i", $identity,
-    "-p", "$Port",
-    "-o", "IdentitiesOnly=yes",
-    "-o", "BatchMode=yes",
+$sshArgs = @("-p", "$Port")
+if ($usePassword) {
+    $sshArgs += @(
+        "-o", "PreferredAuthentications=password",
+        "-o", "PubkeyAuthentication=no",
+        "-o", "NumberOfPasswordPrompts=1"
+    )
+}
+else {
+    $sshArgs += @(
+        "-i", $identity,
+        "-o", "IdentitiesOnly=yes",
+        "-o", "BatchMode=yes"
+    )
+}
+$sshArgs += @(
     "-o", "StrictHostKeyChecking=accept-new",
     "-o", "UserKnownHostsFile=$knownHosts",
     "-o", "ConnectTimeout=$ConnectTimeoutSeconds",
@@ -120,6 +137,14 @@ $tmpErr = [System.IO.Path]::GetTempFileName()
 $code = 1
 $stdout = ""
 $stderr = ""
+
+$askPass = $null
+$askPassApi = Join-Path $PSScriptRoot "New-SshAskPass.ps1"
+if ($usePassword) {
+    . $askPassApi
+    $askPass = New-UmSshAskPass
+    Set-UmSshAskPassEnv -AskPass $askPass -Password $Password
+}
 
 try {
     if ([string]::IsNullOrEmpty($StdinText)) {
@@ -162,10 +187,18 @@ try {
 }
 finally {
     Remove-Item -LiteralPath $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
+    if ($usePassword) {
+        Clear-UmSshAskPassEnv
+        Remove-UmSshAskPass -AskPass $askPass
+    }
 }
 
 $ended = Get-Date
 $durationMs = [int](($ended - $started).TotalMilliseconds)
+if ($usePassword) {
+    $stdout = Redact-UmSecret -Text $stdout -Secret $Password
+    $stderr = Redact-UmSecret -Text $stderr -Secret $Password
+}
 
 if ($stdoutPath) {
     [System.IO.File]::WriteAllText($stdoutPath, $stdout, [System.Text.UTF8Encoding]::new($false))
@@ -188,6 +221,7 @@ if ($metaPath) {
         destructiveHint  = $isDestructive
         allowDestructive = [bool]$AllowDestructive
         stdinProvided    = -not [string]::IsNullOrEmpty($StdinText)
+        passwordAuth     = [bool]$usePassword
     }
     $json = ($meta | ConvertTo-Json -Depth 5)
     [System.IO.File]::WriteAllText($metaPath, $json, [System.Text.UTF8Encoding]::new($false))

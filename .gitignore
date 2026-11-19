@@ -9,6 +9,8 @@ pipelines/**/runs/
 !pipelines/**/runs/.gitkeep
 
 
-# Local machine-only files (never commit). Includes SSH keys for ops agents:
+# Local machine-only secrets (never commit). Contract: .local/AGENTS.md
 #   .local/.ssh/docker-linux-ed25519   (user-supplied; replace yourself)
-.local/
+# Ignore contents, not the directory, so AGENTS.md can be tracked.
+.local/*
+!.local/AGENTS.md

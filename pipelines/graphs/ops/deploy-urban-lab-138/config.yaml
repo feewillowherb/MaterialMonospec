@@ -1,0 +1,113 @@
+id: "deploy-urban-lab-138"
+created: "2026-11-19"
+graph:
+  product: urban
+  domain: ops
+  family: ingest
+  goal: ops-deploy-urban-lab-138
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: lab-138-sources-ready
+  end: lab-138-images-running
+cook: new-object
+
+target:
+  hostDoc: docs/2026-11-18-recycle-auth-lab-publish/00-调研总览.md
+  urbanRepoRel: repos/UrbanManagement
+  dockerfileRel: repos/UrbanManagement/deploy/docker/Dockerfile
+  imageTag: lab
+  gatewayPort: 5333
+  gatewayHealthPath: /health/ready
+  recyclePort: 5334
+  recycleHealthPath: /health/live
+  services:
+    - Gateway
+    - Ingest
+    - Attachment
+    - Realtime
+    - Admin
+    - Recycle
+    - Worker
+    - Migrator
+  composeServices:
+    - um-ingest
+    - um-ingest-2
+    - um-attachment
+    - um-realtime
+    - um-admin
+    - um-worker
+    - um-gateway
+    - um-recycle
+  buildTimeoutMinutes: 45
+  # Host compose.yaml and .env stay on the lab machine. This Graph does not upload a replacement.
+
+prerequisites:
+  - .NET 10 SDK, Node.js, tar.exe, and OpenSSH client on this machine
+  - repos/UrbanManagement checkout used by repos/UrbanManagement
+  - secrets.local.yaml with host, user, remoteWork, remoteComposeDir
+  - lab compose already defines service um-recycle; UM_DB_PASSWORD stays in the host .env
+  - password only when that host has no authorized deploy key
+
+steps:
+  - id: bind-config
+    name: Read secrets.local.yaml when the mode is not publish; create runs/<ts>/
+  - id: publish
+    name: Recycle client build when client/package.json exists; dotnet publish eight services; tar Dockerfile plus services/
+  - id: upload
+    name: scp bundle, remote script, and generated config json to remoteWork (deploy -Apply only)
+  - id: remote-build
+    name: Detached Windows build; one docker build per service with a one-service dockerignore; target service
+  - id: compose-up
+    name: Set UM_TAG=lab for the process; recreate um-migrator, then the eight compose services including um-recycle
+  - id: health
+    name: GET gateway /health/ready and Recycle /health/live (deploy -Apply and verify)
+  - id: report
+    name: Write summary.json, manifest.yaml, report.md; acceptance stays pending
+
+expect:
+  - id: reachable
+    level: P0
+    description: SSH reachable for deploy/verify, or a local bundle exists for publish
+  - id: remote-built
+    level: P1
+    description: Remote result file is BUILD_DONE, or verify received an HTTP status
+  - id: health-200
+    level: P2
+    description: Gateway 5333 /health/ready and Recycle 5334 /health/live both return 200
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  scp: { required: false, sink: scp/ }
+  ssh: { required: false, sink: ssh-log/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - deploy-approval
+  - compose-missing-um-recycle
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  scp:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Copy-ScpToRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-DeployUrbanLab138.ps1
+    experimental: true
