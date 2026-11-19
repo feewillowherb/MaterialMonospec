@@ -103,7 +103,7 @@ for ($i = 1; $i -le 60; $i++) {
     }
 }
 if (-not $ready) {
-    throw "Diagnostic host not ready at $baseUrl. Start with -EnableDiagnosticHost. User enters the activation code if prompted, then logs in and opens weighing. Hikvision LPR does not start this host."
+    throw "Diagnostic host not ready at $baseUrl. Start with -EnableDiagnosticHost. User enters the activation code if prompted, then logs in and opens weighing."
 }
 
 if (-not (Test-Path -LiteralPath $database)) {

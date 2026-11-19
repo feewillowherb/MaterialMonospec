@@ -40,7 +40,7 @@ expect:
     level: P0
   - id: inject-succeeded
     level: P1
-  - id: solidwaste-row-with-plate-and-weight
+  - id: solidwaste-waybill-from-gross-and-tare
     level: P2
   - id: human-accepts-fev
     level: P3

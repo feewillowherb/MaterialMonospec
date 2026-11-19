@@ -22,5 +22,7 @@ MaterialClient（Avalonia 称重桌面）相关验收 Graph。
 | `materialclient-working-db-load` | probe | `materialclient-working-db-load` |
 | `fev-stable-dual-enqueue-repro` | probe | `fev-stable-dual-enqueue-repro` |
 | `fev-solidwaste-weigh-lpr` | probe | `fev-solidwaste-weigh-lpr` |
+| `fev-solidwaste-extreme-condition` | probe | `fev-solidwaste-extreme-condition` |
+| `fev-standard-weigh-waybill` | probe | `fev-standard-weigh-waybill` |
 
 新 Graph：**MUST** 落在本目录下独立 slug；**MUST NOT** 与已有 `goal` 并存第二个 `active`。

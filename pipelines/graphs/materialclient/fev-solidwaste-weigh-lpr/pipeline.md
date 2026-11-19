@@ -6,7 +6,7 @@
 
 Status: **active**
 
-对已进入称重主窗的 `MaterialClient.SolidWaste.exe`，用诊断口注入测试车牌和测试地磅重量，观察是否落下一条 `WeighingMode = 1`、车牌与吨位都匹配的 `WeighingRecords`。
+对已进入称重主窗的 `MaterialClient.SolidWaste.exe`，用诊断口注入一张测试车牌、一次重车稳定重量和一次轻车稳定重量，观察是否产生 `WeighingMode = 1` 的 `Waybill`。默认收料：先重后轻，离磅后匹配。
 
 对应调研：[`docs/2026-11-19-solidwaste-weigh-lpr-fev/01-FEV-测试API称重与车牌.md`](../../../../docs/2026-11-19-solidwaste-weigh-lpr-fev/01-FEV-测试API称重与车牌.md)。
 
@@ -33,7 +33,7 @@ powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialCl
    - `repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/MaterialClient.db`
    - `repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/Logs`
 
-海康 LPR 配置会跳过 Web Host。诊断口不可达时 cook 为 `blocked`，Verdict 为 `INCONCLUSIVE`。
+Standard 的同形用例在 `pipelines/graphs/materialclient/fev-standard-weigh-waybill/`。两个宿主都听 `9933`，不能同时 cook。
 
 ## Sockets
 
@@ -45,18 +45,18 @@ powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialCl
 
 ## 规则
 
-1. `POST /api/lpr/test-plate` 注入唯一车牌（`浙A` + 5 位）。
-2. `POST /api/scale/weight` 先注入离磅重量，再注入稳定吨位，并等待判稳。
-3. 证据：基线 `Id` 之后至少 1 行，`WeighingMode = 1`，`PlateNumber` 等于注入值，`TotalWeight` 在夹具容差内。
-4. 结束时再注入离磅重量。不写回 Settings。
+1. `POST /api/lpr/test-plate` 注入唯一车牌（`浙A` + 5 位）。出场前再注入同一张车牌。
+2. `POST /api/scale/weight` 先离磅，再注入重车吨位并等待称重行，再离磅，再注入轻车吨位并等待称重行，最后离磅以触发匹配。
+3. 证据：基线之后至少各 1 行重车、轻车，`WeighingMode = 1`，`PlateNumber` 等于注入值，两条记录的 `WaybillId` 已写入，且新 `Waybills` 行车牌与 `WeighingMode` 匹配。
+4. 不写回 Settings。当前收发料类型须为收料（窗口默认）。
 
 ## 判别
 
 | cook `result` | 含义 |
 |---------------|------|
-| `pass` | 匹配固废行出现 → `fevVerdict: FEASIBLE` |
-| `fail` | 注入成功且日志已判稳，但没有匹配行 → `fevVerdict: INFEASIBLE` |
-| `blocked` | 诊断口不可达、非测试模式、称重未启动等 → `fevVerdict: INCONCLUSIVE` |
+| `pass` | 匹配的固废 `Waybill` 出现 → `fevVerdict: FEASIBLE` |
+| `fail` | 重车与轻车行都出现，但没有对应 `Waybill` → `fevVerdict: INFEASIBLE` |
+| `blocked` | 诊断口不可达、非测试模式、称重未启动、只落下一条称重行 → `fevVerdict: INCONCLUSIVE` |
 
 ## 证据包
 

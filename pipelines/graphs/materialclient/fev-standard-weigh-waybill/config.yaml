@@ -1,0 +1,61 @@
+id: fev-standard-weigh-waybill
+created: "2026-11-19"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: fev-standard-weigh-waybill
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: standard-diagnostic-host-idle
+  end: standard-waybill-observed
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9933
+  databaseRel: repos/MaterialClient/.build-verify/MaterialClient/MaterialClient.db
+  logRel: repos/MaterialClient/.build-verify/MaterialClient/Logs
+  startScript: scripts/MaterialClient/Start-MaterialClient.Standard.ps1
+  fixture: fixtures/scenario.json
+  weighingMode: 0
+
+steps:
+  - optional-start-host
+  - probe-diagnostic-api
+  - write-evidence
+
+capture:
+  summary: summary.json
+  report: report.md
+  manifest: manifest.yaml
+  http: http.json
+  logExcerpt: log-excerpt.txt
+
+expect:
+  - id: diagnostic-reachable
+    level: P0
+  - id: inject-succeeded
+    level: P1
+  - id: standard-waybill-from-gross-and-tare
+    level: P2
+  - id: human-accepts-fev
+    level: P3
+
+humanGates:
+  - user-enters-activation-code-if-prompted
+  - user-logs-in-if-prompted
+  - attended-weighing-window-open
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-FevStandardWeighWaybill.ps1
+    experimental: true
+    nodeTool: ../fev-solidwaste-weigh-lpr/scripts/probe-fev-solidwaste-weigh-lpr.ts

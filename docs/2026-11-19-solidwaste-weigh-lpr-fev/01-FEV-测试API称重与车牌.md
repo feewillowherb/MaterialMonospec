@@ -5,12 +5,12 @@
 
 ## 1. 问题（Unknown）
 
-`MaterialClient.SolidWaste.exe` 在诊断口已开启、用户已完成授权与登录、有人值守称重窗已打开、地磅为测试模式时：
+`MaterialClient.SolidWaste.exe` 与 `MaterialClient.exe` 在诊断口已开启、用户已完成授权与登录、有人值守称重窗已打开、地磅为测试模式、收发料为收料时：
 
 1. `POST /api/lpr/test-plate` 注入一张车牌；
-2. `POST /api/scale/weight` 注入一次稳定吨位；
+2. `POST /api/scale/weight` 先注入重车吨位，离磅后再注入轻车吨位，再离磅；
 
-能否在 `WeighingRecords` 新增至少一行，且该行 `WeighingMode = 1`、`PlateNumber` 等于注入车牌、`TotalWeight` 等于注入吨位？
+能否新增一条 `Waybill`，且 `PlateNumber` 等于注入车牌、`WeighingMode` 等于该宿主（固废 `1`，Standard `0`），两条新称重行的 `WaybillId` 指向它？
 
 ## 2. 实验（Experiment）
 
@@ -20,9 +20,9 @@
 | 诊断口 | `http://localhost:9933`（`GET /`、`POST /api/lpr/test-plate`、`POST /api/scale/weight`） |
 | 库 / 日志 | `repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/MaterialClient.db` 与同目录 `Logs`（按日期分子目录） |
 | Graph | `pipelines/graphs/materialclient/fev-solidwaste-weigh-lpr/` |
-| 判别 | cook `pass` → `FEASIBLE`；诊断口与称重已就绪但没有匹配固废行 → `INFEASIBLE`；口不可达、非测试模式、未进称重窗 → `INCONCLUSIVE` |
+| 判别 | cook `pass` → `FEASIBLE`；重车与轻车行都在但没有 `Waybill` → `INFEASIBLE`；口不可达、非测试模式、未进称重窗、只落下一条称重行 → `INCONCLUSIVE` |
 
-Cook 不改库、不改 `appsettings`、不写激活码。`ScaleType = TestMode` 由用户事先准备。海康 LPR 会让 `MinimalWebHostService` 直接返回、诊断口不监听；这种情况记为 `INCONCLUSIVE`。
+Cook 不改库、不改 `appsettings`、不写激活码。`ScaleType = TestMode` 由用户事先准备。诊断口使用 `MinimalWebHost__Urls`（`9933`）。收料匹配在离磅时发生：重车行在前，轻车行在后，重量差须大于配置的 `MinWeightDiff`（默认 1 吨）。Standard 与固废不能同时占用 `9933`。
 
 启动：
 
@@ -38,15 +38,24 @@ powershell -ExecutionPolicy Bypass -File pipelines/graphs/materialclient/fev-sol
 
 ## 3. 证据（Evidence）
 
-尚未 cook。首次运行后以该次 `runs/<runId>/summary.json` 为准，身份字段为 `graphId`、`graphPath`、`runId`、`result`。
-
 | 字段 | 值 |
 |------|-----|
 | graphId | `fev-solidwaste-weigh-lpr` |
 | graphPath | `pipelines/graphs/materialclient/fev-solidwaste-weigh-lpr` |
-| runId | 待 cook |
-| result | 待 cook |
+| runId | `2026-11-19T142009` |
+| result | `pass` |
+| fevVerdict | `FEASIBLE` |
+| P0–P2 | `pass` |
+| P3 | `not-judged` |
 | 不含密钥 | 是。激活码与登录口令不进入本夹、`config.yaml` 或 `runs/` |
+
+观察：
+
+- 宿主仍是 13:56 起的 `MaterialClient.SolidWaste`，诊断口 `http://localhost:9933`。
+- 注入车牌 `浙A5V6PD`。重车 `12.5` 吨为 `WeighingRecords.Id=2`，轻车 `1.37` 吨为 `Id=3`，`WeighingMode=1`。
+- 离磅后两条记录的 `WaybillId` 都是 `872054915989573`。`Waybills` 该行 `PlateNumber=浙A5V6PD`，`WeighingMode=1`。
+- 13:56 的 `2026-11-19T135625` 只覆盖单条称重行，不再作为榜单证据。
+- Standard Graph `fev-standard-weigh-waybill` 使用同一探针、`WeighingMode=0`。本次未 cook。
 
 ## 4. Verdict
 
@@ -56,7 +65,7 @@ powershell -ExecutionPolicy Bypass -File pipelines/graphs/materialclient/fev-sol
 | `INFEASIBLE` | 诊断口注入成功且称重管线已判稳，但没有 `WeighingMode = 1` 且车牌、吨位都匹配的新行 |
 | `INCONCLUSIVE` | 证据不够：未启动、未授权、未登录、非测试模式、诊断口未监听 |
 
-**当前 Verdict：`INCONCLUSIVE`（待 Graph cook）**
+**当前 Verdict：固废 `FEASIBLE`（2026-11-19 14:20，runId `2026-11-19T142009`）。** Standard 尚未 cook。P3 未判定。
 
 ## 5. 人闸
 

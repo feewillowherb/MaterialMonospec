@@ -11,8 +11,8 @@ Agent 不得将本文件改为通过。用户回复 `pass` / `fail` 后，只改
 | P1 | pending |
 | P2 | pending |
 | P3 | pending（仅用户） |
-| 对象 | MaterialClient.SolidWaste：测试 API 车牌 + 测试地磅 → WeighingMode=1 的称重行 |
+| 对象 | MaterialClient.SolidWaste：测试 API 车牌 + 重车/轻车 → WeighingMode=1 的 Waybill |
 | 原因 | |
 
 P0–P2 由 cook 写入该次 `runs/` 的 `summary.json`。P3 不由 Agent 填写。  
-`fevVerdict: FEASIBLE` 只回答「测试 API 能否落下一条固废称重记录」；不是 Capability 交付。
+`fevVerdict: FEASIBLE` 只回答「测试 API 能否配出一条固废 Waybill」；不是 Capability 交付。
