@@ -16,7 +16,7 @@ cook: new-object
 
 target:
   clientProbeGraph: ../urban-passage-probe/
-  clientDiagnosticBaseUrl: http://localhost:9961
+  clientDiagnosticBaseUrl: http://localhost:9933
   umBaseUrl: http://localhost:44300
   checkpointReceive: /api/app/urban-checkpoint-passage/receive
   productReceive: /api/app/urban-finished-product-passage/receive

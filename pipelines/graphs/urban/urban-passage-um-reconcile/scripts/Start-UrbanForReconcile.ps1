@@ -90,4 +90,4 @@ if ($existing) {
 }
 
 $p = Start-Process -FilePath $urbanExe -WorkingDirectory $urbanDir -PassThru
-Write-Host "[start-urban-reconcile] started PID=$($p.Id). Wait for http://localhost:9961/ then run Invoke-UrbanPassageUmReconcile.ps1 -Mode ClientUpload -SkipConfirm"
+Write-Host "[start-urban-reconcile] started PID=$($p.Id). Wait for http://localhost:9933/ then run Invoke-UrbanPassageUmReconcile.ps1 -Mode ClientUpload -SkipConfirm"

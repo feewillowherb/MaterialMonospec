@@ -18,7 +18,7 @@ target:
   umBaseUrl: http://127.0.0.1:44371
   umProject: repos/UrbanManagement/src/UrbanManagement.App/UrbanManagement.App.csproj
   umContentRoot: repos/UrbanManagement/src/UrbanManagement.App
-  urbanDiagnosticBaseUrl: http://localhost:9961
+  urbanDiagnosticBaseUrl: http://localhost:9933
   hubPath: /hubs/devicestatus
   negotiatePath: /hubs/devicestatus/negotiate?negotiateVersion=1
   clientListGet: /api/app/device-status/client-list?MaxResultCount=100&SkipCount=0

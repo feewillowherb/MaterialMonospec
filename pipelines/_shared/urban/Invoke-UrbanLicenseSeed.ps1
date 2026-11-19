@@ -76,7 +76,7 @@ function Get-UrbanSecretsScalar {
 function Resolve-UrbanDiagnosticBaseUrl {
     param(
         [string] $GraphRoot,
-        [string] $DefaultBaseUrl = "http://localhost:9961"
+        [string] $DefaultBaseUrl = "http://localhost:9933"
     )
     $configPath = Join-Path $GraphRoot "config.yaml"
     $secretsPath = Join-Path $GraphRoot "secrets.local.yaml"
@@ -522,7 +522,7 @@ function Invoke-UrbanLicenseSeed {
         $BaseUrl = Resolve-UrbanDiagnosticBaseUrl -GraphRoot $GraphRoot
     }
     if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
-        $BaseUrl = "http://localhost:9961"
+        $BaseUrl = "http://localhost:9933"
     }
 
     return Invoke-UrbanLicenseSeedApi -BaseUrl $BaseUrl -SharedRoot $SharedRoot -SeedRelPath $SeedRelPath `

@@ -6,19 +6,19 @@
 
 ```json
 "MinimalWebHost": {
-  "Urls": "http://localhost:9961",
+  "Urls": "http://localhost:9933",
   "EnableOnStartup": true
 }
 ```
 
 ```http
-GET http://localhost:9961/
+GET http://localhost:9933/
 ```
 
 ## 2. 查询整份 Settings
 
 ```powershell
-curl "http://localhost:9961/api/settings"
+curl "http://localhost:9933/api/settings"
 ```
 
 响应含 `settings`：`ScaleSettings`、`SystemSettings`、`CameraConfigs`、`LicensePlateRecognitionConfigs`、`WeighingConfiguration`、`SoundDeviceSettings`、`UrbanSettings` 等。
@@ -31,7 +31,7 @@ curl "http://localhost:9961/api/settings"
 $body = @{
   scaleSettings = @{ scaleType = "TestMode" }
   documentScannerConfig = @{}
-  systemSettings = @{ urls = "http://localhost:9961" }
+  systemSettings = @{ urls = "http://localhost:9933" }
   cameraConfigs = @()
   licensePlateRecognitionConfigs = @(
     @{
@@ -64,7 +64,7 @@ $body = @{
   urbanSettings = @{}
 } | ConvertTo-Json -Depth 8
 
-curl -Method POST "http://localhost:9961/api/settings" `
+curl -Method POST "http://localhost:9933/api/settings" `
   -ContentType "application/json" `
   -Body $body
 ```
@@ -74,7 +74,7 @@ curl -Method POST "http://localhost:9961/api/settings" `
 ## 4. 测试卡口 / 成品（走 LicensePlateRecognizedEventData）
 
 ```powershell
-curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
+curl -Method POST "http://localhost:9933/api/lpr/test-passage" `
   -ContentType "application/json" `
   -Body (@{
     siteType = "Checkpoint"
@@ -82,7 +82,7 @@ curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
     plateColor = "黄"
   } | ConvertTo-Json)
 
-curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
+curl -Method POST "http://localhost:9933/api/lpr/test-passage" `
   -ContentType "application/json" `
   -Body (@{
     siteType = "FinishedProduct"
@@ -96,7 +96,7 @@ curl -Method POST "http://localhost:9961/api/lpr/test-passage" `
 ## 5. 通用 test-plate（仍保留）
 
 ```powershell
-curl -Method POST "http://localhost:9961/api/lpr/test-plate" `
+curl -Method POST "http://localhost:9933/api/lpr/test-plate" `
   -ContentType "application/json" `
   -Body (@{ plateNumber = "浙A12345"; deviceName = "gate-in" } | ConvertTo-Json)
 ```
@@ -104,7 +104,7 @@ curl -Method POST "http://localhost:9961/api/lpr/test-plate" `
 ## 6. 设备在线状态
 
 ```powershell
-curl "http://localhost:9961/api/device/online-status"
+curl "http://localhost:9933/api/device/online-status"
 ```
 
 ## 7. 边界

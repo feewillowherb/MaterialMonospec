@@ -15,7 +15,7 @@ sockets:
 cook: new-object
 
 target:
-  baseUrl: http://localhost:9960
+  baseUrl: http://localhost:9933
   databaseRel: repos/MaterialClient/.build-verify/MaterialClient/MaterialClient.db
   logRel: repos/MaterialClient/.build-verify/MaterialClient/Logs
   startScript: scripts/MaterialClient/Start-MaterialClient.ps1

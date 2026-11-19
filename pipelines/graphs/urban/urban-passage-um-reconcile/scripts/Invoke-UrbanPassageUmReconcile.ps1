@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+﻿﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Reconcile MaterialClient passage upload ↔ UrbanManagement lists.
@@ -132,7 +132,7 @@ function Get-ListPlates {
 
 function Wait-DiagnosticHost {
     param(
-        [string] $BaseUrl = "http://localhost:9961",
+        [string] $BaseUrl = "http://localhost:9933",
         [int] $TimeoutSeconds = 120
     )
     $healthUrl = "$($BaseUrl.Trim().TrimEnd('/'))/api/settings"
@@ -396,7 +396,7 @@ function New-ReconcileReportMarkdown {
 Write-Host "[urban-passage-um-reconcile] starting (Mode=$Mode)..."
 
 $umBaseUrl = "http://localhost:44300"
-$clientDiagnosticBaseUrl = "http://localhost:9961"
+$clientDiagnosticBaseUrl = "http://localhost:9933"
 $configText = ""
 $passageCasesRel = "seeds/passage-cases.json"
 $lprDevicesRel = "seeds/lpr-devices.json"

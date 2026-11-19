@@ -102,4 +102,4 @@ $env:MinimalWebHost__EnableOnStartup = "true"
 
 Write-Host "[urban-license-probe] launching $urbanExe ($Configuration; seed=$SeedRelPath)"
 $p = Start-Process -FilePath $urbanExe -WorkingDirectory $urbanDir -PassThru
-Write-Host "[urban-license-probe] started PID=$($p.Id). Wait for http://localhost:9961/ then run Invoke-UrbanLicenseProbe.ps1 -SkipConfirm"
+Write-Host "[urban-license-probe] started PID=$($p.Id). Wait for http://localhost:9933/ then run Invoke-UrbanLicenseProbe.ps1 -SkipConfirm"
