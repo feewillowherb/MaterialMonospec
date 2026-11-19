@@ -1,0 +1,62 @@
+id: fev-solidwaste-weigh-lpr
+created: "2026-11-19"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: fev-solidwaste-weigh-lpr
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: solidwaste-diagnostic-host-idle
+  end: solidwaste-weigh-lpr-observed
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9933
+  databaseRel: repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/MaterialClient.db
+  logRel: repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/Logs
+  startScript: scripts/MaterialClient/Start-MaterialClient.SolidWaste.ps1
+  fixture: fixtures/scenario.json
+  docsFevRel: docs/2026-11-19-solidwaste-weigh-lpr-fev/01-FEV-测试API称重与车牌.md
+  weighingMode: 1
+
+steps:
+  - optional-start-host
+  - probe-diagnostic-api
+  - write-evidence
+
+capture:
+  summary: summary.json
+  report: report.md
+  manifest: manifest.yaml
+  http: http.json
+  logExcerpt: log-excerpt.txt
+
+expect:
+  - id: diagnostic-reachable
+    level: P0
+  - id: inject-succeeded
+    level: P1
+  - id: solidwaste-row-with-plate-and-weight
+    level: P2
+  - id: human-accepts-fev
+    level: P3
+
+humanGates:
+  - user-enters-activation-code-if-prompted
+  - user-logs-in-if-prompted
+  - attended-weighing-window-open
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-FevSolidWasteWeighLpr.ps1
+    experimental: true
+    nodeTool: scripts/probe-fev-solidwaste-weigh-lpr.ts

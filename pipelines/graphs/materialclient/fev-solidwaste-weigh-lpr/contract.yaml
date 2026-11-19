@@ -1,0 +1,18 @@
+graphId: fev-solidwaste-weigh-lpr
+inputs:
+  - running MaterialClient.SolidWaste.exe with MinimalWebHost on port 9933
+  - fixtures/scenario.json
+  - repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/MaterialClient.db
+  - repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/Logs
+invariants:
+  - Cook drives the diagnostic HTTP API only. It does not ProjectReference repos/.
+  - Cook does not modify MaterialClient.db, appsettings, ScaleType, or DataDirectory.
+  - Cook does not accept or store an activation code or login secret.
+  - result pass means one new WeighingRecords row with WeighingMode 1, the injected plate, and the injected weight was observed.
+  - result pass is not a product delivery claim.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml
+  - runs/<runId>/http.json
+  - runs/<runId>/log-excerpt.txt

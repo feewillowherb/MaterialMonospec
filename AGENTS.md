@@ -16,6 +16,14 @@ MaterialMonospec 是一个 Monospec 主仓库，统一管理 MaterialClient（�
 
 ViewModel / 界面层 **不得**直接使用 Repository：规则在 `traits/viewmodel-no-repository-trait.md`，**不要**写入各子仓库 `AGENTS.md`。
 
+## 单一工作区
+
+本仓库只使用 `D:\Github\MaterialMonospec` 这一份检出。
+
+- **禁止** `git worktree add`，禁止再创建关联工作区或额外克隆来并行检出分支。
+- 分支切换只在这一份工作区里进行。`main` 被占用时，先结束占用它的目录，再在这里切换。
+- Agent **不得**为隔离实验、并行尝试或「保住 main」另开 worktree。
+
 ## Where things are
 
 | 职能 | 入口 |
@@ -478,3 +486,4 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 - **OpenSpec 分支与合入遵循 openspec-git-workflow；默认 Mode A + squash 单提交，禁止在目标分支直接开发**（参见「Required traits」）
 - **目录说明仅用 AGENTS.md；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口**（参见「Required traits」· agents-md-only）
 - **大规模改动或复杂调用链受阻时策略性挂起；禁止伪实现污染基线**（参见「Required traits」· strategic-fallback）
+- **只使用本目录一份检出；禁止 git worktree 与额外工作区**（参见「单一工作区」）

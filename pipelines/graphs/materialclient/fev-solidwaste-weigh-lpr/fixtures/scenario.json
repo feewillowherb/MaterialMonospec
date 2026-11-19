@@ -1,0 +1,10 @@
+{
+  "onScaleTons": 1.37,
+  "offScaleTons": 0.2,
+  "weightToleranceTons": 0.05,
+  "weighingMode": 1,
+  "offScaleSettleMs": 2000,
+  "rowWaitMs": 20000,
+  "pollMs": 1000,
+  "expectMinRows": 1
+}

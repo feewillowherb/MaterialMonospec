@@ -252,6 +252,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | standard-solidwaste-schema-upgrade-verify | probe | `graphs/materialclient/standard-solidwaste-schema-upgrade/` | active |
 | materialclient-working-db-load | probe | `graphs/materialclient/materialclient-working-db-load/` | active |
 | fev-stable-dual-enqueue-repro | probe | `graphs/materialclient/fev-stable-dual-enqueue-repro/` | active |
+| fev-solidwaste-weigh-lpr | probe | `graphs/materialclient/fev-solidwaste-weigh-lpr/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
 | ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |
