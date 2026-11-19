@@ -56,6 +56,35 @@ Cursor 开始前核对两仓 HEAD、dirty files 与相关活动 change；不得�
 - 故障证据：扩展写入失败时内核与扩展一起回滚；缺失扩展明确表达；旧冗余列不影响 INSERT；重复启动不重写现有扩展；不符合目标数据基线的库不被修改。
 - 回归范围覆盖共享代码被 Urban/Recycle 引用的编译影响，不改它们的业务链。证据记录命令、提交/工作区身份、环境与结果于本 change；未执行项保持未验收。
 
+## 调用矩阵（2026-11-19 实现前核对）
+
+依赖：Standard 与 SolidWaste 都引用 `MaterialClient.Desktop.Hosting`。该库只引用 Common、UI、AttendedWeighing。SolidWaste 不再 Compile Link 标准 exe。Urban / Recycle 仍使用各自的轮询类型。标准宿主注册只读扩展读取器；固废宿主注册 `SolidWasteExtensionStore`；Urban / Recycle 保持 `NullSolidWasteExtensionStore`。
+
+| 操作 | 原行为 | 实现后的边界 | 事务 |
+|------|--------|--------------|------|
+| 创建/编辑固废记录或运单 | `UpdateSolidWasteModeAsync` 把四字段写入 ExtraProperties，再按 getter 投影扩展 | 内核字段仍由匹配服务更新；四字段只以 `SolidWasteFieldValues` 写入扩展。空输入不新建扩展，已有扩展不被空输入覆盖 | 匹配服务 `[UnitOfWork]`，扩展保存加入同一工作单元 |
+| 匹配生成运单 | 从称重记录 ExtraProperties 复制四字段，Shipper 缺省会写成默认发货单位 | 只继承 `WeighingMode`。扩展行按 join 优先、out 补缺合并；两侧都没有扩展则不插入 | 运单插入与 `CopyMatchedFieldsAsync` 同一工作单元 |
+| 取消匹配/删除 | 不删除扩展行，无级联 | 保持不新增级联删除 | 沿用原内核事务 |
+| 查询/详情 | 详情 ViewModel 直接读 Repository 和 ExtraProperties | 详情经匹配服务读内核，经扩展存储读四字段。缺失扩展显示为空，不回读旧键 | 只读 |
+| 导出/打印 | 四字段和净重标记都可从 ExtraProperties 或扩展回退 | 四字段只来自扩展快照。`UseIndependentDisplayedNet` 只读运单 ExtraProperties | 导出服务 `[UnitOfWork]` |
+| 同步 | `FromWaybill` 从 ExtraProperties 取四字段 | 同步前按运单 Id 读扩展；没有扩展时产品字段为空 | 同步流程原事务 |
+| 启动回填 | `BackfillMissingAsync` 从旧键补缺失行 | 已移除。固废启动先只读检查四个旧键；命中则停止写入并记录原因 | 检查不写库 |
+
+工作区没有可核对的既有业务库副本。1.3 不打开现场库。隔离验证只用测试库和 `.build-verify` 新库。
+
+主规范里“启动从 ExtraProperties 复制四字段且不得删除旧键”由本 change 的 schema delta 取代。历史归档不改。安装与升级验收不在本次范围。
+
+2026-11-19 在 `.build-verify` 空库上启动，停在授权界面，未进入授权后流程：
+
+| 宿主 | 结果 |
+|------|------|
+| MaterialClient | 窗口「软件授权」，进程保持响应。轮询开启时后台任务可启动。 |
+| MaterialClient.SolidWaste | 窗口「软件授权」。固废迁移完成，未拒绝基线。 |
+| MaterialClient.Urban | 窗口「激活」。 |
+| MaterialClient.Recycle | 仓库配置没有 `Encryption:AesKey`。隔离目录补了一把一次性密钥后，窗口为「软件授权」。 |
+
+四台都没有现场串口。日志里的 COM3 缺失不阻止授权窗口。1.3、5.3、5.4 仍未勾选：没有现场库副本，也没有做授权后的业务操作。`openspec validate refactor-standard-solidwaste-code-boundaries --strict` 通过。这不是 ICD L3。
+
 ## Rollout and Risks
 
 先核对调用矩阵，再拆共享宿主，随后切换产品入口与数据权威，最后移除旧调用。只在隔离副本上验证数据操作；现有启动预检、排他、备份和恢复要求持续有效。当前方案不授权现场升级或旧 exe 回退。主要风险是跨 Context 事务未共用、共享 UI 引用环、标准历史展示丢失、保留列 NOT NULL 插入失败；均需对应验证。若必须改变业务语义或扩大历史兼容范围，先更新本 change 并交用户裁决，禁止以空值/假成功代替。
