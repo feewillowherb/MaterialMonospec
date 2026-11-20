@@ -1,0 +1,36 @@
+id: fd-base-proid-5041-authority
+graph:
+  domain: baseplatform
+  family: ingest
+  goal: fd-base-proid-5041-authority
+  status: active
+input:
+  state: fd-base-authority-idle
+  secretsRef: secrets.local.yaml
+  optionalSecrets:
+    - connectionString
+  appsettingsRel: repos/FdSoft.SSO/FdSoft.SSO.WebApi/appsettings.Development.json
+  connectionKey: Default
+  database: FD_Base
+  serverFingerprint: "135"
+  grants:
+    - proId: "08dedbe1-6f19-61a6-1999-0d2e38041c54"
+      productCode: 5041
+      termYears: 1
+output:
+  state: fd-base-authority-granted
+  artifacts:
+    - prepare/plan.json
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - default run is dry-run and does not write
+  - writes happen only with -Apply
+  - connection string, password, CoId, and user names are not written to evidence
+  - target must be server fingerprint 135 and database FD_Base
+  - only dbo.JC_ProductAuthority for the configured ProId and ProductCode may change
+  - AuthStatus 1 and CheckStatus 2 are the granted shape; MachineCode, AuthToken, and AccessCode are not copied
+  - an existing longer AuthEndTime is not shortened
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

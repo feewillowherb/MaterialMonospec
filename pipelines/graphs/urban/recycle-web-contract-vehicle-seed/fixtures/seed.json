@@ -1,0 +1,82 @@
+{
+  "marker": "recycle-web-contract-vehicle-seed",
+  "concurrencyStamp": "seedrecyclewebcv0001",
+  "materials": [
+    {
+      "id": "50200000-0000-4000-8000-000000000021",
+      "name": "再生细骨料",
+      "unit": "kg"
+    },
+    {
+      "id": "50200000-0000-4000-8000-000000000022",
+      "name": "再生粉料",
+      "unit": "kg"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "50200000-0000-4000-8000-000000000011",
+      "contractNo": "fl-xnyh20251113001-20260101060821-0001",
+      "signDate": "2026-01-01",
+      "producerName": "",
+      "buyerName": "杭州临平腾满建筑材料商行（个体工商户）",
+      "shipAddress": "浙江省杭州市余杭区博园路13号",
+      "sourceDataNo": "fl-xnyh20251113001-20260101060821-0001",
+      "sourceFile": "pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-submit/seeds/2026-01/source-run/2026-09-09T152356/json/2026-01-tengman.part000.json",
+      "transporters": [],
+      "details": [
+        {
+          "id": "50200000-0000-4000-8000-000000000031",
+          "materialId": "50200000-0000-4000-8000-000000000021",
+          "materialName": "再生细骨料",
+          "unit": "kg",
+          "usage": "",
+          "quantityKg": "22480",
+          "unitPrice": "0"
+        }
+      ]
+    },
+    {
+      "id": "50200000-0000-4000-8000-000000000012",
+      "contractNo": "fl-xnyh20251113001-20260101061000-0002",
+      "signDate": "2026-01-01",
+      "producerName": "",
+      "buyerName": "杭州临平腾满建筑材料商行（个体工商户）",
+      "shipAddress": "浙江省杭州市余杭区博园路13号",
+      "sourceDataNo": "fl-xnyh20251113001-20260101061000-0002",
+      "sourceFile": "pipelines/graphs/govsync/XNYH20251113001/sand-addbatch-submit/seeds/2026-01/source-run/2026-09-09T152356/json/2026-01-tengman.part000.json",
+      "transporters": [],
+      "details": [
+        {
+          "id": "50200000-0000-4000-8000-000000000032",
+          "materialId": "50200000-0000-4000-8000-000000000022",
+          "materialName": "再生粉料",
+          "unit": "kg",
+          "usage": "",
+          "quantityKg": "21850",
+          "unitPrice": "0"
+        }
+      ]
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "50200000-0000-4000-8000-000000000041",
+      "plateNumber": "浙A35586D",
+      "transporterName": "",
+      "contactPhone": "",
+      "tareWeightKg": "13500",
+      "isEnabled": true,
+      "sourceDataNo": "fl-xnyh20251113001-20260101060821-0001"
+    },
+    {
+      "id": "50200000-0000-4000-8000-000000000042",
+      "plateNumber": "浙A33606D",
+      "transporterName": "",
+      "contactPhone": "",
+      "tareWeightKg": "13420",
+      "isEnabled": true,
+      "sourceDataNo": "fl-xnyh20251113001-20260101061000-0002"
+    }
+  ]
+}

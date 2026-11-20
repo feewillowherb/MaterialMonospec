@@ -242,6 +242,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | urban-passage-client-um-reconcile | reconcile | `graphs/urban/urban-passage-um-reconcile/` | active |
 | urban-sqlite-accesscode-migrate-verify | probe | `graphs/urban/urban-db-accesscode-migrate/` | active |
 | urban-signalr-online-probe | probe | `graphs/urban/urban-signalr-online-probe/` | active |
+| recycle-web-contract-vehicle-seed | ingest | `graphs/urban/recycle-web-contract-vehicle-seed/` | active |
 | solidwaste-missing-join-pair | ingest | `graphs/materialclient/solidwaste-pair-ingest/` | active |
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 | waybill-softdelete-join-gap | probe | `graphs/materialclient/waybill-softdelete-join-probe/` | active |
@@ -264,6 +265,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | ops-deploy-urban-lab-138 | ingest | `graphs/ops/deploy-urban-lab-138/` | active |
 | ops-cutover-safety-drill | probe | `graphs/ops/cutover-safety-drill/` | active |
 | ops-e2e-urban-phase2 | probe | `graphs/ops/e2e-urban-phase2/` | active |
+| fd-base-proid-5041-authority | ingest | `graphs/baseplatform/fd-base-proid-5041-authority/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

@@ -1,0 +1,81 @@
+id: fd-base-proid-5041-authority
+created: "2026-11-20"
+graph:
+  product: baseplatform
+  domain: baseplatform
+  family: ingest
+  goal: fd-base-proid-5041-authority
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: fd-base-authority-idle
+  end: fd-base-authority-granted
+cook: in-place
+
+target:
+  serverFingerprint: "135"
+  database: FD_Base
+  appsettingsRel: repos/FdSoft.SSO/FdSoft.SSO.WebApi/appsettings.Development.json
+  connectionKey: Default
+  authorityTable: dbo.JC_ProductAuthority
+  productTable: dbo.JC_Product
+
+scenario:
+  dryRun: true
+  termYears: 1
+  authStatus: 1
+  checkStatus: 2
+  grants:
+    - proId: "08dedbe1-6f19-61a6-1999-0d2e38041c54"
+      productCode: 5041
+
+steps:
+  - id: bind-target
+    name: Resolve the 135 FD_Base connection and confirm the database name
+  - id: read-current
+    name: Read JC_Product 5041 and existing JC_ProductAuthority rows for the ProId
+  - id: plan-grant
+    name: Plan insert, update, or noop for a one-year authorized row
+  - id: apply-or-dry-run
+    name: Roll back unless -Apply; commit only the planned authority change
+  - id: validate
+    name: Re-read the authority row after apply, or record the uncommitted plan
+
+expect:
+  - id: db-fingerprint
+    level: L0
+    description: Connection server matches 135 and the open database is FD_Base
+  - id: grant-located
+    level: L1
+    description: Product 5041 exists and the ProId has one resolvable organization template
+  - id: authority-covers-one-year
+    level: L2
+    description: After -Apply, one undeleted row is AuthStatus 1, CheckStatus 2, and AuthEndTime covers one year
+  - id: business-ok
+    level: L3
+    description: User accepts the 135 authority change. Agent does not mark P3
+
+capture:
+  plan:
+    required: true
+    sink: prepare/plan.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  manifest:
+    required: true
+    sink: manifest.yaml
+
+humanGates:
+  - missing-secrets
+  - shared-environment
+  - apply-write
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true
