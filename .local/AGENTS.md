@@ -29,7 +29,7 @@
 
 - 新建或读取本目录前先读本文件。
 - 口令、私钥、连接串只留在本目录（或 Graph 的 `secrets.local.yaml`）。**MUST NOT** 把内容写进可提交文件，也 **MUST NOT** 在对话、`proposal.md`、`docs/` 里粘贴原文。
-- 除本 `AGENTS.md` 外，本目录内容保持不提交。`.gitignore` 为 `.local/*`，仅本文件被例外跟踪。
+- 除本 `AGENTS.md` 外，本目录内容保持不提交。`.gitignore` 为 `.local/*`，仅本文件被例外跟踪。`pipelines/graphs/.local/` 同样不提交。
 
 ## MUST NOT
 

@@ -14,3 +14,6 @@ pipelines/**/runs/
 # Ignore contents, not the directory, so AGENTS.md can be tracked.
 .local/*
 !.local/AGENTS.md
+
+# Local FEV scratch under graphs. Not a Graph. See pipelines/AGENTS.md
+pipelines/graphs/.local/
