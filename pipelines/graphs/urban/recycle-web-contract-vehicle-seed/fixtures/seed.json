@@ -32,7 +32,7 @@
           "unit": "kg",
           "usage": "",
           "quantityKg": "22480",
-          "unitPrice": "0"
+          "unitPrice": "0.01"
         }
       ]
     },
@@ -54,7 +54,7 @@
           "unit": "kg",
           "usage": "",
           "quantityKg": "21850",
-          "unitPrice": "0"
+          "unitPrice": "0.02"
         }
       ]
     }
