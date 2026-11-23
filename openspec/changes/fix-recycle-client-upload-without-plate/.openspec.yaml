@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-23
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  note: "跨 MaterialClient 与 UrbanManagement；含一条 EF migration 与 138 联调"

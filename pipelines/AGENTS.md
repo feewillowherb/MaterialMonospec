@@ -265,6 +265,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | ops-fev-u10-uploads-smb | probe | `graphs/ops/fev-u10-uploads-smb/` | active |
 | ops-deploy-urban-acceptance | ingest | `graphs/ops/deploy-urban-acceptance/` | active |
 | ops-deploy-urban-lab-138 | ingest | `graphs/ops/deploy-urban-lab-138/` | active |
+| ops-deploy-recycle-web-lab-138 | ingest | `graphs/ops/deploy-recycle-web-lab-138/` | active |
 | ops-cutover-safety-drill | probe | `graphs/ops/cutover-safety-drill/` | active |
 | ops-e2e-urban-phase2 | probe | `graphs/ops/e2e-urban-phase2/` | active |
 | fd-base-proid-5041-authority | ingest | `graphs/baseplatform/fd-base-proid-5041-authority/` | active |

@@ -1,0 +1,100 @@
+id: "deploy-recycle-web-lab-138"
+created: "2026-11-23"
+graph:
+  product: urban
+  domain: ops
+  family: ingest
+  goal: ops-deploy-recycle-web-lab-138
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: lab-138-sources-ready
+  end: lab-138-recycle-web-running
+cook: new-object
+
+target:
+  hostDoc: docs/2026-11-18-recycle-auth-lab-publish/00-调研总览.md
+  urbanRepoRel: repos/UrbanManagement
+  dockerfileRel: repos/UrbanManagement/deploy/docker/Dockerfile
+  imageTag: lab
+  recyclePort: 5334
+  recycleHealthPath: /health/live
+  service: Recycle
+  composeService: um-recycle
+  migratorService: Migrator
+  migratorComposeService: um-migrator
+  buildTimeoutMinutes: 30
+  # Only um-recycle is rebuilt and recreated. The other seven services keep their running images and containers.
+  # Host compose.yaml and .env stay on the lab machine. Deploy only rewrites the Uploads anchor to C:/wwwroot/UrbanManagement/Uploads and mounts it on um-recycle.
+
+prerequisites:
+  - .NET 10 SDK, Node.js, tar.exe, and OpenSSH client on this machine
+  - repos/UrbanManagement checkout used by repos/UrbanManagement
+  - secrets.local.yaml with host, user, remoteWork, remoteComposeDir
+  - lab compose already defines service um-recycle; UM_DB_PASSWORD stays in the host .env
+  - password only when that host has no authorized deploy key
+
+steps:
+  - id: bind-config
+    name: Read secrets.local.yaml when the mode is not publish; create runs/<ts>/
+  - id: publish
+    name: Recycle client build when client/package.json exists; dotnet publish Recycle (and Migrator with -WithMigrator); tar Dockerfile plus services/
+  - id: upload
+    name: scp bundle, remote script, and generated config json to remoteWork (deploy -Apply only)
+  - id: remote-build
+    name: Detached Windows build; docker build for Recycle (and Migrator with -WithMigrator) with a one-service dockerignore; target service
+  - id: migrate
+    name: With -WithMigrator, recreate um-migrator and wait for it to exit 0. Skipped by default
+  - id: compose-up
+    name: Bind Uploads to C:/wwwroot/UrbanManagement/Uploads, mount it on um-recycle, then recreate only um-recycle. Fail when Recycle Uploads is not that disk
+  - id: health
+    name: GET Recycle /health/live (deploy -Apply and verify)
+  - id: report
+    name: Write summary.json, manifest.yaml, report.md; acceptance stays pending
+
+expect:
+  - id: reachable
+    level: P0
+    description: SSH reachable for deploy/verify, or a local bundle exists for publish
+  - id: remote-built
+    level: P1
+    description: Remote result file is BUILD_DONE, or verify received an HTTP status
+  - id: health-200
+    level: P2
+    description: Recycle 5334 /health/live returns 200
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  scp: { required: false, sink: scp/ }
+  ssh: { required: false, sink: ssh-log/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - deploy-approval
+  - compose-missing-um-recycle
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  scp:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Copy-ScpToRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-DeployRecycleWebLab138.ps1
+    experimental: true

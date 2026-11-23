@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-23
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  note: "仅 UrbanManagement；服务端规则加一个 Vue 下拉，无 migration"
