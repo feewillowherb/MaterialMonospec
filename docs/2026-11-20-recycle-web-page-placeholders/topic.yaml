@@ -1,0 +1,6 @@
+topic: 2026-11-20-recycle-web-page-placeholders
+created: "2026-11-20"
+updated: "2026-11-20"
+# Recycle Web list cells and editors that do not read or write stored fields.
+# PDF and receipt files stay on the uploads directory. The attachment row stores the relative path only.
+# Reviewed scope and Cursor handoff are in 02-评审与Decision.md. Human approval for implementation is pending.

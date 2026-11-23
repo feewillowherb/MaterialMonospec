@@ -57,7 +57,7 @@ function Invoke-UrbanJsonPost {
 function Resolve-UrbanDiagnosticBaseUrl {
     param(
         [string] $GraphRoot,
-        [string] $DefaultBaseUrl = "http://localhost:9961"
+        [string] $DefaultBaseUrl = "http://localhost:9933"
     )
     $configPath = Join-Path $GraphRoot "config.yaml"
     $secretsPath = Join-Path $GraphRoot "secrets.local.yaml"

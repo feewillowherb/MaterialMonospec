@@ -451,7 +451,7 @@ MaterialClient.Urban SHALL read UrbanManagement server address from configuratio
 #### Scenario: Diagnostic host unchanged
 
 - **WHEN** BaseUrl is overridden for reconcile
-- **THEN** MinimalWebHost diagnostic URLs MUST remain on `MinimalWebHost:Urls` (default `http://localhost:9961`)
+- **THEN** MinimalWebHost diagnostic URLs MUST remain on `MinimalWebHost:Urls` (default `http://localhost:9933`)
 - **AND** probe scripts MUST continue to POST test-passage to the diagnostic host
 
 ### Requirement: Urban weighing upload includes UrbanSiteType as SiteType

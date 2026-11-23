@@ -1,0 +1,72 @@
+id: recycle-web-contract-vehicle-seed
+created: "2026-11-20"
+graph:
+  product: urban
+  domain: urban
+  family: ingest
+  goal: recycle-web-contract-vehicle-seed
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: ../../ops/deploy-urban-lab-138/secrets.local.yaml
+sockets:
+  start: recycle-seed-idle
+  end: recycle-seed-visible
+cook: in-place
+
+target:
+  hostFingerprint: "138"
+  database: UrbanManagement
+  sqlContainer: urbanmanagement-mssql-1
+  composeService: um-recycle
+  boundEnv: RecyclePersistence__BoundSourceProId
+  sourceProId: "08dedbe1-6f19-61a6-1999-0d2e38041c54"
+  productCode: 5020
+  fixture: pipelines/graphs/urban/recycle-web-contract-vehicle-seed/fixtures/seed.json
+  tables:
+    - dbo.RecycleContracts
+    - dbo.RecycleMaterials
+    - dbo.RecycleContractMaterials
+    - dbo.RecycleContractTransporters
+    - dbo.RecycleVehicles
+  matchKeys:
+    contracts: ProId+ContractNo
+    vehicles: ProId+PlateNumber
+
+scenario:
+  dryRun: true
+
+steps:
+  - id: bind-target
+    name: Read the deploy-lab secrets and confirm the compose binding matches sourceProId
+  - id: plan-seed
+    name: Validate fixtures/seed.json and write prepare/plan.json plus preview and apply SQL
+  - id: preview
+    name: Count the bound 5020 row and any conflicting contract or vehicle keys
+  - id: apply-or-dry-run
+    name: Write only when -Apply is passed; otherwise leave the database unchanged
+  - id: report
+    name: Write summary.json, manifest.yaml, and report.md
+
+expect:
+  - id: lab-reachable
+    level: P0
+    description: SSH reaches the lab and the Recycle database answers the preview query
+  - id: seed-planned
+    level: P1
+    description: The plan lists the fixture contracts, details, transporters, and vehicles
+  - id: rows-match-plan
+    level: P2
+    description: After -Apply, undeleted seed rows equal the plan and conflict counts stay 0
+  - id: user-ack
+    level: P3
+    description: User accepts the lab rows. Agent does not mark P3
+
+humanGates:
+  - missing-secrets
+  - shared-environment
+  - apply-write
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

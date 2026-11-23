@@ -24,14 +24,18 @@ param(
     [string] $RepoRoot = "",
     [string] $IdentityFileName = "docker-linux-ed25519",
     [string] $EvidenceDir = "",
-    [int] $ConnectTimeoutSeconds = 15
+    [int] $ConnectTimeoutSeconds = 15,
+    # Lab hosts that have no authorized key. Never written to argv, evidence, or the askpass file.
+    [string] $Password = ""
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$usePassword = -not [string]::IsNullOrEmpty($Password)
 $ResolveScript = Join-Path $PSScriptRoot "Resolve-SshIdentity.ps1"
-$resolveArgs = @{ IdentityFileName = $IdentityFileName; PassThru = $true; HardenAcl = $true }
+$resolveArgs = @{ IdentityFileName = $IdentityFileName; PassThru = $true }
+if ($usePassword) { $resolveArgs.AllowMissingIdentity = $true } else { $resolveArgs.HardenAcl = $true }
 if (-not [string]::IsNullOrWhiteSpace($RepoRoot)) { $resolveArgs.RepoRoot = $RepoRoot }
 $identityInfo = & $ResolveScript @resolveArgs
 $identity = [string]$identityInfo.identityFile
@@ -43,17 +47,40 @@ foreach ($p in $LocalPath) {
     if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "Local file not found: $p" }
 }
 
-$scpArgs = @(
-    "-i", $identity, "-P", "$Port", "-q",
-    "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+$scpArgs = @("-P", "$Port", "-q")
+if ($usePassword) {
+    $scpArgs += @(
+        "-o", "PreferredAuthentications=password",
+        "-o", "PubkeyAuthentication=no",
+        "-o", "NumberOfPasswordPrompts=1"
+    )
+}
+else {
+    $scpArgs += @("-i", $identity, "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes")
+}
+$scpArgs += @(
     "-o", "StrictHostKeyChecking=accept-new", "-o", "UserKnownHostsFile=$knownHosts",
     "-o", "ConnectTimeout=$ConnectTimeoutSeconds", "-o", "LogLevel=ERROR"
 ) + $LocalPath + @("${User}@${HostName}:$($RemoteDir.TrimEnd('/'))/")
 
 Write-Host "[ops-scp] target=${User}@${HostName}:$Port dir=$RemoteDir files=$($LocalPath.Count)"
 $started = Get-Date
-& $scpExe.Source @scpArgs
-$code = $LASTEXITCODE
+$askPass = $null
+if ($usePassword) {
+    . (Join-Path $PSScriptRoot "New-SshAskPass.ps1")
+    $askPass = New-UmSshAskPass
+    Set-UmSshAskPassEnv -AskPass $askPass -Password $Password
+}
+try {
+    & $scpExe.Source @scpArgs
+    $code = $LASTEXITCODE
+}
+finally {
+    if ($usePassword) {
+        Clear-UmSshAskPassEnv
+        Remove-UmSshAskPass -AskPass $askPass
+    }
+}
 $durationMs = [int]((Get-Date) - $started).TotalMilliseconds
 
 if (-not [string]::IsNullOrWhiteSpace($EvidenceDir)) {
@@ -64,7 +91,7 @@ if (-not [string]::IsNullOrWhiteSpace($EvidenceDir)) {
         })
     $meta = [ordered]@{
         host = $HostName; user = $User; port = $Port; remoteDir = $RemoteDir
-        exitCode = $code; durationMs = $durationMs; startedAt = $started.ToString("o"); files = $files
+        exitCode = $code; durationMs = $durationMs; startedAt = $started.ToString("o"); passwordAuth = [bool]$usePassword; files = $files
     }
     [System.IO.File]::WriteAllText((Join-Path $EvidenceDir "meta.json"), ($meta | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
 }

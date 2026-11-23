@@ -20,7 +20,7 @@ Status: **active**
 
 ## 前置
 
-1. 启动诊断口（本机默认 `http://localhost:9960`）：
+1. 启动诊断口（本机默认 `http://localhost:9933`）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialClient.ps1 -EnableDiagnosticHost -StopRunning

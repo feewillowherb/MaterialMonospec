@@ -1,0 +1,40 @@
+id: recycle-web-contract-vehicle-seed
+graph:
+  domain: urban
+  family: ingest
+  goal: recycle-web-contract-vehicle-seed
+  status: active
+input:
+  state: recycle-seed-idle
+  secretsRef: ../../ops/deploy-urban-lab-138/secrets.local.yaml
+  secretKeys:
+    - host
+    - user
+    - port
+    - remoteWork
+    - remoteComposeDir
+    - password
+  fixture: pipelines/graphs/urban/recycle-web-contract-vehicle-seed/fixtures/seed.json
+  sourceProId: "08dedbe1-6f19-61a6-1999-0d2e38041c54"
+  database: UrbanManagement
+  sqlContainer: urbanmanagement-mssql-1
+output:
+  state: recycle-seed-visible
+  artifacts:
+    - prepare/plan.json
+    - prepare/seed.preview.sql
+    - prepare/seed.apply.sql
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - default run is preview and does not write
+  - writes happen only with -Apply
+  - passwords and connection strings are not written to evidence
+  - ProId must equal um-recycle RecyclePersistence__BoundSourceProId
+  - dbo.GovProjects must already contain one undeleted ProductCode 5020 row for that SourceProId
+  - match keys are ProId+ContractNo and ProId+PlateNumber; a different live row with the same key blocks the run
+  - seed contract children are replaced only for the fixture contract ids
+  - SyncStatus stays 0; this Graph does not call the city platform
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

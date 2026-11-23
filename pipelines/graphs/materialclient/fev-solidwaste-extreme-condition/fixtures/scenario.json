@@ -1,0 +1,12 @@
+{
+  "grossTons": 12.5,
+  "tareTons": 1.37,
+  "offScaleTons": 0.2,
+  "weightToleranceTons": 0.05,
+  "weighingMode": 1,
+  "preludeSettleMs": 5000,
+  "drainWaitMs": 45000,
+  "pollMs": 500,
+  "expectRecords": 2,
+  "expectWaybills": 1
+}

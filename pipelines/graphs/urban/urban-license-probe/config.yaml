@@ -15,7 +15,7 @@ sockets:
 cook: new-object
 
 target:
-  baseUrl: http://localhost:9961
+  baseUrl: http://localhost:9933
   healthGet: /
   settingsGet: /api/settings
   licenseSeedApi: /api/license/seed

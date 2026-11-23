@@ -19,7 +19,7 @@ trait:
 
 一条现行验收 Graph：如何在已知输入下重跑，以及怎样解释证据。它不是 OpenSpec 规格，也不是调研笔记。
 
-产品行为仍走 OpenSpec。密钥只放 `secrets.local.yaml`。不得覆盖已有 `runs/`。
+产品行为仍走 OpenSpec。密钥放各图 `secrets.local.yaml`，或由 Graph 引用仓库根 `.local/`。需要重复执行的部署做成 Graph。不得覆盖已有 `runs/`。
 
 ## Model used in this repo
 

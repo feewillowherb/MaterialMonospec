@@ -140,7 +140,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | 分族 | `/gen-<family>-pipeline`、`/run-<family>-pipeline` |
 | 登录/适配共享 | 放 `_shared/`（按产品写 runbook）；勿各图重写 |
 
-密钥：仅 `secrets.local.yaml`（gitignore）。**MUST NOT** 把密码写进 `pipeline.md` / `config.yaml`。
+密钥：值放各图 `secrets.local.yaml`（gitignore），或放仓库根 `.local/`，由 Graph 用 `secretsRef`、`identityRel` 等路径引用。**MUST NOT** 把密码写进 `pipeline.md` / `config.yaml`。部署、发布和还会再跑的探测与验收 **MUST** 做成 `graphs/<domain>/<slug>/`，**MUST NOT** 写进仓库根 `.local/` 或 `graphs/.local/`。见 [`.local/AGENTS.md`](../.local/AGENTS.md)。
 
 **Node/TS runtime**：`pipelines/package.json` + pnpm；Graph 编排仍以各 `scripts/*.ps1`（experimental）为主。默认 cook 仍是 Node。SQLite 的 Node cook 用 Node ≥ 22.5 内置 `node:sqlite`。可行性实验可另加 **net10.0** 控制台项目，规则见 §4.2。
 
@@ -175,7 +175,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | 调用 | 该 Graph 的 `scripts/*.ps1` 执行 `dotnet run --project <csproj> -- <args>` |
 | 脚手架 | 从 [`_template/dotnet/`](_template/dotnet/) 复制，再改命名空间与逻辑 |
 | 产物 | `bin/`、`obj/` 已由 `pipelines/.gitignore` 忽略；**MUST NOT** 提交 |
-| 边界 | 不 `ProjectReference` 到 `repos/`；不改产品行为；不写生产库；密钥仍只进 `secrets.local.yaml` |
+| 边界 | 不 `ProjectReference` 到 `repos/`；不改产品行为；不写生产库；密钥放 `secrets.local.yaml` 或由 Graph 引用仓库根 `.local/` |
 
 硬约束：
 
@@ -194,6 +194,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 - [ ] 共享引用深度正确（分层：`../../../_shared/...`）
 - [ ] 同 `goal` 无第二个 `active`
 - [ ] 脚本只放该 Graph 的 `scripts/`，标 `experimental`
+- [ ] 重复执行的部署落在 `graphs/<domain>/<slug>/`；密钥引用可指向仓库根 `.local/`，值不进已跟踪文件
 - [ ] 复杂 Node cook 用 `.ts` + `tsx`（见 §4.1）；短探针才允许 `.mjs`
 - [ ] 若该 Graph 含 .NET 实验：TFM `net10.0`，工程在 `src/`，经 `scripts/*.ps1` 调用；不提交 `bin/`、`obj/`（见 §4.2）
 
@@ -241,6 +242,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | urban-passage-client-um-reconcile | reconcile | `graphs/urban/urban-passage-um-reconcile/` | active |
 | urban-sqlite-accesscode-migrate-verify | probe | `graphs/urban/urban-db-accesscode-migrate/` | active |
 | urban-signalr-online-probe | probe | `graphs/urban/urban-signalr-online-probe/` | active |
+| recycle-web-contract-vehicle-seed | ingest | `graphs/urban/recycle-web-contract-vehicle-seed/` | active |
 | solidwaste-missing-join-pair | ingest | `graphs/materialclient/solidwaste-pair-ingest/` | active |
 | recycle-site-db-export | transform | `graphs/materialclient/recycle-wenyixilu-export/` | active |
 | waybill-softdelete-join-gap | probe | `graphs/materialclient/waybill-softdelete-join-probe/` | active |
@@ -252,13 +254,18 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | standard-solidwaste-schema-upgrade-verify | probe | `graphs/materialclient/standard-solidwaste-schema-upgrade/` | active |
 | materialclient-working-db-load | probe | `graphs/materialclient/materialclient-working-db-load/` | active |
 | fev-stable-dual-enqueue-repro | probe | `graphs/materialclient/fev-stable-dual-enqueue-repro/` | active |
+| fev-solidwaste-weigh-lpr | probe | `graphs/materialclient/fev-solidwaste-weigh-lpr/` | active |
+| fev-solidwaste-extreme-condition | probe | `graphs/materialclient/fev-solidwaste-extreme-condition/` | active |
+| fev-standard-weigh-waybill | probe | `graphs/materialclient/fev-standard-weigh-waybill/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
 | ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |
 | ops-fev-u10-uploads-smb | probe | `graphs/ops/fev-u10-uploads-smb/` | active |
 | ops-deploy-urban-acceptance | ingest | `graphs/ops/deploy-urban-acceptance/` | active |
+| ops-deploy-urban-lab-138 | ingest | `graphs/ops/deploy-urban-lab-138/` | active |
 | ops-cutover-safety-drill | probe | `graphs/ops/cutover-safety-drill/` | active |
 | ops-e2e-urban-phase2 | probe | `graphs/ops/e2e-urban-phase2/` | active |
+| fd-base-proid-5041-authority | ingest | `graphs/baseplatform/fd-base-proid-5041-authority/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

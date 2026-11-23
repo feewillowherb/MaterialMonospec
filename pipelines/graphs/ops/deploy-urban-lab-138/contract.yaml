@@ -1,0 +1,40 @@
+id: deploy-urban-lab-138
+graph:
+  domain: ops
+  family: ingest
+  goal: ops-deploy-urban-lab-138
+  status: active
+input:
+  state: lab-138-sources-ready
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - host
+    - user
+    - remoteWork
+    - remoteComposeDir
+  optionalSecrets:
+    - port
+    - password
+    - dockerConfigDir
+  urbanRepoRel: repos/UrbanManagement
+output:
+  state: lab-138-images-running
+  artifacts:
+    - prepare/
+    - scp/
+    - ssh-log/
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - uses pipelines/_shared/ops/ssh helpers only for SSH and scp
+  - password is passed only as a helper parameter and is never written to argv, askpass files, logs, or evidence
+  - deploy runs only with -Apply
+  - publish without -Apply does not open SSH
+  - verify does not build or upload
+  - the lab compose.yaml and .env are not uploaded or replaced
+  - image builds use Dockerfile target service and a dockerignore that keeps one service directory
+  - UM_TAG=lab is set on the remote process and the host .env file is not edited
+  - a missing um-recycle service fails the run
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

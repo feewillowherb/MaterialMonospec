@@ -44,7 +44,7 @@ if (-not (Test-Path -LiteralPath $StartScript)) {
 Write-Host "[urban-license-probe] experimental Invoke starting..."
 
 $configText = [System.IO.File]::ReadAllText($ConfigPath, [System.Text.Encoding]::UTF8)
-$baseUrl = "http://localhost:9961"
+$baseUrl = "http://localhost:9933"
 $fromConfig = Get-YamlScalarLocal -Text $configText -Key "baseUrl"
 if (-not [string]::IsNullOrWhiteSpace($fromConfig)) {
     $baseUrl = $fromConfig.Trim().TrimEnd('/')

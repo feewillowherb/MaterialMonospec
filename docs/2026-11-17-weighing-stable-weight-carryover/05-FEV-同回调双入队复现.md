@@ -20,7 +20,7 @@
 |----|------|
 | 环境 | `scripts/MaterialClient/Start-MaterialClient.ps1 -EnableDiagnosticHost` 启的真实进程；已登录；有人值守称重窗已开；`ScaleType=TestMode(2)` |
 | Graph | `pipelines/graphs/materialclient/fev-stable-dual-enqueue-repro/` |
-| API | `POST /api/lpr/test-plate`、`POST /api/scale/weight`（默认 `http://localhost:9960`） |
+| API | `POST /api/lpr/test-plate`、`POST /api/scale/weight`（默认 `http://localhost:9933`） |
 | 观测 | 日志：`Weight stabilized (status transition)` + `Weight stabilized (backup check)`；SQLite：基线后 ≥2 同吨行 |
 | 判别 | cook `result=pass` → 复现成立；`fail` → 不支持「同帧双入队」；`blocked` → 环境未就绪 |
 

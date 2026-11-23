@@ -1,0 +1,5 @@
+topic: 2026-11-19-recycle-client-to-web-fev
+created: "2026-11-19"
+updated: "2026-11-20"
+# FEV: can MaterialClient.Recycle weighbridge test data reach Recycle Web on lab 138?
+# 2026-11-20 camera run: test-api plates, real camera_1 JPEGs, 浙A35586D net negative and 浙A33606D net positive. Verdict FEASIBLE. Not an ICD delivery claim.
