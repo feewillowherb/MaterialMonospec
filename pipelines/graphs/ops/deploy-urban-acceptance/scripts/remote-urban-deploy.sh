@@ -40,7 +40,9 @@ deploy_release() {
 }
 
 deploy_mount() {
-  local line="//$HOST/$UPLOADS_SHARE $UPLOADS_MNT cifs credentials=$CRED,uid=1654,gid=1654,file_mode=0664,dir_mode=0775,noserverino,vers=3.1.1,_netdev,nofail,x-systemd.automount 0 0"
+  # A normal mount, ordered before Docker. An automount leaves an empty directory
+  # that containers bind and then write pictures onto the VM disk.
+  local line="//$HOST/$UPLOADS_SHARE $UPLOADS_MNT cifs credentials=$CRED,uid=1654,gid=1654,file_mode=0664,dir_mode=0775,noserverino,vers=3.1.1,_netdev,nofail,x-systemd.requires=network-online.target,x-systemd.before=docker.service 0 0"
   if grep -qsxF "$line" /etc/fstab; then
     mark FSTAB kept
   else
@@ -49,12 +51,39 @@ deploy_mount() {
     echo "$line" | sudo tee -a /etc/fstab >/dev/null
     mark FSTAB written
   fi
-  sudo mkdir -p "$UPLOADS_MNT"
+  sudo mkdir -p "$UPLOADS_MNT" /etc/systemd/system/docker.service.d
+  sudo tee /etc/systemd/system/docker.service.d/um-uploads.conf >/dev/null <<'EOF'
+[Unit]
+RequiresMountsFor=/srv/um-uploads
+After=network-online.target um-uploads-rshared.service
+Wants=um-uploads-rshared.service
+EOF
+  sudo tee /etc/systemd/system/um-uploads-rshared.service >/dev/null <<'EOF'
+[Unit]
+Description=Share the Windows Uploads mount into containers
+After=local-fs.target
+Before=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'fst=$(findmnt -n -o FSTYPE --target /srv/um-uploads | tail -n 1); [ "$fst" = cifs ] || exit 1; mount --make-rshared /srv/um-uploads'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=docker.service
+EOF
   sudo systemctl daemon-reload
-  local unit
-  unit="$(systemd-escape -p --suffix=automount "$UPLOADS_MNT")"
-  sudo systemctl start "$unit" || fail automount
-  mark AUTOMOUNT_UNIT "$unit"
+  sudo systemctl enable um-uploads-rshared.service >/dev/null 2>&1 || true
+  local auto
+  auto="$(systemd-escape -p --suffix=automount "$UPLOADS_MNT")"
+  sudo systemctl disable "$auto" >/dev/null 2>&1 || true
+  sudo mount "$UPLOADS_MNT" || fail uploads-mount
+  if sudo mount --make-rshared "$UPLOADS_MNT"; then
+    mark UPLOADS_RSHARED yes
+  else
+    mark UPLOADS_RSHARED no
+  fi
+  mark UPLOADS_MOUNT "$UPLOADS_MNT"
 }
 
 check_mount() {
@@ -454,6 +483,13 @@ checks() {
   mark MEM_OK "$( [ "${avail:-0}" -ge "$MEM_MIN_MB" ] && echo yes || echo no)"
   mark MSSQL_MEMORY_LIMIT_MB "$(svc_exec mssql 'echo $MSSQL_MEMORY_LIMIT_MB')"
   mark DISK_AVAIL_ROOT "$(df -h / | awk 'NR==2{print $4}')"
+  local uploads_fs
+  uploads_fs="$(svc_exec um-admin 'stat -f -c %T /app/Uploads')"
+  mark CONTAINER_UPLOADS_FSTYPE "${uploads_fs:-missing}"
+  case "$uploads_fs" in
+    cifs|smb2|smb3) mark UPLOADS_ON_WINDOWS yes ;;
+    *) mark UPLOADS_ON_WINDOWS no; fail uploads-not-windows-disk ;;
+  esac
 }
 
 case "$MODE" in
@@ -464,6 +500,7 @@ case "$MODE" in
     deploy_config
     deploy_env
     env_set UM_MSSQL_MEMORY_LIMIT_MB "$MSSQL_MEM_MB"
+    env_set UM_UPLOADS_HOST_PATH "$UPLOADS_MNT"
     load_env
     deploy_image
     deploy_infra

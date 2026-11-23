@@ -30,7 +30,7 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 
 | 模式 | 动作 | 副作用 |
 |------|------|--------|
-| `deploy`（须 `-Apply`） | 本机逐个 `dotnet publish` 七个服务工程 + DataImport → 打包 → scp → 虚拟机：解包、SMB Uploads、合并 `appsettings.Production.json`（IIS 共享可读则用之，否则本机 secret 兜底）、按服务 `docker build`、起栈、空库导入、检查 | 改虚拟机（幂等）；库非空则跳过导入 |
+| `deploy`（须 `-Apply`） | 本机逐个 `dotnet publish` 七个服务工程 + DataImport → 打包 → scp → 虚拟机：解包、把 Uploads 挂到 Windows 磁盘 `C:\wwwroot\UrbanManagement\Uploads`（cifs `/srv/um-uploads`，并写进 `.env`）、合并 `appsettings.Production.json`（IIS 共享可读则用之，否则本机 secret 兜底）、按服务 `docker build`、起栈、空库导入、检查容器内 Uploads 是否为该共享 | 改虚拟机（幂等）；库非空则跳过导入 |
 | `deploy -ResetDatabase` | 同上，但先删库再导入 | 丢数据（人闸 `reset-database-approval`） |
 | `verify` | 只读检查 + 本机探测 `externalProbePort`（5233） | 无 |
 
