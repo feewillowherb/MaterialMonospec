@@ -164,10 +164,10 @@ try {
                 Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.$svc\UrbanManagement.$svc.csproj"), "-c", "Release", "-o", (Join-Path $ctx "services\$svc"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-$($svc.ToLower()).log")
             }
             Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "tools\UrbanManagement.DataImport\UrbanManagement.DataImport.csproj"), "-c", "Release", "-o", (Join-Path $ctx "tools\import"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-import.log")
-            foreach ($f in @("Dockerfile", "compose.yaml", ".env.example")) {
+            foreach ($f in @("Dockerfile", "docker-entrypoint.sh", "compose.yaml", ".env.example")) {
                 Copy-Item -LiteralPath (Join-Path $urbanRepo "deploy\docker\$f") -Destination (Join-Path $ctx $f)
             }
-            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "services", "tools", "Dockerfile", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
+            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "services", "tools", "Dockerfile", "docker-entrypoint.sh", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
             $build = [ordered]@{
                 skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty; services = $services
                 bundleBytes = (Get-Item -LiteralPath $bundle).Length; publishSeconds = [int]((Get-Date) - $started).TotalSeconds
@@ -280,7 +280,7 @@ try {
         })
     $splitOk = $splitBad.Count -eq 0 -and (N "SERVICE_IMAGES") -eq 7
     $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
-    $smb = @("smb2", "cifs")
+    $smb = @("smb2", "smb3", "cifs")
     $containerOk = @($roleKeys | Where-Object { (M "ROLE_$($_)_UPLOADS_FS") -notin $smb }).Count -eq 0 -and
         (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
