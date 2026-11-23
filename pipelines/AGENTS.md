@@ -257,6 +257,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | fev-solidwaste-weigh-lpr | probe | `graphs/materialclient/fev-solidwaste-weigh-lpr/` | active |
 | fev-solidwaste-extreme-condition | probe | `graphs/materialclient/fev-solidwaste-extreme-condition/` | active |
 | fev-standard-weigh-waybill | probe | `graphs/materialclient/fev-standard-weigh-waybill/` | active |
+| fev-recycle-weigh-cycle | probe | `graphs/materialclient/fev-recycle-weigh-cycle/` | active |
 | ops-ssh-agent | probe | `graphs/ops/ssh-agent/` | active |
 | ops-fev-u1-host | probe | `graphs/ops/fev-u1-host/` | active |
 | ops-fev-u2-docker | probe | `graphs/ops/fev-u2-docker/` | active |

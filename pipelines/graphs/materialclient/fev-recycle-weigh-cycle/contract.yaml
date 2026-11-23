@@ -1,0 +1,20 @@
+graphId: fev-recycle-weigh-cycle
+inputs:
+  - running MaterialClient.Recycle.exe with MinimalWebHost on port 9933
+  - fixtures/scenario.json
+  - repos/MaterialClient/.build-verify/MaterialClient.Recycle/MaterialClient.db
+  - repos/MaterialClient/.build-verify/MaterialClient.Recycle/Logs
+invariants:
+  - Cook drives the diagnostic HTTP API only. It does not ProjectReference repos/.
+  - Cook does not modify MaterialClient.db, appsettings, ScaleType, or EnableTriggerLprCapture.
+  - The test plate request has no image field. The photo must come from the LPR trigger.
+  - Cook does not accept or store an activation code.
+  - Cook does not stop MaterialClient.Recycle.exe when the run finishes.
+  - result pass means each case saved a WeighingMode 301 record with the injected plate, an LPR attachment, a normal departure, and RecycleWebReceiveState Pending or Accepted, with no Waybill.
+  - result pass is not a product delivery claim.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml
+  - runs/<runId>/http.json
+  - runs/<runId>/log-excerpt.txt

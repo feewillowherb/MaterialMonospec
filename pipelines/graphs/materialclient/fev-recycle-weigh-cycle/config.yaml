@@ -1,0 +1,60 @@
+id: fev-recycle-weigh-cycle
+created: "2026-11-23"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: fev-recycle-weigh-cycle
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: recycle-diagnostic-host-idle
+  end: recycle-weigh-cycle-observed
+cook: new-object
+
+target:
+  baseUrl: http://localhost:9933
+  databaseRel: repos/MaterialClient/.build-verify/MaterialClient.Recycle/MaterialClient.db
+  logRel: repos/MaterialClient/.build-verify/MaterialClient.Recycle/Logs
+  startScript: scripts/MaterialClient/Start-MaterialClient.Recycle.ps1
+  fixture: fixtures/scenario.json
+  weighingMode: 301
+
+steps:
+  - optional-start-host
+  - probe-diagnostic-api
+  - write-evidence
+
+capture:
+  summary: summary.json
+  report: report.md
+  manifest: manifest.yaml
+  http: http.json
+  logExcerpt: log-excerpt.txt
+
+expect:
+  - id: diagnostic-reachable
+    level: P0
+  - id: plate-and-weight-injected
+    level: P1
+  - id: recycle-record-lpr-and-pending
+    level: P2
+  - id: human-accepts-fev
+    level: P3
+
+humanGates:
+  - user-enters-activation-code-if-prompted
+  - attended-weighing-window-open
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  probe:
+    mode: script-invoke
+    script: scripts/Invoke-FevRecycleWeighCycle.ps1
+    experimental: true
+    nodeTool: scripts/probe-fev-recycle-weigh-cycle.ts

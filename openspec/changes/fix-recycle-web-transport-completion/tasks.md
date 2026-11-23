@@ -2,6 +2,7 @@
 
 - [x] 1.1 UrbanManagement：补齐合同多运输人的页面写入和回读。
 - [x] 1.2 UrbanManagement：实现资料选择、关联一致性校验和快照保存。
+- [x] 1.2a UrbanManagement：合同保存使用 `RecycleContractMaterial` 和材料集合。
 - [ ] 1.3 联调：以桌面上传的运输单验证补全后回读，并覆盖缺少皮重和跨项目拒绝场景。
 
 ## 2. 验收

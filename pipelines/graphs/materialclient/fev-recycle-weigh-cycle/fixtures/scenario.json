@@ -1,0 +1,15 @@
+{
+  "offScaleTons": 0,
+  "weightToleranceTons": 0.2,
+  "weighingMode": 301,
+  "plateRepeats": 6,
+  "holdRepostMs": 3000,
+  "ascentWaitMs": 45000,
+  "lprWaitMs": 20000,
+  "departureWaitMs": 20000,
+  "receiveWaitMs": 20000,
+  "cases": [
+    { "plate": "浙A35586D", "grossTons": 10 },
+    { "plate": "浙A33606D", "grossTons": 20 }
+  ]
+}

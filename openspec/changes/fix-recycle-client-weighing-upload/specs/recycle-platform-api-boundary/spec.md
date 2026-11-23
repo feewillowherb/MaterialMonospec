@@ -18,3 +18,26 @@
 
 - **WHEN** 请求未授权或设备与绑定项目不符
 - **THEN** 服务器拒绝写入，客户端不标记接收成功
+
+### Requirement: 回收周期结束才进入待上传
+
+回收宿主 SHALL 使用 `MaterialClient.Common.Recycle` 的称重副作用实现 `IUrbanWeighingRecordSideEffects`。称重周期结束且记录尚未被平台确认时，SHALL 将该记录标为待上传并请求上传。空副作用 SHALL NOT 成为回收宿主的实现。
+
+#### Scenario: 周期结束
+
+- **WHEN** 一条回收称重正常或异常下磅并完成周期
+- **THEN** 该记录进入待上传并被安排上传
+
+#### Scenario: 已确认不再标记
+
+- **WHEN** 记录已经是平台确认状态
+- **THEN** 周期结束不把状态改回待上传
+
+### Requirement: 设备令牌校验使用工作单元
+
+设备接收的项目查询 SHALL 在工作单元内执行。查询基础设施失败时 SHALL 记录警告。凭证不匹配时 SHALL 拒绝写入。
+
+#### Scenario: 有效设备令牌
+
+- **WHEN** 令牌的项目和机器码与绑定的 5020 项目一致
+- **THEN** 接收继续进入保存，而不是因为缺少工作单元被拒绝
