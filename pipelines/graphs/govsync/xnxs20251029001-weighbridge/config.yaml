@@ -33,10 +33,10 @@ scenario:
   dataSource: WEIGHBRIDGE_XIAOSHAN
   inOutType: "0" # 配置保留字符串；POST 时写成 JSON number，Legacy 只解析 number
   placeType: "1" # 地磅键；Legacy 不读
-  siteType: "1" # 与 placeType 同值；Legacy 绑定 siteType（1=工地）
+  siteType: "0" # 与 placeType 同值；Legacy 绑定 siteType（1=工地）
   goodsWeight: "1060" # kg；不发送 grossWeight，避免覆盖净重
   snapTimeMode: fixed
-  snapTime: "2026-11-23 11:24:41"
+  snapTime: "2026-11-23 15:24:41"
   snapImages:
     source: fixtures/b387833575a474ed206bb3f6ec3677ea-20261123-112441-final.png
     encoding: base64-array

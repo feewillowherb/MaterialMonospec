@@ -42,7 +42,7 @@ target:
     - um-gateway
     - um-recycle
   buildTimeoutMinutes: 45
-  # Host compose.yaml and .env stay on the lab machine. This Graph does not upload a replacement.
+  # Host compose.yaml and .env stay on the lab machine. Deploy only rewrites the Uploads anchor to C:/wwwroot/UrbanManagement/Uploads and mounts it on um-recycle.
 
 prerequisites:
   - .NET 10 SDK, Node.js, tar.exe, and OpenSSH client on this machine
@@ -61,7 +61,7 @@ steps:
   - id: remote-build
     name: Detached Windows build; one docker build per service with a one-service dockerignore; target service
   - id: compose-up
-    name: Set UM_TAG=lab for the process; recreate um-migrator, then the eight compose services including um-recycle
+    name: Bind Uploads to C:/wwwroot/UrbanManagement/Uploads, mount it on um-recycle, then recreate um-migrator and the eight services. Fail when Recycle Uploads is not that disk
   - id: health
     name: GET gateway /health/ready and Recycle /health/live (deploy -Apply and verify)
   - id: report

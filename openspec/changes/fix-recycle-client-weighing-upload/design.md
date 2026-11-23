@@ -18,6 +18,8 @@
 
 回收宿主的称重周期副作用由 `MaterialClient.Common.Recycle` 中的 `RecycleWeighingRecordSideEffects` 实现，并暴露为 `IUrbanWeighingRecordSideEffects`，替换空实现。周期结束时才标记待上传。设备接收中间件在应用服务之外调用项目查询，`ValidateAsync` 必须带工作单元，否则查询异常会被当成 401。
 
+提交称重事实不带图片。过磅相机照片在称重确认之后，单独以 `multipart/form-data` 发到 `/api/transports/{id}/photos`。照片失败不改变已确认的同步状态，下一轮只重试照片。设备令牌同时放行这条照片请求。
+
 ## Risks / Trade-offs
 
 - 以实际业务链路的可观察结果判定验收，并记录环境、单据标识和服务响应摘要。138 历史证据见 [调研总览](../../../docs/2026-11-19-recycle-client-to-web-fev/00-调研总览.md)，部署 Run `deploy-urban-lab-138/2026-11-19T164403` 仅用于追溯当时部署。

@@ -138,7 +138,12 @@ function maxWaybillId(databasePath: string): number {
 function receiveState(extra: string | null): string | null {
   if (!extra) return null;
   try {
-    const parsed = JSON.parse(extra) as { RecycleWebReceiveState?: string };
+    const parsed = JSON.parse(extra) as {
+      RecycleSyncStatus?: string;
+      RecycleWebReceiveState?: string;
+    };
+    if (parsed.RecycleSyncStatus) return parsed.RecycleSyncStatus;
+    if (parsed.RecycleWebReceiveState === "Accepted") return "Synced";
     return parsed.RecycleWebReceiveState ?? null;
   } catch {
     return null;
@@ -410,7 +415,7 @@ async function main() {
         await sleep(1000);
         const records = listRecords(databasePath, dataRoot, baseline);
         current = records.find((record) => record.id === ready?.id) ?? current;
-        if (current.receiveState === "Pending" || current.receiveState === "Accepted") break;
+        if (current.receiveState === "Pending" || current.receiveState === "Synced") break;
       }
       const waybillsAfter = maxWaybillId(databasePath);
       cases.push({
@@ -430,11 +435,11 @@ async function main() {
         fevVerdict = "INFEASIBLE";
         throw new Error(`${item.plate} created a waybill`);
       }
-      if (current.receiveState !== "Pending" && current.receiveState !== "Accepted") {
+      if (current.receiveState !== "Pending" && current.receiveState !== "Synced") {
         result = "fail";
         p2 = "fail";
         fevVerdict = "INFEASIBLE";
-        throw new Error(`${item.plate} record ${current.id} finished the cycle without RecycleWebReceiveState`);
+        throw new Error(`${item.plate} record ${current.id} finished the cycle without RecycleSyncStatus`);
       }
       if (!hasLpr(current)) {
         result = "fail";

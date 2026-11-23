@@ -49,14 +49,14 @@ powershell -ExecutionPolicy Bypass -File scripts/MaterialClient/Start-MaterialCl
 1. 每辆车先多次 `POST /api/lpr/test-plate`，请求体只有车牌，没有图片字段。
 2. `POST /api/scale/weight` 把重量抬到目标吨位并保持，直到称重行和 `AttachType = 5` 的 LPR 文件出现。
 3. 然后明确下磅：`POST /api/scale/weight` 写 0，低于 0.5 吨，并等到日志出现正常下磅。
-4. 证据：`WeighingMode = 301`，车牌等于注入值，LPR 文件存在，`WaybillId` 为空，`RecycleWebReceiveState` 为 `Pending` 或 `Accepted`。
+4. 证据：`WeighingMode = 301`，车牌等于注入值，LPR 文件存在，`WaybillId` 为空，`RecycleSyncStatus` 为 `Pending` 或 `Synced`。旧的 `RecycleWebReceiveState` 值 `Accepted` 仍按 `Synced` 计。
 5. 两辆车按场景顺序各走一轮：`浙A35586D` 10 吨，`浙A33606D` 20 吨。
 
 ## 判别
 
 | cook `result` | 含义 |
 |---------------|------|
-| `pass` | 两轮都有 LPR 照片、正常下磅、且无需审批就进入待上报 → `fevVerdict: FEASIBLE` |
+| `pass` | 两轮都有 LPR 照片、正常下磅、且无需审批就进入 `RecycleSyncStatus` 的 `Pending` 或 `Synced` → `fevVerdict: FEASIBLE` |
 | `fail` | 称重行已出现，但没有 LPR、没有正常下磅，或下磅后仍未待上报 → `fevVerdict: INFEASIBLE` |
 | `blocked` | 诊断口不可达、非测试模式、主动抓拍关闭、称重未启动 → `fevVerdict: INCONCLUSIVE` |
 

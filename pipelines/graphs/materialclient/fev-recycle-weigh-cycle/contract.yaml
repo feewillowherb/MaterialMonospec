@@ -10,7 +10,7 @@ invariants:
   - The test plate request has no image field. The photo must come from the LPR trigger.
   - Cook does not accept or store an activation code.
   - Cook does not stop MaterialClient.Recycle.exe when the run finishes.
-  - result pass means each case saved a WeighingMode 301 record with the injected plate, an LPR attachment, a normal departure, and RecycleWebReceiveState Pending or Accepted, with no Waybill.
+  - result pass means each case saved a WeighingMode 301 record with the injected plate, an LPR attachment, a normal departure, and RecycleSyncStatus Pending or Synced, with no Waybill. Legacy RecycleWebReceiveState Accepted still counts as Synced.
   - result pass is not a product delivery claim.
 outputs:
   - runs/<runId>/summary.json

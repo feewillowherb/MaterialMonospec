@@ -33,6 +33,25 @@
 - **WHEN** 记录已经是平台确认状态
 - **THEN** 周期结束不把状态改回待上传
 
+### Requirement: 过磅照片独立上传
+
+客户端 SHALL 先提交称重事实，确认后再把已保存的过磅相机照片（`AttachType.UnmatchedEntryPhoto`）以 multipart 文件发到 `/api/transports/{id}/photos`。照片上传 SHALL NOT 使用 Base64。照片失败 SHALL NOT 取消已确认的称重同步，并 SHALL 在后续轮询中单独重试。没有这张照片时 SHALL 不再重试。
+
+#### Scenario: 照片上传失败
+
+- **WHEN** 称重接收已成功，随后的照片请求失败
+- **THEN** 本地同步状态保持已同步，下一轮只重试照片
+
+#### Scenario: 没有相机照片
+
+- **WHEN** 记录没有过磅相机照片
+- **THEN** 称重事实仍提交，且不再尝试照片
+
+#### Scenario: 已同步记录补照片
+
+- **WHEN** 记录已同步、本地有过磅相机照片、且照片尚未上传成功
+- **THEN** 只向原运输单上传照片文件，不因照片失败新增单据或改回待上传
+
 ### Requirement: 设备令牌校验使用工作单元
 
 设备接收的项目查询 SHALL 在工作单元内执行。查询基础设施失败时 SHALL 记录警告。凭证不匹配时 SHALL 拒绝写入。
