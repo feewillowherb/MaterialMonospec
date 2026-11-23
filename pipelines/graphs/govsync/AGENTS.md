@@ -12,6 +12,7 @@
 | `xnxs20240725003-weighbridge` | `XNXS20240725003` | `gov-xnxs20240725003-weighbridge-save` |
 | `gdxs20260520002-weighbridge` | `GDXS20260520002` | `gov-gdxs20260520002-weighbridge-save` |
 | `330109202203290201-weighbridge` | `330109202203290201` | `gov-330109202203290201-weighbridge-save` |
+| `xnxs20251029001-weighbridge` | `XNXS20251029001` | `gov-xnxs20251029001-weighbridge-save` |
 
 新站点独立 Graph：**MUST** 用 slug `{buildLicenseNo}-weighbridge`，**MUST NOT** 覆盖姊妹图 goal。
 

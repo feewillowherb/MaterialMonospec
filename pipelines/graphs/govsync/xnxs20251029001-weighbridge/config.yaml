@@ -1,0 +1,87 @@
+id: xnxs20251029001-weighbridge
+created: "2026-11-23"
+graph:
+  product: urban
+  domain: govsync
+  family: probe
+  goal: gov-xnxs20251029001-weighbridge-save
+  status: active
+environment: production # 正式口 5233；run 前须人闸确认
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: endpoint-idle
+  end: probe-recorded
+cook: new-object
+
+target:
+  method: POST
+  url: http://191.12.234.212:5233/Api/Post
+  contentType: application/json; charset=utf-8
+  contractRef: repos/UrbanManagement/src/UrbanManagement.Ingest/Controllers/LegacyApiController.cs
+  designRef: docs/2026-09-03-xiaoshanserve-forward-to-urban-weighing-record/02-字段映射与缺口.md
+  assetsRef: _tmp/1123/
+  notes: "宿主为用户给定的城管正式口。路径 /Api/Post 来自 LegacyApiController 与 Gateway Match。不是政府 lantu/saveRecord。"
+
+scenario:
+  channel: weighbridge
+  # 接入码来自 _tmp/1123/txt.md；其余字段为用户给定地磅报文
+  buildLicenseNo: "XNXS20251029001"
+  carNo: 浙A12345
+  carNoColor: 黄
+  carType: 大车
+  dataSource: WEIGHBRIDGE_XIAOSHAN
+  inOutType: "0" # 配置保留字符串；POST 时写成 JSON number，Legacy 只解析 number
+  placeType: "1" # 地磅键；Legacy 不读
+  siteType: "1" # 与 placeType 同值；Legacy 绑定 siteType（1=工地）
+  goodsWeight: "1060" # kg；不发送 grossWeight，避免覆盖净重
+  snapTimeMode: fixed
+  snapTime: "2026-11-23 11:24:41"
+  snapImages:
+    source: fixtures/b387833575a474ed206bb3f6ec3677ea-20261123-112441-final.png
+    encoding: base64-array
+
+steps:
+  - id: bind-endpoint
+    name: Bind 城管 /Api/Post、夹具与 XNXS20251029001 场景
+  - id: cook-post
+    name: 组装地磅字段（siteType 对齐 placeType）并 POST 到正式口
+  - id: validate-response
+    name: 记录 HTTP 状态与旧版 success/code/msg
+
+expect:
+  - id: http-reachable
+    level: P0
+    description: 对 target.url 的 POST 得到可解析的 HTTP 响应（历史标签 L0）
+  - id: json-body
+    level: P1
+    description: 响应体可解析为含 success 和/或 code/msg 的 JSON（历史标签 L1）
+  - id: business-success
+    level: P2
+    description: 业务 code == 200（且若有 success 字段则为 true）（历史标签 L2）
+
+capture:
+  requestResponse:
+    required: true
+    sink: http/
+    redact: [authorization, cookie, snapImages]
+  summary:
+    required: true
+    sink: summary.json
+
+humanGates:
+  - missing-secrets
+  - environment-shared-confirm
+  - destructive-write-confirm
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: true
+
+adapters:
+  http:
+    mode: script-invoke
+    script: scripts/Invoke-Xnxs20251029001Weighbridge.ps1
+    timeoutSec: 120
+    experimental: true
