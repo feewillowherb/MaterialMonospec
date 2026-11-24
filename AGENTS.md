@@ -330,6 +330,7 @@ powershell -ExecutionPolicy Bypass -File scripts/validate-agents-implementation.
 | type-owned-methods | `traits/type-owned-methods-trait.md` | C# 类型归属变更与投影；Service 禁止字段赋值；OpenSpec 转化/变更 API 草图 |
 | minimal-di | `traits/minimal-di-trait.md` | C# 新建类型/DI 注册；禁止纯逻辑注册为 Transient/Singleton；OpenSpec 中 Service 提案 |
 | no-database-fk | `traits/no-database-fk-trait.md` | 实体 / Fluent / migration / SQL；表间关联与跨 Context 数据组合 |
+| materialclient-sqlite-write-serialization | `traits/materialclient-sqlite-write-serialization-trait.md` | MaterialClient SQLite 业务写入、ABP UoW、跨 DbContext 事务 |
 | viewmodel-no-repository | `traits/viewmodel-no-repository-trait.md` | ViewModel / Blazor / 界面层访问数据；禁止 UI 注入 Repository 或 DbContext |
 | openspec-git-workflow | `traits/openspec-git-workflow.md` | OpenSpec Propose / Apply / Archive；跨仓同名分支、squash 合入、`dev-*` promote；merge-check |
 | agents-md-only | `traits/agents-md-only-trait.md` | 新建/改写目录说明、脚手架、pipeline / openspec / traits / docs 索引；专业目录 MUST 有 AGENTS.md；禁止 README 作约定入口 |

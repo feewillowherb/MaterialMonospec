@@ -27,6 +27,7 @@
 | type-owned-methods | `type-owned-methods-trait.md` | C# 变更与投影；禁止 Service 字段赋值 / mapper |
 | minimal-di | `minimal-di-trait.md` | 新建类型 / DI；纯逻辑不得注册 |
 | no-database-fk | `no-database-fk-trait.md` | 实体 / Fluent / SQL；禁止引擎外键 |
+| materialclient-sqlite-write-serialization | `materialclient-sqlite-write-serialization-trait.md` | MaterialClient 同库写入串行化与 UoW 边界 |
 | viewmodel-no-repository | `viewmodel-no-repository-trait.md` | 界面层禁止 Repository / DbContext |
 
 ## 其它（按需，非默认 Required 表项）
