@@ -9,7 +9,7 @@ set -uo pipefail
 
 MODE="$1"; RUN_ID="$2"; HOST="$3"; UPLOADS_SHARE="$4"; WWWROOT_SHARE="$5"; CRED="$6"
 RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"; MSSQL_MEM_MB="${11:-1280}"
-MEM_MIN_MB="${12:-500}"; RECYCLE_PUBLIC_PORT="${13:-5334}"
+MEM_MIN_MB="${12:-500}"; RECYCLE_PUBLIC_PORT="${13:-5234}"
 APP_ROLES="um-ingest um-ingest-2 um-attachment um-realtime um-admin um-worker"
 SERVICES="Gateway Ingest Attachment Realtime Admin Recycle Worker Migrator"
 EXPECTED_SERVICE_IMAGES=8

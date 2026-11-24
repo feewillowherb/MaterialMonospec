@@ -3,7 +3,7 @@
 .SYNOPSIS
   Ingest cook: deploy UrbanManagement (one image per service project: gateway, ingest x2, attachment, realtime, admin,
   recycle, worker, migrator + mssql + redis) to the Docker VM. Default deployProfile=production (host probe 5233 + worker GovSync OK);
-  acceptance profile keeps GovSync-off. VM still publishes publicPort (5333); Recycle publishes recyclePublicPort (5334). Host probe stays 5233.
+  acceptance profile keeps GovSync-off. Gateway publicPort/externalProbePort=5233; Recycle recyclePublicPort=5234.
 .DESCRIPTION
   Modes:
     deploy  mutating (requires -Apply): local dotnet publish (each service, import tool) -> bundle -> scp ->
@@ -94,7 +94,7 @@ $wwwrootShare = C "wwwrootShare" "wwwroot"
 $iisSiteDir = C "iisSiteDir" "UrbanManagement"
 $credPath = C "credentialsPath" "/etc/um-uploads.cred"
 $legacyRoot = C "legacyStorageRoot" "C:/wwwroot/UrbanManagement/Uploads"
-$publicPort = C "publicPort" "5333"
+$publicPort = C "publicPort" "5233"
 $externalProbePort = C "externalProbePort" "5233"
 if ([string]::IsNullOrWhiteSpace($externalProbePort)) { $externalProbePort = $publicPort }
 $deployProfile = (C "deployProfile" "production").ToLowerInvariant()
@@ -103,7 +103,7 @@ if ($deployProfile -notin @("production", "acceptance")) {
 }
 $mssqlMemMb = C "mssqlMemoryLimitMb" "1280"
 $memMinMb = C "memMinAvailableMb" "500"
-$recyclePublicPort = C "recyclePublicPort" "5334"
+$recyclePublicPort = C "recyclePublicPort" "5234"
 $expectedServiceImages = C "expectedServiceImages" "8"
 $urbanRepo = Join-Path $RepoRoot ((C "urbanRepoRel" "repos/UrbanManagement") -replace '/', '\')
 $sourceDb = Join-Path $RepoRoot ((C "importSourceRel" "_tmp/UrbanManagement_test.upgraded.db") -replace '/', '\')
@@ -278,7 +278,7 @@ try {
         }
     }
 
-    # Host cutover listens on externalProbePort (5233); VM compose still uses publicPort (5333).
+    # Host and VM gateway both use 5233 after port unify; Recycle uses 5234 on the VM.
     $externalUrl = "http://${stableHost}:$externalProbePort/health/ready"
     $external = Test-ExternalReady $externalProbePort
     $marks["EXTERNAL_READY_HTTP"] = $external

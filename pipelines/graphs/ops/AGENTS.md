@@ -12,7 +12,7 @@
 | `fev-u1-host` | probe | `ops-fev-u1-host` |
 | `fev-u2-docker` | probe | `ops-fev-u2-docker`（安装类模式需 `-Apply`；远端需免密 sudo） |
 | `fev-u10-uploads-smb` | probe | `ops-fev-u10-uploads-smb`（`reach` / `mount-test` 只读；`setup` 需 `-Apply`；写入测试需 `-ProductionWrite`） |
-| `deploy-urban-acceptance` | ingest | `ops-deploy-urban-acceptance`（**正式发版 191**；含 Recycle；`expect/after-deploy.*`；宿主 **5233** / VM Recycle **5334**；`deploy` 需 `-Apply` + `adminSsoBaseUrl`） |
+| `deploy-urban-acceptance` | ingest | `ops-deploy-urban-acceptance`（**正式发版 191**；含 Recycle；`expect/after-deploy.*`；gateway **5233** / Recycle **5234**；`deploy` 需 `-Apply` + `adminSsoBaseUrl`） |
 | `deploy-urban-lab-138` | ingest | `ops-deploy-urban-lab-138`（实验口 138；`publish` 只在本机打包；`deploy` 需 `-Apply`；不替换宿主机 compose / `.env`；`verify` 只读 5333 与 5334） |
 | `deploy-recycle-web-lab-138` | ingest | `ops-deploy-recycle-web-lab-138`（实验口 138，**只发 Recycle Web**；其余七个服务不动；`deploy` 需 `-Apply`；带新 EF migration 时加 `-WithMigrator`；`verify` 只读 5334） |
 | `cutover-safety-drill` | probe | `ops-cutover-safety-drill`（回滚导出 MSSQL → SQLite；生产库只读） |

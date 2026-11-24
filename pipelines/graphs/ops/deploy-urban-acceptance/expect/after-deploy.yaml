@@ -5,8 +5,8 @@ target:
   stableHost: "191.12.234.212"
   deployProfileDefault: production
   externalProbePort: 5233
-  vmPublicPort: 5333
-  recyclePublicPort: 5334
+  vmPublicPort: 5233
+  recyclePublicPort: 5234
 
 health:
   externalReadyHttp: "200"
@@ -80,7 +80,7 @@ gates:
   hostPortproxy: host-portproxy-required
 
 outOfScope:
-  - host portproxy for recycle 5334
+  - host portproxy for recycle 5234
   - browser login UX (P3)
   - client weigh upload ICD
   - product APPROVED

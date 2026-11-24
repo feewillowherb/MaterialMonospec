@@ -17,7 +17,7 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 | Profile | 用途 | GovSync | 外部健康 |
 |---------|------|---------|----------|
 | `production`（**默认**） | 正式发版 | 允许 **仅** `um-worker` 注册；其它角色必须为 0 | 宿主 `externalProbePort`（**5233**）→ 200 |
-| `acceptance` | 历史干跑（Sync 关闭） | **任何**角色不得注册 GovSync | 同上（宿主只认 5233；不再使用 5333） |
+| `acceptance` | 历史干跑（Sync 关闭） | **任何**角色不得注册 GovSync | 同上（宿主 / VM gateway **5233**） |
 
 切流后日常发版保持 `deployProfile: production`。需要复现「关同步验收口径」时再临时改为 `acceptance`。
 
@@ -26,7 +26,7 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 - 不改宿主机：`5233` portproxy、防火墙由人执行（人闸 `host-portproxy-required`）
 - 不在本 Graph 内切换正式口（见 `ops/urban-cutover`）
 - 不自动扩容 VM（`vm-memory-below-threshold`）
-- **宿主不再使用 5333**（历史验收旁路已退役）
+- 历史 **5333 / 5334** 已退役；正式默认 **5233 / 5234**
 
 ## 模式
 
@@ -43,8 +43,8 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 | 对象 | 预期 |
 |------|------|
 | 宿主 `5233` | `/health/ready` → 200 |
-| VM gateway `5333` | ready/live/gateway health → 200 |
-| VM Recycle `5334` | `/health/live` → 200；DLL 含 `UrbanManagement.Recycle` |
+| VM gateway `5233` | ready/live/gateway health → 200 |
+| VM Recycle `5234` | `/health/live` → 200；DLL 含 `UrbanManagement.Recycle` |
 | 镜像 | `SERVICE_IMAGES` = **8** |
 | production GovSync | 仅允许 worker；非 worker = 0；worker snapshot ≥ 1 |
 | Uploads | 容器内 cifs/smb；tus 可写；无容器内 secret json |
@@ -55,8 +55,8 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 
 ## 宿主机侧（人执行）
 
-- 正式口：宿主 `5233` → VM `publicPort`（compose 仍为 5333，仅 VM 内监听；宿主侧不再开 5333）
-- 维护见 `ops/urban-cutover` / 人工 portproxy
+- 正式口：宿主 `5233` → VM `5233`（同号）；Recycle VM `5234`
+- 维护见 `ops/urban-cutover` / 人工 portproxy（含 Recycle 5234 是否对外）
 
 ## Invoke
 

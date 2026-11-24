@@ -35,8 +35,8 @@ invariants:
   - import writes only into an empty database; a non-empty database is skipped unless -ResetDatabase
   - deployProfile=acceptance requires GovSync unregistered on every role (dry / parallel-IIS)
   - deployProfile=production (default after cutover) allows GovSync only on um-worker; non-worker roles must stay at 0
-  - host-side health uses externalProbePort (5233) only; publicPort (5333) remains VM compose listen and is not host-facing
-  - Phase 2: um-gateway publishes publicPort (5333); um-recycle publishes recyclePublicPort (5334) on the VM; sync switches only on um-worker
+  - host and VM gateway use 5233; Recycle uses 5234 on the VM (historical 5333/5334 are retired defaults)
+  - Phase 2: um-gateway publishes publicPort (5233); um-recycle publishes recyclePublicPort (5234); sync switches only on um-worker
   - deploy publishes and builds Recycle (npm client + UrbanManagement.Recycle) with the other seven service projects
   - deploy requires secrets adminSsoBaseUrl (Admin product code default 5040; Recycle fixed 5041 in compose)
   - stack health requires Recycle /health/live on the VM recyclePublicPort and eight unique urbanmanagement-* images

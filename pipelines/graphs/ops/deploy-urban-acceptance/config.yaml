@@ -35,12 +35,12 @@ target:
   # production — allow GovSync only on um-worker.
   # acceptance — historical dry profile: GovSync must be off everywhere.
   deployProfile: production
-  # VM compose publish + in-VM health (UM_PUBLIC_PORT). Host no longer exposes 5333.
-  publicPort: 5333
-  # Host-side /health/ready after cutover (host 5233 → VM publicPort).
+  # VM compose + host formal port (same number after unify). Host portproxy: 5233 → VM 5233.
+  publicPort: 5233
+  # Host-side /health/ready (191.12.234.212:5233).
   externalProbePort: 5233
-  # Recycle / XiaoShanResource web on the VM (not behind gateway). Host may not portproxy this yet.
-  recyclePublicPort: 5334
+  # Recycle / XiaoShanResource web (not behind gateway).
+  recyclePublicPort: 5234
   # Unique urbanmanagement-* images after Recycle join (Gateway Ingest Attachment Realtime Admin Recycle Worker Migrator).
   expectedServiceImages: 8
   # D14: Phase 2 without VM expansion; MSSQL cap lowered, VM available memory below the minimum => gate.

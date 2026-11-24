@@ -10,10 +10,12 @@
 | 项 | 预期 |
 |----|------|
 | 宿主正式口 | `http://191.12.234.212:5233/health/ready` → **200**（`EXTERNAL_READY_HTTP`） |
-| VM gateway | `publicPort` **5333**（仅 VM 内；宿主不再用 5333）`READY_HTTP`/`LIVE_HTTP`/`GW_HEALTH_HTTP` → **200** |
-| VM Recycle | `recyclePublicPort` **5334**；`RECYCLE_LIVE_HTTP` → **200** |
+| VM gateway | `publicPort` **5233**（与宿主同号；portproxy 5233→VM 5233）`READY_HTTP`/`LIVE_HTTP`/`GW_HEALTH_HTTP` → **200** |
+| VM Recycle | `recyclePublicPort` **5234**；`RECYCLE_LIVE_HTTP` → **200** |
 | Recycle ready | `RECYCLE_READY_HTTP` 记录在案（P2 以 live 为准；ready 非 200 须在 report 说明） |
 | SSO（`.env`） | `UM_ADMIN_SSO_BASE_URL` 非空；Admin 产品码默认 **5040**；Recycle 固定 **5041** |
+
+历史旁路 **5333 / 5334** 已不再作为正式口或本 Graph 默认值。
 
 ## 2. 镜像与服务
 
@@ -71,15 +73,15 @@
 | `deployProfile` | `production`（日常） |
 | `externalReady` | `200` |
 | `externalProbePort` | `5233` |
-| `vmPublicPort` | `5333` |
-| `recyclePublicPort` | `5334` |
+| `vmPublicPort` | `5233` |
+| `recyclePublicPort` | `5234` |
 | `recycleLive` | `200` |
 | `levels.P0` / `P1` / `P2` | true / true / true |
 | `levels.P3` | `user-only`（仅用户） |
 
 ## 8. 非目标（本 expect 不断言）
 
-- 宿主是否已对 5334 做 portproxy
+- 宿主是否已对 **5234** 做 portproxy（Recycle 对外）
 - Admin / Recycle 浏览器登录观感（属 P3）
 - 客户端称重上传 / 业务 ICD
 - Pipeline pass ≠ 产品 `APPROVED`
