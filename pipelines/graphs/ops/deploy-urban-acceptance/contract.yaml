@@ -23,6 +23,9 @@ output:
     - prepare/
     - summary.json
     - report.md
+  expect:
+    - expect/after-deploy.md
+    - expect/after-deploy.yaml
 invariants:
   - uses pipelines/_shared/ops/ssh helpers only for SSH / scp
   - deploy runs only with -Apply (human gate deploy-approval); -ResetDatabase additionally needs reset-database-approval
@@ -33,7 +36,11 @@ invariants:
   - deployProfile=acceptance requires GovSync unregistered on every role (dry / parallel-IIS)
   - deployProfile=production (default after cutover) allows GovSync only on um-worker; non-worker roles must stay at 0
   - host-side health uses externalProbePort (5233) only; publicPort (5333) remains VM compose listen and is not host-facing
-  - Phase 2 only: um-gateway is the only service publishing a port; sync switches can only be enabled on um-worker
+  - Phase 2: um-gateway publishes publicPort (5333); um-recycle publishes recyclePublicPort (5334) on the VM; sync switches only on um-worker
+  - deploy publishes and builds Recycle (npm client + UrbanManagement.Recycle) with the other seven service projects
+  - deploy requires secrets adminSsoBaseUrl (Admin product code default 5040; Recycle fixed 5041 in compose)
+  - stack health requires Recycle /health/live on the VM recyclePublicPort and eight unique urbanmanagement-* images
+  - post-deploy assertions are documented in expect/after-deploy.md and expect/after-deploy.yaml; cook P2 must match them
   - VM available memory below memMinAvailableMb yields gate vm-memory-below-threshold (D14), never an automatic VM change
   - the host side (portproxy, firewall, IIS) is never changed by this Graph
   - CONFIG_SOURCE=local after cutover (IIS wwwroot share unreadable) is expected and not a fail by itself

@@ -271,6 +271,11 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | ops-cutover-safety-drill | probe | `graphs/ops/cutover-safety-drill/` | active |
 | ops-e2e-urban-phase2 | probe | `graphs/ops/e2e-urban-phase2/` | active |
 | fd-base-proid-5041-authority | ingest | `graphs/baseplatform/fd-base-proid-5041-authority/` | active |
+| fd-base-product-5040-5041 | transform | `graphs/baseplatform/fd-base-product-5040-5041/` | active |
+| fd-base-poweritem-5040-5041 | transform | `graphs/baseplatform/fd-base-poweritem-5040-5041/` | active |
+| sso-findong-5040-5041-login | probe | `graphs/baseplatform/sso-findong-5040-5041-login/` | active |
+| sso-redis-product-cache-probe | probe | `graphs/baseplatform/sso-redis-product-cache-probe/` | active |
+| sso-redis-product-cache-refresh | transform | `graphs/baseplatform/sso-redis-product-cache-refresh/` | active |
 
 Retired：`graphs/_retired/2026-09/urban-debug-license-bypass/`（原 `urban-debug-license-bypass`；继任 `urban-license-probe`）。
 

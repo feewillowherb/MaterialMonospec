@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # UrbanManagement on the Docker VM: release -> SMB automount -> config -> .env -> one image per service ->
-# mssql/redis -> database/login -> import -> migrator + ingest x2/attachment/realtime/admin/worker + gateway -> checks.
+# mssql/redis -> database/login -> import -> migrator + ingest x2/attachment/realtime/admin/recycle/worker + gateway -> checks.
 # "verify" runs the checks only.
 # Never echo secrets: passwords live only in $BASE/.env (600 root) and container environments.
 # stdin line 1 (optional): base64 of the local appsettings.secret.json, used only when the IIS config is unreadable.
+# stdin line 2 (optional): base64 of KEY=value lines for host .env overrides (SSO / recycle port); never echoed.
 set -uo pipefail
 
 MODE="$1"; RUN_ID="$2"; HOST="$3"; UPLOADS_SHARE="$4"; WWWROOT_SHARE="$5"; CRED="$6"
 RESET="$7"; LEGACY_ROOT="$8"; PUBLIC_PORT="$9"; IIS_SITE_DIR="${10}"; MSSQL_MEM_MB="${11:-1280}"
-MEM_MIN_MB="${12:-500}"
+MEM_MIN_MB="${12:-500}"; RECYCLE_PUBLIC_PORT="${13:-5334}"
 APP_ROLES="um-ingest um-ingest-2 um-attachment um-realtime um-admin um-worker"
-SERVICES="Gateway Ingest Attachment Realtime Admin Worker Migrator"
+SERVICES="Gateway Ingest Attachment Realtime Admin Recycle Worker Migrator"
+EXPECTED_SERVICE_IMAGES=8
 
 STAGE="/tmp/um-deploy/$RUN_ID"
 BASE=/opt/urbanmanagement
@@ -25,11 +27,14 @@ dc() { sudo docker compose --project-directory "$BASE" -f "$BASE/compose.yaml" "
 sqlsa() { dc exec -T mssql bash -c "SQLCMDPASSWORD=\"\$MSSQL_SA_PASSWORD\" $SQLCMD -C -S localhost -U sa -b -h -1 -W -i /dev/stdin"; }
 
 LOCAL_SECRET_B64=""
+HOST_ENV_B64=""
 IFS= read -r LOCAL_SECRET_B64 || true
 LOCAL_SECRET_B64="${LOCAL_SECRET_B64#$'\xef\xbb\xbf'}"
+IFS= read -r HOST_ENV_B64 || true
 
 if sudo -n true 2>/dev/null; then mark SUDO_NOPASSWD yes; else mark SUDO_NOPASSWD no; fail sudo; fi
 mark MODE "$MODE"
+mark RECYCLE_PUBLIC_PORT "$RECYCLE_PUBLIC_PORT"
 
 deploy_release() {
   sudo test -f "$STAGE/bundle.tgz" || fail bundle-missing
@@ -409,9 +414,21 @@ checks() {
   done
   mark REALTIME_WAIT_S "$((SECONDS - started))"
   mark SERVICE_IMAGES "$(dc ps -a --format '{{.Image}}' 2>/dev/null | grep '^urbanmanagement-' | sort -u | wc -l)"
+  mark EXPECTED_SERVICE_IMAGES "$EXPECTED_SERVICE_IMAGES"
   mark GW_HEALTH_HTTP "$(http_code "$gw/health/gateway")"
   mark LIVE_HTTP "$(http_code "$gw/health/live")"
   mark ROOT_HTTP "$(http_code "$gw/")"
+  local recycle="http://127.0.0.1:$RECYCLE_PUBLIC_PORT" recycle_live="" recycle_ready=""
+  for _ in $(seq 1 40); do
+    recycle_live="$(http_code "$recycle/health/live")"
+    [ "$recycle_live" = 200 ] && break
+    sleep 3
+  done
+  recycle_ready="$(http_code "$recycle/health/ready")"
+  mark RECYCLE_LIVE_HTTP "${recycle_live:-none}"
+  mark RECYCLE_READY_HTTP "${recycle_ready:-none}"
+  mark ROLE_RECYCLE_STATE "$(dc ps -a --format '{{.Service}} {{.State}}' 2>/dev/null | awk '$1=="um-recycle"{print $2; exit}')"
+  mark ROLE_RECYCLE_SERVICE_DLLS "$(svc_exec um-recycle 'cd /app && ls UrbanManagement.*.dll 2>/dev/null | sed "s/\.dll$//" | grep -v -x -e UrbanManagement.Core -e UrbanManagement.Hosting | tr "\n" "," | sed "s/,$//"')"
   local vm_ip
   vm_ip="$(hostname -I | awk '{print $1}')"
   mark VM_IP "$vm_ip"
@@ -501,6 +518,23 @@ case "$MODE" in
     deploy_env
     env_set UM_MSSQL_MEMORY_LIMIT_MB "$MSSQL_MEM_MB"
     env_set UM_UPLOADS_HOST_PATH "$UPLOADS_MNT"
+    env_set UM_RECYCLE_PUBLIC_PORT "$RECYCLE_PUBLIC_PORT"
+    if [ -n "$HOST_ENV_B64" ]; then
+      while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+          ''|\#*) continue ;;
+          *=*)
+            key="${line%%=*}"
+            val="${line#*=}"
+            case "$key" in
+              UM_ADMIN_SSO_BASE_URL|UM_ADMIN_SSO_WEB_PRODUCT_CODE|UM_RECYCLE_PUBLIC_PORT)
+                env_set "$key" "$val"
+                ;;
+            esac
+            ;;
+        esac
+      done < <(printf '%s' "$HOST_ENV_B64" | base64 -d 2>/dev/null || true)
+    fi
     load_env
     deploy_image
     deploy_infra
@@ -513,6 +547,10 @@ case "$MODE" in
   verify)
     sudo test -f "$BASE/.env" || fail not-deployed
     load_env
+    if [ -n "${UM_RECYCLE_PUBLIC_PORT:-}" ]; then
+      RECYCLE_PUBLIC_PORT="$UM_RECYCLE_PUBLIC_PORT"
+    fi
+    mark RECYCLE_PUBLIC_PORT "$RECYCLE_PUBLIC_PORT"
     checks
     ;;
   *) fail bad-mode ;;

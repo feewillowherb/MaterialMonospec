@@ -1,0 +1,25 @@
+id: sso-redis-product-cache-refresh
+graph:
+  domain: baseplatform
+  family: transform
+  goal: sso-redis-product-cache-refresh
+  status: active
+input:
+  state: sso-redis-cache-stale
+  redisAppsettingsRel: .local/SSO/appsettings.json
+  hashKey: AllTable
+  hashField: JCProduct
+output:
+  state: sso-redis-cache-invalidated
+  artifacts:
+    - prepare/probes.json
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - default run is dry-run (inspect only)
+  - HDEL happens only with -Apply
+  - cook does not HSET rebuild (SSO rebuilds on next GetToken)
+  - Redis passwords are not written to evidence
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

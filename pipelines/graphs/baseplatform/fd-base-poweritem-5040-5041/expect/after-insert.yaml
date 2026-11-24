@@ -1,0 +1,76 @@
+# Machine-readable expect for post-insert verification on 129 FD_Base.
+# ItemId values are identity-assigned; match by ProductId + ItemCode.
+
+target:
+  server: "129"
+  database: FD_Base
+
+jc_power_item:
+  powerCodeLength: 2048
+  byProduct:
+    - productId: 5040
+      activeCount: 2
+      rootCount: 1
+      itemType1Count: 2
+      rows:
+        - itemName: "萧山城管管理平台"
+          itemCode: xiaoshanUrbanRoot
+          parentId: 0
+          itemType: 1
+          itemUrlLike: ""
+          itemValue: ""
+          orderId: 1
+          powerCodePrefix: "1"
+          itemPathPattern: "0,{rootId}"
+        - itemName: "项目管理"
+          itemCode: xiaoshanUrbanProjects
+          parentIdRef: xiaoshanUrbanRoot
+          itemType: 1
+          itemUrlLike: "/projects"
+          itemValue: "projects"
+          orderId: 2
+          powerCodePrefix: "01"
+          itemPathPattern: "0,{rootId},{childId}"
+    - productId: 5041
+      activeCount: 2
+      rootCount: 1
+      itemType1Count: 2
+      rows:
+        - itemName: "萧山资源化利用网页端"
+          itemCode: xiaoshanResourceRoot
+          parentId: 0
+          itemType: 1
+          itemUrlLike: ""
+          itemValue: ""
+          orderId: 1
+          powerCodePrefix: "1"
+          itemPathPattern: "0,{rootId}"
+        - itemName: "车辆管理"
+          itemCode: xiaoshanResourceVehicles
+          parentIdRef: xiaoshanResourceRoot
+          itemType: 1
+          itemUrlLike: "/vehicles"
+          itemValue: "vehicles"
+          orderId: 2
+          powerCodePrefix: "01"
+          itemPathPattern: "0,{rootId},{childId}"
+
+jc_role:
+  powerCodeLength: 2048
+  powerCodePrefix: "11"
+  byProduct:
+    - productId: 5040
+      minActiveRoles: 1
+      knownRoleIdOn129: 106
+      roleNameHint: "萧山城管管理平台角色1"
+    - productId: 5041
+      minActiveRoles: 1
+      knownRoleIdOn129: 107
+      roleNameHint: "萧山资源化利用网页端-角色"
+
+outOfScope:
+  - JC_Product insert
+  - JC_ProductAuthority
+  - JC_UserRole
+  - Redis AllTable/JCProduct
+  - GetToken code=200

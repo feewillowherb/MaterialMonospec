@@ -1,0 +1,75 @@
+id: sso-findong-5040-5041-login
+created: "2026-11-24"
+graph:
+  product: baseplatform
+  domain: baseplatform
+  family: probe
+  goal: sso-findong-5040-5041-login
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sso-login-idle
+  end: sso-login-probed
+cook: in-place
+
+target:
+  baseUrl: "http://sso.findong.com"
+  path: "/GetToken"
+  method: POST
+
+scenario:
+  switchType: 0
+  productType: 2
+  isPlaintext: true
+  wrongPassword: "__probe_wrong_password__"
+  products:
+    - productCode: 5040
+      productName: "萧山城管管理平台"
+    - productCode: 5041
+      productName: "萧山资源化利用网页端"
+
+steps:
+  - id: bind-target
+    name: Load secrets and build the production GetToken URL
+  - id: probe-products
+    name: POST wrong then matching password for 5040 and 5041
+  - id: validate
+    name: Record per-product code hasToken and product identity without secrets
+
+expect:
+  - id: sso-reachable
+    level: L0
+    description: GetToken returns parseable JSON for at least one attempt
+  - id: wrong-password-rejected
+    level: L1
+    description: Wrong password yields no token for each product
+  - id: both-products-login
+    level: L2
+    description: Matching password yields code 200 hasToken and matching productCode for 5040 and 5041
+  - id: business-ok
+    level: L3
+    description: User accepts the production login probe. Agent does not mark P3
+
+capture:
+  probes:
+    required: true
+    sink: prepare/probes.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  manifest:
+    required: true
+    sink: manifest.yaml
+
+humanGates:
+  - missing-secrets
+  - shared-environment
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

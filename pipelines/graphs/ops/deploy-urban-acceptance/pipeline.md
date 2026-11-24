@@ -2,13 +2,15 @@
 
 ## 目的 / Goal
 
-把 UrbanManagement 微服务工程拆分后的栈（每个服务一个工程、一个镜像；网关 `um-gateway` + 角色 `um-ingest` ×2（`um-ingest`、`um-ingest-2`）/ `um-attachment` / `um-realtime` / `um-admin` / `um-worker` + 一次性 `um-migrator` + `mssql` + `redis`）部署到 Docker 虚拟机。
+把 UrbanManagement 微服务工程拆分后的栈（每个服务一个工程、一个镜像；网关 `um-gateway` + 角色 `um-ingest` ×2（`um-ingest`、`um-ingest-2`）/ `um-attachment` / `um-realtime` / `um-admin` / **`um-recycle`** / `um-worker` + 一次性 `um-migrator` + `mssql` + `redis`）部署到 Docker 虚拟机（正式口 **191**）。
 
 **2026-11-04 切流后：** 本 Graph 是**日常正式发版**入口（正式口 `5233` 已指向 Docker 栈）。slug / goal 仍带 `acceptance` 为历史命名，不另起 Graph。
 
 蓝图：[`docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md`](../../../../docs/2026-11-02-urbanmanagement-docker-mssql-upgrade/05-部署与切换回滚.md)。上游：`ops/fev-u2-docker`、`ops/fev-u10-uploads-smb`、`ops/urban-cutover`。
 
 Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipelines/graphs/ops/deploy-urban-acceptance/`
+
+发版后预期：[`expect/after-deploy.md`](./expect/after-deploy.md)（叙述）与 [`expect/after-deploy.yaml`](./expect/after-deploy.yaml)（机器可读）。Cook 的 P2 与这些断言对齐。
 
 ## Profile（`config.yaml` → `target.deployProfile`）
 
@@ -30,11 +32,24 @@ Goal 槽：`ops-deploy-urban-acceptance` · Status: **active** · 路径：`pipe
 
 | 模式 | 动作 | 副作用 |
 |------|------|--------|
-| `deploy`（须 `-Apply`） | 本机逐个 `dotnet publish` 七个服务工程 + DataImport → 打包 → scp → 虚拟机：解包、把 Uploads 挂到 Windows 磁盘 `C:\wwwroot\UrbanManagement\Uploads`（cifs `/srv/um-uploads`，并写进 `.env`）、合并 `appsettings.Production.json`（IIS 共享可读则用之，否则本机 secret 兜底）、按服务 `docker build`、起栈、空库导入、检查容器内 Uploads 是否为该共享 | 改虚拟机（幂等）；库非空则跳过导入 |
+| `deploy`（须 `-Apply`） | 本机 `npm run build`（Recycle client）+ `dotnet publish` **八**个服务工程（含 Recycle）+ DataImport → 打包（含 `otel-collector.yaml`）→ scp → 虚拟机：解包、Uploads cifs、`.env` 写入 Admin/Recycle SSO、按服务 `docker build`（8 镜像）、起栈、空库导入、检查 gateway **与** Recycle `:recyclePublicPort` 健康 | 改虚拟机（幂等）；库非空则跳过导入 |
 | `deploy -ResetDatabase` | 同上，但先删库再导入 | 丢数据（人闸 `reset-database-approval`） |
 | `verify` | 只读检查 + 本机探测 `externalProbePort`（5233） | 无 |
 
-**重复执行：** `.env` 已存在则保留（含正式环境已开启的 Sync/Polling）；库非空跳过导入；每次 run 为七镜像打同一标签 `<run>` 并更新 `latest`。
+**重复执行：** `.env` 已存在则保留（含正式环境已开启的 Sync/Polling）；库非空跳过导入；每次 run 为**八**镜像打同一标签 `<run>` 并更新 `latest`。
+
+## 发版后预期（摘要）
+
+| 对象 | 预期 |
+|------|------|
+| 宿主 `5233` | `/health/ready` → 200 |
+| VM gateway `5333` | ready/live/gateway health → 200 |
+| VM Recycle `5334` | `/health/live` → 200；DLL 含 `UrbanManagement.Recycle` |
+| 镜像 | `SERVICE_IMAGES` = **8** |
+| production GovSync | 仅允许 worker；非 worker = 0；worker snapshot ≥ 1 |
+| Uploads | 容器内 cifs/smb；tus 可写；无容器内 secret json |
+
+完整表与 summary 字段见 `expect/after-deploy.md`。
 
 **配置源：** 切流后 IIS `wwwroot` 共享常不可读 → `CONFIG_SOURCE=local` 为预期，不单独判 fail。
 
@@ -57,7 +72,7 @@ powershell -ExecutionPolicy Bypass -File $s -Mode verify -SkipConfirm
 
 | 证据 | result |
 |------|--------|
-| 远端完成；网关/角色路由与拆分检查通过；worker 注册快照；GovSync 符合当前 profile；七镜像与程序集边界正确；SMB Uploads；外部口按 profile 就绪 | `pass` |
+| 远端完成；网关/角色路由与拆分检查通过；Recycle live；worker 注册快照；GovSync 符合当前 profile；八镜像与程序集边界正确；SMB Uploads；外部口按 profile 就绪 | `pass` |
 | 栈健康但 VM 可用内存不足 | `blocked`（`vm-memory-below-threshold`） |
 | 栈健康但宿主 `5233` 不通 | `blocked`（`host-portproxy-required`） |
 | SSH 失败 | `blocked` |

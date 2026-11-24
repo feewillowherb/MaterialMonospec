@@ -2,8 +2,8 @@
 <#
 .SYNOPSIS
   Ingest cook: deploy UrbanManagement (one image per service project: gateway, ingest x2, attachment, realtime, admin,
-  worker, migrator + mssql + redis) to the Docker VM. Default deployProfile=production (host probe 5233 + worker GovSync OK);
-  acceptance profile keeps GovSync-off. VM still publishes publicPort (5333); host no longer uses 5333.
+  recycle, worker, migrator + mssql + redis) to the Docker VM. Default deployProfile=production (host probe 5233 + worker GovSync OK);
+  acceptance profile keeps GovSync-off. VM still publishes publicPort (5333); Recycle publishes recyclePublicPort (5334). Host probe stays 5233.
 .DESCRIPTION
   Modes:
     deploy  mutating (requires -Apply): local dotnet publish (each service, import tool) -> bundle -> scp ->
@@ -103,6 +103,8 @@ if ($deployProfile -notin @("production", "acceptance")) {
 }
 $mssqlMemMb = C "mssqlMemoryLimitMb" "1280"
 $memMinMb = C "memMinAvailableMb" "500"
+$recyclePublicPort = C "recyclePublicPort" "5334"
+$expectedServiceImages = C "expectedServiceImages" "8"
 $urbanRepo = Join-Path $RepoRoot ((C "urbanRepoRel" "repos/UrbanManagement") -replace '/', '\')
 $sourceDb = Join-Path $RepoRoot ((C "importSourceRel" "_tmp/UrbanManagement_test.upgraded.db") -replace '/', '\')
 $stageRoot = Join-Path $RepoRoot ((C "stageRootRel" "_tmp/deploy-urban") -replace '/', '\')
@@ -113,10 +115,17 @@ $userVal = Get-YamlScalar $secretsText "user" 0
 $portVal = 0
 [void][int]::TryParse((Get-OrDefault (Get-YamlScalar $secretsText "port" 0) (C "defaultPort" "2222")), [ref]$portVal)
 $passVal = Get-YamlScalar $secretsText "identityPassphrase" 0
+$adminSsoBaseUrl = Get-YamlScalar $secretsText "adminSsoBaseUrl" 0
+$adminSsoWebProductCode = Get-OrDefault (Get-YamlScalar $secretsText "adminSsoWebProductCode" 0) "5040"
+$secretsRecyclePort = Get-YamlScalar $secretsText "recyclePublicPort" 0
+if (-not [string]::IsNullOrWhiteSpace($secretsRecyclePort)) { $recyclePublicPort = $secretsRecyclePort }
 if ([string]::IsNullOrWhiteSpace($hostVal) -or [string]::IsNullOrWhiteSpace($userVal)) {
     throw "Missing SSH target. Set secrets.local.yaml host/user."
 }
 if ($Mode -eq "deploy" -and -not (Test-Path -LiteralPath $sourceDb)) { throw "Import source not found: $sourceDb" }
+if ($Mode -eq "deploy" -and [string]::IsNullOrWhiteSpace($adminSsoBaseUrl)) {
+    throw "Missing secrets.local.yaml adminSsoBaseUrl (required for um-admin / um-recycle SSO)."
+}
 
 if (-not $SkipConfirm) {
     Write-Host "[deploy-urban-acceptance] target=${userVal}@${hostVal}:$portVal mode=$Mode apply=$Apply reset=$ResetDatabase"
@@ -149,7 +158,7 @@ try {
     $sshCommon = @{ HostName = $hostVal; User = $userVal; Port = $portVal; RepoRoot = $RepoRoot; IdentityFileName = $identityForSsh }
 
     $build = [ordered]@{ skipped = $true }
-    $services = @("Gateway", "Ingest", "Attachment", "Realtime", "Admin", "Worker", "Migrator")
+    $services = @("Gateway", "Ingest", "Attachment", "Realtime", "Admin", "Recycle", "Worker", "Migrator")
     if ($Mode -eq "deploy") {
         $commit = (& git -C $urbanRepo rev-parse --short HEAD).Trim()
         $branch = (& git -C $urbanRepo rev-parse --abbrev-ref HEAD).Trim()
@@ -159,19 +168,45 @@ try {
             New-Item -ItemType Directory -Force -Path (Join-Path $stageDir "ctx") | Out-Null
             $ctx = Join-Path $stageDir "ctx"
             $started = Get-Date
+            $recycleClient = Join-Path $urbanRepo "src\UrbanManagement.Recycle\client"
+            if (Test-Path -LiteralPath (Join-Path $recycleClient "package.json")) {
+                Write-Host "[deploy-urban-acceptance] npm run build (Recycle client)"
+                $prevEa = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                Push-Location -LiteralPath $recycleClient
+                try {
+                    & npm run build *> (Join-Path $prepareDir "npm-recycle-client.log")
+                    if ($LASTEXITCODE -ne 0) { throw "Recycle client npm build failed (see prepare/npm-recycle-client.log)" }
+                }
+                finally {
+                    Pop-Location
+                    $ErrorActionPreference = $prevEa
+                }
+            }
             Write-Host "[deploy-urban-acceptance] dotnet publish ($($services -join ', '), import tool)"
             foreach ($svc in $services) {
                 Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "src\UrbanManagement.$svc\UrbanManagement.$svc.csproj"), "-c", "Release", "-o", (Join-Path $ctx "services\$svc"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-$($svc.ToLower()).log")
             }
             Invoke-Native "dotnet" @("publish", (Join-Path $urbanRepo "tools\UrbanManagement.DataImport\UrbanManagement.DataImport.csproj"), "-c", "Release", "-o", (Join-Path $ctx "tools\import"), "--nologo", "-v", "q") (Join-Path $prepareDir "publish-import.log")
-            foreach ($f in @("Dockerfile", "docker-entrypoint.sh", "compose.yaml", ".env.example")) {
-                Copy-Item -LiteralPath (Join-Path $urbanRepo "deploy\docker\$f") -Destination (Join-Path $ctx $f)
+            $dockerFiles = @("Dockerfile", "compose.yaml", ".env.example", "otel-collector.yaml", "docker-entrypoint.sh")
+            $bundleNames = New-Object System.Collections.Generic.List[string]
+            [void]$bundleNames.Add("services")
+            [void]$bundleNames.Add("tools")
+            foreach ($f in $dockerFiles) {
+                $src = Join-Path $urbanRepo "deploy\docker\$f"
+                if (Test-Path -LiteralPath $src) {
+                    Copy-Item -LiteralPath $src -Destination (Join-Path $ctx $f)
+                    [void]$bundleNames.Add($f)
+                }
             }
-            Invoke-Native "tar.exe" @("-czf", $bundle, "-C", $ctx, "services", "tools", "Dockerfile", "docker-entrypoint.sh", "compose.yaml", ".env.example") (Join-Path $prepareDir "tar.log")
+            $tar = Join-Path $env:SystemRoot "System32\tar.exe"
+            if (-not (Test-Path -LiteralPath $tar)) { $tar = "tar.exe" }
+            Invoke-Native $tar (@("-czf", $bundle, "-C", $ctx) + $bundleNames.ToArray()) (Join-Path $prepareDir "tar.log")
             $build = [ordered]@{
                 skipped = $false; urbanCommit = $commit; urbanBranch = $branch; urbanDirty = $dirty; services = $services
                 bundleBytes = (Get-Item -LiteralPath $bundle).Length; publishSeconds = [int]((Get-Date) - $started).TotalSeconds
                 secretJsonInBundle = @(Get-ChildItem -Path (Join-Path $ctx "services") -Recurse -Filter "appsettings.secret.json").Count -gt 0
+                expectedServiceImages = [int]$expectedServiceImages
             }
         }
         elseif (-not (Test-Path -LiteralPath $bundle)) { throw "-SkipPublish needs an existing bundle: $bundle" }
@@ -187,10 +222,24 @@ try {
     if ($Mode -eq "deploy" -and (Test-Path -LiteralPath $localSecret)) {
         $stdinText = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($localSecret)) + "`n"
     }
+    else {
+        $stdinText = "`n"
+    }
+    $hostEnvLines = @(
+        "UM_ADMIN_SSO_BASE_URL=$adminSsoBaseUrl"
+        "UM_ADMIN_SSO_WEB_PRODUCT_CODE=$adminSsoWebProductCode"
+        "UM_RECYCLE_PUBLIC_PORT=$recyclePublicPort"
+    ) -join "`n"
+    if ($Mode -eq "deploy") {
+        $stdinText += [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($hostEnvLines)) + "`n"
+    }
+    else {
+        $stdinText += "`n"
+    }
     $body = [System.IO.File]::ReadAllText($remoteScript, [System.Text.Encoding]::UTF8) -replace "`r`n", "`n" -replace "`r", "`n"
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($body))
     $reset = $(if ($ResetDatabase) { "yes" } else { "no" })
-    $remoteCommand = "bash <(echo $b64 | base64 -d) $Mode $runId $stableHost $uploadsShare $wwwrootShare $credPath $reset '$legacyRoot' $publicPort $iisSiteDir $mssqlMemMb $memMinMb"
+    $remoteCommand = "bash <(echo $b64 | base64 -d) $Mode $runId $stableHost $uploadsShare $wwwrootShare $credPath $reset '$legacyRoot' $publicPort $iisSiteDir $mssqlMemMb $memMinMb $recyclePublicPort"
 
     $probeError = $null
     $result = $null
@@ -278,14 +327,19 @@ try {
             (M "ROLE_$($_)_BLAZOR_DLL") -ne $(if ($svc -eq "Admin") { "yes" } else { "no" }) -or
             (M "ROLE_$($_)_IMPORT_TOOL") -ne $(if ($svc -eq "Worker") { "yes" } else { "no" })
         })
-    $splitOk = $splitBad.Count -eq 0 -and (N "SERVICE_IMAGES") -eq 7
+    $expectedImages = 0
+    [void][int]::TryParse($expectedServiceImages, [ref]$expectedImages)
+    if ($expectedImages -le 0) { $expectedImages = 8 }
+    $splitOk = $splitBad.Count -eq 0 -and (N "SERVICE_IMAGES") -eq $expectedImages
+    $recycleOk = (M "RECYCLE_LIVE_HTTP") -eq "200" -and
+        ((M "ROLE_RECYCLE_SERVICE_DLLS") -eq "UrbanManagement.Recycle" -or (M "ROLE_RECYCLE_SERVICE_DLLS") -like "*UrbanManagement.Recycle*")
     $backplaneOk = (N "BACKPLANE_CHANNELS") -ge 1
     $smb = @("smb2", "smb3", "cifs")
     $containerOk = @($roleKeys | Where-Object { (M "ROLE_$($_)_UPLOADS_FS") -notin $smb }).Count -eq 0 -and
         (M "CONTAINER_TUS_WRITABLE") -eq "yes" -and (M "CONTAINER_SECRET_JSON") -eq "absent" -and (M "UPLOADS_FSTYPE") -eq "cifs"
     $importOk = $Mode -eq "verify" -or (M "IMPORT") -in @("done", "skipped-nonempty")
     $memOk = (M "MEM_OK") -eq "yes"
-    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $splitOk -and $backplaneOk -and $containerOk -and $importOk
+    $stackOk = $remoteOk -and $rolesOk -and $routingOk -and $workersOk -and $splitOk -and $recycleOk -and $backplaneOk -and $containerOk -and $importOk
     if (-not $marks.Count) {
         $resultText = "blocked"
         $rationale += "SSH execution failed (exitCode=$exitCode): $probeError"
@@ -309,7 +363,8 @@ try {
         if (-not $workersOk) {
             $rationale += "Workers: snapshot registered $(LogMarks 'SNAPSHOT_REGISTERED'); govsync total=$govSyncTotal nonWorker=$govSyncNonWorker profile=$deployProfile."
         }
-        if (-not $splitOk) { $rationale += "Project split: images=$(M 'SERVICE_IMAGES'); mismatched $($splitBad -join ','); service $(LogMarks 'SERVICE'); dlls $(RoleMarks 'SERVICE_DLLS'); tus $(RoleMarks 'TUS_DLL'); blazor $(RoleMarks 'BLAZOR_DLL'); import $(RoleMarks 'IMPORT_TOOL')." }
+        if (-not $splitOk) { $rationale += "Project split: images=$(M 'SERVICE_IMAGES') expected=$expectedImages; mismatched $($splitBad -join ','); service $(LogMarks 'SERVICE'); dlls $(RoleMarks 'SERVICE_DLLS'); tus $(RoleMarks 'TUS_DLL'); blazor $(RoleMarks 'BLAZOR_DLL'); import $(RoleMarks 'IMPORT_TOOL')." }
+        if (-not $recycleOk) { $rationale += "Recycle: live=$(M 'RECYCLE_LIVE_HTTP') ready=$(M 'RECYCLE_READY_HTTP') state=$(M 'ROLE_RECYCLE_STATE') dlls=$(M 'ROLE_RECYCLE_SERVICE_DLLS') port=$(M 'RECYCLE_PUBLIC_PORT')." }
         if (-not $backplaneOk) { $rationale += "SignalR backplane: Redis channels UM:signalr*=$(M 'BACKPLANE_CHANNELS')." }
         if (-not $containerOk) { $rationale += "Container checks: uploads fs $(RoleMarks 'UPLOADS_FS'); host fs=$(M 'UPLOADS_FSTYPE') tus writable=$(M 'CONTAINER_TUS_WRITABLE') secret json=$(M 'CONTAINER_SECRET_JSON')." }
         if (-not $importOk) { $rationale += "Import: $(M 'IMPORT') exit=$(M 'IMPORT_EXIT') result=$(M 'IMPORT_RESULT')." }
@@ -332,6 +387,8 @@ try {
         levels = [ordered]@{ P0 = $p0; P1 = $p1; P2 = $p2; P3 = "user-only" }
         gate = $gate; deployProfile = $deployProfile
         externalReady = $external; externalProbePort = $externalProbePort; vmPublicPort = $publicPort
+        recyclePublicPort = $recyclePublicPort
+        recycleLive = (M "RECYCLE_LIVE_HTTP"); recycleReady = (M "RECYCLE_READY_HTTP")
         build = $build; error = $probeError
     }
     Write-Utf8NoBom -Path (Join-Path $RunDir "summary.json") -Content ($summary | ConvertTo-Json -Depth 6)

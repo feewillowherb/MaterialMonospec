@@ -1,0 +1,73 @@
+id: sso-redis-product-cache-probe
+created: "2026-11-24"
+graph:
+  product: baseplatform
+  domain: baseplatform
+  family: probe
+  goal: sso-redis-product-cache-probe
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sso-redis-cache-idle
+  end: sso-redis-cache-probed
+cook: in-place
+
+target:
+  redisAppsettingsRel: .local/SSO/appsettings.json
+  redisSection: RedisServer
+  redisKey: Default
+  hashKey: AllTable
+  hashField: JCProduct
+  note: "SSO appsettings DB is 129; Redis host is whatever RedisServer:Default says (often 172.16.87.127)."
+
+scenario:
+  dryRun: true
+  products:
+    - 5040
+    - 5041
+
+steps:
+  - id: bind-redis
+    name: Resolve Redis connection from .local SSO appsettings or secrets
+  - id: read-cache
+    name: HGET AllTable JCProduct and summarize 5040/5041
+  - id: optional-invalidate
+    name: HDEL AllTable JCProduct only with -Apply
+
+expect:
+  - id: redis-reachable
+    level: L0
+    description: Redis responds and AllTable key exists
+  - id: product-field-readable
+    level: L1
+    description: JCProduct hash field exists and parses as a product list
+  - id: targets-present
+    level: L2
+    description: Cache contains undeleted 5040 and 5041
+  - id: business-ok
+    level: L3
+    description: User accepts the cache probe or invalidate. Agent does not mark P3
+
+capture:
+  probes:
+    required: true
+    sink: prepare/probes.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  manifest:
+    required: true
+    sink: manifest.yaml
+
+humanGates:
+  - shared-environment
+  - apply-write
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

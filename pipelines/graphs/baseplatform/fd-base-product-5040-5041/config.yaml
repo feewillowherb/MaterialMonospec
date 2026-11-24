@@ -1,0 +1,83 @@
+id: fd-base-product-5040-5041
+created: "2026-11-24"
+graph:
+  product: baseplatform
+  domain: baseplatform
+  family: transform
+  goal: fd-base-product-5040-5041
+  status: active
+environment: local
+stopOnError: true
+sockets:
+  start: fd-base-product-sql-idle
+  end: fd-base-product-sql-ready
+cook: in-place
+
+target:
+  serverFingerprint: "129"
+  database: FD_Base
+  productTable: dbo.JC_Product
+  note: "Human runs the emitted SQL on 129; cook does not connect."
+
+scenario:
+  templateShape:
+    organizeType: 2
+    productType: 2
+    status: 1
+    coId: 1
+    extInt: 0
+    url: "https://cloud.findong.com"
+    callBackUrl: "https://cloud.findong.com"
+    createUserId: 35
+    createUser: "朱文锦"
+  sqlRel: sql/upsert-jc-product-5040-5041.sql
+  products:
+    - productCode: 5040
+      productName: "萧山城管管理平台"
+    - productCode: 5041
+      productName: "萧山资源化利用网页端"
+
+steps:
+  - id: read-sql-source
+    name: Read the tracked upsert SQL under sql/
+  - id: emit-run-artifacts
+    name: Copy SQL into the run prepare folder and write plan summary report
+  - id: validate-artifacts
+    name: Confirm the emitted SQL mentions 5040 and 5041 only as product targets
+
+expect:
+  - id: sql-source-readable
+    level: L0
+    description: Tracked sql/upsert-jc-product-5040-5041.sql exists and is non-empty
+  - id: sql-covers-products
+    level: L1
+    description: Emitted SQL references ProductCode 5040 and 5041 without requiring 5020 at runtime
+  - id: run-artifacts-written
+    level: L2
+    description: prepare SQL plus summary report manifest exist for this run
+  - id: business-ok
+    level: L3
+    description: User accepts the SQL (and any manual apply on 129). Agent does not mark P3
+
+capture:
+  sql:
+    required: true
+    sink: prepare/upsert-jc-product-5040-5041.sql
+  plan:
+    required: true
+    sink: prepare/plan.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  manifest:
+    required: true
+    sink: manifest.yaml
+
+humanGates:
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

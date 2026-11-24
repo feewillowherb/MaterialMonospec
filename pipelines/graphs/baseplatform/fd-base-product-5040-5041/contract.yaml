@@ -1,0 +1,33 @@
+id: fd-base-product-5040-5041
+graph:
+  domain: baseplatform
+  family: transform
+  goal: fd-base-product-5040-5041
+  status: active
+input:
+  state: fd-base-product-sql-idle
+  sqlRel: sql/upsert-jc-product-5040-5041.sql
+  intendedTarget:
+    serverFingerprint: "129"
+    database: FD_Base
+  products:
+    - productCode: 5040
+      productName: "萧山城管管理平台"
+    - productCode: 5041
+      productName: "萧山资源化利用网页端"
+output:
+  state: fd-base-product-sql-ready
+  artifacts:
+    - prepare/upsert-jc-product-5040-5041.sql
+    - prepare/plan.json
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - cook never opens a SQL connection
+  - cook never executes DML against any database
+  - authoritative SQL lives under sql/ and is copied into each run
+  - emitted SQL does not require ProductCode 5020 to exist at runtime
+  - menus, roles, user roles, and product authorities are not included
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

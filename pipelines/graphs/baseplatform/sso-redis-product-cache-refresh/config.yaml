@@ -1,0 +1,70 @@
+id: sso-redis-product-cache-refresh
+created: "2026-11-24"
+graph:
+  product: baseplatform
+  domain: baseplatform
+  family: transform
+  goal: sso-redis-product-cache-refresh
+  status: active
+environment: shared
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: sso-redis-cache-stale
+  end: sso-redis-cache-invalidated
+cook: in-place
+
+target:
+  redisAppsettingsRel: .local/SSO/appsettings.json
+  redisSection: RedisServer
+  redisKey: Default
+  hashKey: AllTable
+  hashField: JCProduct
+  note: "SSO RedisServer:Default is typically 172.16.87.127; DB catalog is 129 FD_Base."
+
+scenario:
+  dryRun: true
+
+steps:
+  - id: bind-redis
+    name: Resolve Redis from .local SSO appsettings or secrets
+  - id: inspect
+    name: Report AllTable/JCProduct presence and product summary
+  - id: invalidate
+    name: HDEL AllTable JCProduct only with -Apply; verify HEXISTS=0
+
+expect:
+  - id: redis-reachable
+    level: L0
+    description: Redis responds
+  - id: operation-done
+    level: L1
+    description: Dry-run inspected, or -Apply HDEL executed
+  - id: field-gone
+    level: L2
+    description: After -Apply, JCProduct field does not exist
+  - id: business-ok
+    level: L3
+    description: User accepts invalidate. Agent does not mark P3
+
+capture:
+  probes:
+    required: true
+    sink: prepare/probes.json
+  summary:
+    required: true
+    sink: summary.json
+  report:
+    required: true
+    sink: report.md
+  manifest:
+    required: true
+    sink: manifest.yaml
+
+humanGates:
+  - shared-environment
+  - apply-write
+  - acceptance
+failurePolicy:
+  retries: 0
+  stopOnError: true

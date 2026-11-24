@@ -1,0 +1,32 @@
+id: sso-findong-5040-5041-login
+graph:
+  domain: baseplatform
+  family: probe
+  goal: sso-findong-5040-5041-login
+  status: active
+input:
+  state: sso-login-idle
+  secretsRef: secrets.local.yaml
+  requiredSecrets:
+    - userName
+    - passWord
+  baseUrl: "http://sso.findong.com"
+  path: "/GetToken"
+  products:
+    - productCode: 5040
+      productName: "萧山城管管理平台"
+    - productCode: 5041
+      productName: "萧山资源化利用网页端"
+output:
+  state: sso-login-probed
+  artifacts:
+    - prepare/probes.json
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - cook only POSTs GetToken; it does not write FD_Base
+  - password and token strings are never written to evidence
+  - wrong-password probes use a non-secret probe string from config
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3

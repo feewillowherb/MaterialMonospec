@@ -1,0 +1,86 @@
+# Machine-readable expect for deploy-urban-acceptance (191 formal Docker stack).
+# Match markers in prepare/deploy-<mode>-parse.json and summary.json.
+
+target:
+  stableHost: "191.12.234.212"
+  deployProfileDefault: production
+  externalProbePort: 5233
+  vmPublicPort: 5333
+  recyclePublicPort: 5334
+
+health:
+  externalReadyHttp: "200"
+  gatewayReadyHttp: "200"
+  gatewayLiveHttp: "200"
+  gatewayHealthHttp: "200"
+  recycleLiveHttp: "200"
+  # recycleReadyHttp recorded; P2 gate uses live
+
+images:
+  expectedServiceImages: 8
+  services:
+    - Gateway
+    - Ingest
+    - Attachment
+    - Realtime
+    - Admin
+    - Recycle
+    - Worker
+    - Migrator
+
+rolesReady:
+  - um-ingest
+  - um-ingest-2
+  - um-attachment
+  - um-realtime
+  - um-admin
+  - um-worker
+
+recycle:
+  serviceDllContains: UrbanManagement.Recycle
+  adminSsoWebProductCodeFixed: "5041"
+  adminSsoWebProductCodeDefault: "5040"
+
+routing:
+  gwTusOptionsHttp: "204"
+  gwHubHttp: "400"
+  gwNegotiateHttp: "200"
+  gwInternalHttp: "404"
+  adminToRealtimeInternal: "200"
+  roleAdminRootIn: ["200", "302"]
+  roleRealtimeRoot: "404"
+  roleAttachmentTusOptions: "204"
+  roleIngestTusOptionsNot: "204"
+  backplaneChannelsMin: 1
+
+govSync:
+  production:
+    nonWorkerRegisteredTotal: 0
+    workerSnapshotRegisteredMin: 1
+    nonWorkerSnapshotRegistered: 0
+  acceptance:
+    allRolesRegisteredTotal: 0
+
+uploads:
+  containerFsIn: ["cifs", "smb2", "smb3"]
+  tusWritable: "yes"
+  secretJsonInContainer: "absent"
+  onWindows: "yes"
+
+import:
+  allowed: ["done", "skipped-nonempty"]
+
+migrator:
+  exitCode: "0"
+  migratedLogMin: 1
+  umAppPresent: "0"
+
+gates:
+  lowMemory: vm-memory-below-threshold
+  hostPortproxy: host-portproxy-required
+
+outOfScope:
+  - host portproxy for recycle 5334
+  - browser login UX (P3)
+  - client weigh upload ICD
+  - product APPROVED

@@ -39,6 +39,10 @@ target:
   publicPort: 5333
   # Host-side /health/ready after cutover (host 5233 → VM publicPort).
   externalProbePort: 5233
+  # Recycle / XiaoShanResource web on the VM (not behind gateway). Host may not portproxy this yet.
+  recyclePublicPort: 5334
+  # Unique urbanmanagement-* images after Recycle join (Gateway Ingest Attachment Realtime Admin Recycle Worker Migrator).
+  expectedServiceImages: 8
   # D14: Phase 2 without VM expansion; MSSQL cap lowered, VM available memory below the minimum => gate.
   mssqlMemoryLimitMb: 1280
   memMinAvailableMb: 500
@@ -48,20 +52,21 @@ target:
 prerequisites:
   - fev-u2-docker FEASIBLE (Docker + compose on the VM)
   - fev-u10-uploads-smb FEASIBLE (cifs-utils, /etc/um-uploads.cred, passwordless sudo)
-  - .NET 10 SDK and tar.exe on this machine; repos/UrbanManagement on the refactor-urban-realtime-split branch (or main after merge)
+  - .NET 10 SDK, Node.js npm (Recycle client), tar.exe; repos/UrbanManagement on main (post Recycle)
   - secrets.local.yaml with host/user/port (+ identityPassphrase when key is encrypted)
+  - secrets.local.yaml adminSsoBaseUrl (+ adminSsoWebProductCode default 5040) for um-admin / um-recycle
 
 steps:
   - id: bind-config
     name: Read config/secrets; create runs/<ts>/
   - id: publish
-    name: dotnet publish each service project (Gateway, Ingest, Attachment, Realtime, Admin, Worker, Migrator) + DataImport; bundle with deploy/docker files (deploy only)
+    name: npm build Recycle client; dotnet publish Gateway Ingest Attachment Realtime Admin Recycle Worker Migrator + DataImport; bundle deploy/docker (+ otel-collector.yaml)
   - id: upload
     name: scp bundle and import source to /tmp/um-deploy/<run>/ (deploy only)
   - id: remote-deploy
-    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env, one image per service, mssql/redis, database/login, import, um-migrator then um-ingest x2/um-attachment/um-realtime/um-admin/um-worker + um-gateway (--remove-orphans)
+    name: Release, SMB automount, IIS config -> appsettings.Production.json, .env (+ SSO), one image per service (8), mssql/redis, database/login, import, migrator then roles incl. um-recycle + um-gateway
   - id: remote-checks
-    name: Gateway health and routing, per-role ready, migrator exit, backplane, per-role worker registration, per-container service assembly / tus / Blazor / import tool, mounts, logs, memory (deploy and verify)
+    name: Gateway health and routing, per-role ready, Recycle live on recyclePublicPort, migrator exit, backplane, worker registration, eight service images, mounts, logs, memory (deploy and verify)
   - id: external-check
     name: http://<host>:externalProbePort/health/ready (5233); VM still listens on publicPort
   - id: agent-analyze
@@ -76,7 +81,7 @@ expect:
     description: Remote script exit 0
   - id: stack-healthy
     level: P2
-    description: gateway/role routing and split checks; snapshot only on worker; GovSync per deployProfile (acceptance=none; production=worker-only); 7 images; SMB Uploads; host externalProbePort ready; VM memory >= memMinAvailableMb
+    description: gateway/role routing and split checks; Recycle live; snapshot only on worker; GovSync per deployProfile (acceptance=none; production=worker-only); 8 images; SMB Uploads; host externalProbePort ready; VM memory >= memMinAvailableMb
   - id: user-ack
     level: P3
     description: User-only (includes the client submit test)

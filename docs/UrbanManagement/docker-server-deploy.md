@@ -17,8 +17,8 @@
 | VM gateway 发布口 | `UM_PUBLIC_PORT=5333` → 容器 `8080`；**保持不变**（宿主退役对外 5333 后也不改 VM 口） |
 | 宿主历史 5333 旁路 | **已退役**；勿再作为发版/健康检查入口 |
 | 虚拟机 | `192.168.250.10`（`UM-NAT`）；SSH `vanilla@191.12.234.212:2222` |
-| 栈 | `um-gateway` + `um-ingest`×2 + `um-attachment` + `um-realtime` + `um-admin` + `um-worker` + `mssql` + `redis` |
-| 发版 Graph | `ops/deploy-urban-acceptance` 默认 `deployProfile=production`（允许 worker GovSync） |
+| 栈 | `um-gateway` + `um-ingest`×2 + `um-attachment` + `um-realtime` + `um-admin` + **`um-recycle`（5334）** + `um-worker` + `mssql` + `redis` |
+| 发版 Graph | `ops/deploy-urban-acceptance` 默认 `deployProfile=production`（含 Recycle 构建；允许 worker GovSync） |
 | 附件 | 容器 `/app/Uploads` 绑定虚拟机 `/srv/um-uploads`。该目录是共享 `um-uploads` 的 cifs 挂载，对应 Windows 磁盘 `C:\wwwroot\UrbanManagement\Uploads`。目录不是这块盘时进程拒绝启动 |
 | 配置 / 密钥 | 虚拟机 `/opt/urbanmanagement/.env` + secrets；**不要**把生产密钥写进仓库 |
 

@@ -1,0 +1,25 @@
+id: sso-redis-product-cache-probe
+graph:
+  domain: baseplatform
+  family: probe
+  goal: sso-redis-product-cache-probe
+  status: active
+input:
+  state: sso-redis-cache-idle
+  redisAppsettingsRel: .local/SSO/appsettings.json
+  hashKey: AllTable
+  hashField: JCProduct
+  products: [5040, 5041]
+output:
+  state: sso-redis-cache-probed
+  artifacts:
+    - prepare/probes.json
+    - summary.json
+    - report.md
+    - manifest.yaml
+invariants:
+  - default run is read-only
+  - HDEL happens only with -Apply
+  - Redis passwords are not written to evidence
+  - Pipeline result is not product APPROVED
+acceptance: P0-P3
