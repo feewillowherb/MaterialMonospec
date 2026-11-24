@@ -1,0 +1,11 @@
+{
+  "offScaleTons": 0.3,
+  "stableTons": 10.95,
+  "settleMs": 12000,
+  "lockDurationSeconds": 45,
+  "observationTimeoutSeconds": 75,
+  "logNeedles": [
+    "Error occurred while creating weighing record for cycle",
+    "SQLite Error 5: 'database is locked'"
+  ]
+}

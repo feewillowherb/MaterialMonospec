@@ -1,0 +1,15 @@
+id: fev-solidwaste-ten-weighing-cycles
+created: "2026-11-24"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: solidwaste-ten-weighing-records
+  status: active
+target:
+  fixture: fixtures/scenario.json
+adapters:
+  probe:
+    script: scripts/Invoke-FevSolidWasteTenWeighingCycles.ps1
+    nodeTool: scripts/probe.ts
+    experimental: true

@@ -1,0 +1,21 @@
+graphId: fev-sqlite-write-contention-repro
+inputs:
+  - SolidWaste seed SQLite database (read-only source)
+  - running MaterialClient.SolidWaste using the run-specific working database
+  - localhost diagnostic API
+invariants:
+  - All API requests target the SolidWaste diagnostic host and operate only in TestMode.
+  - The seed database is never modified; every run gets a unique working copy.
+  - The competing SQLite transaction is limited to the run working database and is released after the probe.
+  - The Graph does not interact with the UI; if login or authorization is required, the run waits for the user.
+  - Synthetic external contention does not identify the production incident lock owner or validate a fix.
+  - No product project is referenced and no product code is changed.
+outputs:
+  - runs/<runId>/summary.json
+  - runs/<runId>/report.md
+  - runs/<runId>/manifest.yaml
+  - runs/<runId>/http.json
+  - runs/<runId>/lock.json
+  - runs/<runId>/db-before.json
+  - runs/<runId>/db-after.json
+  - runs/<runId>/log-excerpt.txt

@@ -1,0 +1,12 @@
+{
+  "baseUrl": "http://localhost:9933",
+  "cycles": 10,
+  "offScaleTons": 0.3,
+  "firstStableTons": 10.95,
+  "stableIncrementTons": 0.1,
+  "weightToleranceTons": 0.05,
+  "initialSettleMs": 12000,
+  "rowTimeoutMs": 45000,
+  "departureTimeoutMs": 20000,
+  "departureSettleMs": 5000
+}

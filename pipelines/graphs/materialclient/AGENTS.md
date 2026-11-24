@@ -21,7 +21,9 @@ MaterialClient（Avalonia 称重桌面）相关验收 Graph。
 | `standard-solidwaste-schema-upgrade` | probe | `standard-solidwaste-schema-upgrade-verify` |
 | `materialclient-working-db-load` | probe | `materialclient-working-db-load` |
 | `fev-stable-dual-enqueue-repro` | probe | `fev-stable-dual-enqueue-repro` |
+| `fev-sqlite-write-contention-repro` | probe | `materialclient-sqlite-write-contention-fev` |
 | `fev-solidwaste-weigh-lpr` | probe | `fev-solidwaste-weigh-lpr` |
+| `fev-solidwaste-ten-weighing-cycles` | probe | `solidwaste-ten-weighing-records` |
 | `fev-solidwaste-extreme-condition` | probe | `fev-solidwaste-extreme-condition` |
 | `fev-standard-weigh-waybill` | probe | `fev-standard-weigh-waybill` |
 

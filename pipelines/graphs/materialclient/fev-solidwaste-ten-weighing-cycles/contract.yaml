@@ -1,0 +1,16 @@
+graphId: fev-solidwaste-ten-weighing-cycles
+inputs:
+  - running SolidWaste client in TestMode
+  - database file and log directory actually used by the client
+  - localhost diagnostic API
+invariants:
+  - Drive the client through diagnostic HTTP only.
+  - SQLite evidence connection is read-only.
+  - No competing transaction is injected.
+  - Each cycle uses a unique test plate and waits for departure.
+outputs:
+  - summary.json
+  - manifest.yaml
+  - report.md
+  - http.json
+  - log-excerpt.txt

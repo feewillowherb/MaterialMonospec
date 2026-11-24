@@ -98,6 +98,7 @@ Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为�
 | Recycle Web 持久化 FEV | [`2026-11-18-recycle-web-persistence-fev/`](2026-11-18-recycle-web-persistence-fev/00-调研总览.md) |
 | 固废 / Standard 测试 API 称重、车牌与 Waybill FEV | [`2026-11-19-solidwaste-weigh-lpr-fev/`](2026-11-19-solidwaste-weigh-lpr-fev/00-调研总览.md) |
 | 固废称重极端工况 FEV | [`2026-11-19-solidwaste-extreme-condition-fev/`](2026-11-19-solidwaste-extreme-condition-fev/00-调研总览.md) |
+| MaterialClient SQLite 写入冲突 FEV | [`2026-11-24-materialclient-sqlite-write-contention-fev/`](2026-11-24-materialclient-sqlite-write-contention-fev/00-FEV-SQLite写入冲突.md) |
 | 地磅测试数据送到 Recycle Web FEV | [`2026-11-19-recycle-client-to-web-fev/`](2026-11-19-recycle-client-to-web-fev/00-调研总览.md) |
 | Recycle Web 页面占位字段 | [`2026-11-20-recycle-web-page-placeholders/`](2026-11-20-recycle-web-page-placeholders/00-调研总览.md) |
 

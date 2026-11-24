@@ -1,0 +1,60 @@
+id: fev-sqlite-write-contention-repro
+created: "2026-11-24"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: materialclient-sqlite-write-contention-fev
+  status: active
+environment: local
+stopOnError: true
+experimentalRuntime: net10.0
+
+target:
+  baseUrl: http://localhost:9933
+  seedDatabaseRel: repos/MaterialClient/.build-verify/MaterialClient.SolidWaste/MaterialClient.db
+  startScript: scripts/MaterialClient/Start-MaterialClient.SolidWaste.ps1
+  application: SolidWaste
+  lockDurationSeconds: 45
+  offScaleTons: 0.3
+  stableTons: 10.95
+  settleMs: 12000
+  observationTimeoutSeconds: 75
+
+steps:
+  - create-unique-run-directory
+  - copy-seed-database-to-working-database
+  - start-solidwaste-with-working-database
+  - wait-for-attended-weighing-service
+  - probe-diagnostic-api
+  - inject-write-contention
+  - write-evidence
+
+capture:
+  summary: summary.json
+  report: report.md
+  manifest: manifest.yaml
+  http: http.json
+  lock: lock.json
+  databaseBefore: db-before.json
+  databaseAfter: db-after.json
+  logExcerpt: log-excerpt.txt
+
+expect:
+  - id: diagnostic-reachable
+    level: P0
+  - id: api-injection-succeeded
+    level: P1
+  - id: locked-write-outcome-observed
+    level: P2
+  - id: human-accepts-fev
+    level: P3
+
+humanGates:
+  - safe-to-use-solidwaste-test-mode
+  - optional-license-or-login-input
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true

@@ -255,7 +255,9 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | standard-solidwaste-schema-upgrade-verify | probe | `graphs/materialclient/standard-solidwaste-schema-upgrade/` | active |
 | materialclient-working-db-load | probe | `graphs/materialclient/materialclient-working-db-load/` | active |
 | fev-stable-dual-enqueue-repro | probe | `graphs/materialclient/fev-stable-dual-enqueue-repro/` | active |
+| fev-sqlite-write-contention-repro | probe | `graphs/materialclient/fev-sqlite-write-contention-repro/` | active |
 | fev-solidwaste-weigh-lpr | probe | `graphs/materialclient/fev-solidwaste-weigh-lpr/` | active |
+| fev-solidwaste-ten-weighing-cycles | probe | `graphs/materialclient/fev-solidwaste-ten-weighing-cycles/` | active |
 | fev-solidwaste-extreme-condition | probe | `graphs/materialclient/fev-solidwaste-extreme-condition/` | active |
 | fev-standard-weigh-waybill | probe | `graphs/materialclient/fev-standard-weigh-waybill/` | active |
 | fev-recycle-weigh-cycle | probe | `graphs/materialclient/fev-recycle-weigh-cycle/` | active |
