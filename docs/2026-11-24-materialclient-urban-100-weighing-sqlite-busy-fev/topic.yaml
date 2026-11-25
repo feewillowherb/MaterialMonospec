@@ -1,0 +1,6 @@
+topic: materialclient-urban-100-weighing-sqlite-busy-fev
+created: "2026-11-24"
+updated: "2026-11-25"
+lifecycle: ACTIVE
+knowledge_state: CONFIRMED
+evidence: pipelines/graphs/materialclient/fev-urban-weighing-cycles/runs/2026-11-25T085427/report.md

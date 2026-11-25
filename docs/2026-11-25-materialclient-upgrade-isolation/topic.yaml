@@ -1,0 +1,6 @@
+topic: materialclient-upgrade-isolation
+created: "2026-11-25"
+updated: "2026-11-25"
+lifecycle: ACTIVE
+knowledge_state: CONFIRMED
+evidence: docs/2026-11-24-materialclient-urban-100-weighing-sqlite-busy-fev/00-FEV-Urban100条称重数据SQLiteBusy.md
