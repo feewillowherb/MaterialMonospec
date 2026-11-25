@@ -1,0 +1,149 @@
+id: "admin-ui-layout-observe"
+created: "2026-11-25"
+graph:
+  product: urban
+  domain: urban
+  family: observe
+  goal: admin-ui-layout-interaction-review
+  status: active
+environment: shared
+stopOnError: false
+secretsRef: secrets.local.yaml
+sockets:
+  start: admin-session-pending
+  end: admin-ui-observe-captured
+cook: new-object
+
+target:
+  # Lab 138 gateway → Admin (Blazor). Recycle 5334 out of scope.
+  baseUrl: "http://192.168.3.138:5333"
+  loginPath: "/login"
+  layoutSourceRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/AdminLayout.razor
+  # SSO on 135; GetToken writes FdSoftSSO:{userId}:{clientId} into Redis (login method).
+  ssoBaseUrl: "http://192.168.3.135:8500"
+  ssoGetTokenPath: "/GetToken"
+  webProductCode: 5040
+  switchType: 0
+  productType: 2
+  # Account identity (password only in secrets.local.yaml).
+  userName: "13612345678"
+  loginMethod: redis-session
+  # Redis for SSO session / product cache — same box as .local/SSO Development.
+  redisAppsettingsRel: .local/SSO/appsettings.json
+  redisSection: RedisServer
+  redisKey: Default
+  redisProductHash: AllTable
+  redisProductField: JCProduct
+  shellSelectors:
+    root: ".layui-layout-admin"
+    sidebar: "aside.layui-side"
+    header: "header.layui-header"
+    tabBar: ".layui-tab-title"
+    refreshButtonLabel: "刷新"
+    logoutButtonLabel: "退出"
+  routes:
+    - id: urban-projects
+      path: "/"
+      title: "城管项目"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/ProjectManagement.razor
+    - id: recycle-projects
+      path: "/recycle-projects"
+      title: "资源化项目"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/ProjectManagement.razor
+    - id: weighing
+      path: "/weighing"
+      title: "称重记录"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/WeighingRecord.razor
+    - id: checkpoint-passage
+      path: "/checkpoint-passage"
+      title: "卡口进出"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/CheckpointPassage.razor
+    - id: finished-product-passage
+      path: "/finished-product-passage"
+      title: "成品进出"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/FinishedProductPassage.razor
+    - id: weighing-approval
+      path: "/weighing-approval"
+      title: "异常审批"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/WeighingApproval.razor
+    - id: client-logs
+      path: "/client-logs"
+      title: "客户端日志"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/ClientLogs.razor
+    - id: recycle-device-status
+      path: "/recycle/device-status"
+      title: "Recycle 设备在线"
+      pageRel: repos/UrbanManagement/src/UrbanManagement.Admin/Pages/RecycleDeviceStatus.razor
+  spotCheck:
+    primaryRouteId: weighing
+    allowOpenReadonlyDialog: true
+    forbidMutatingActions:
+      - "通过"
+      - "驳回"
+      - "启用同步"
+      - "退出"
+
+prerequisites:
+  - Lab Urban stack on 192.168.3.138:5333 (ops/deploy-urban-lab-138)
+  - SSO listening on 192.168.3.135:8500 with FD_Base for product 5040
+  - Redis reachable per redisAppsettingsRel (session written by GetToken)
+  - secrets.local.yaml passWord for userName
+  - cursor-ide-browser MCP for page walk after cookie session
+
+steps:
+  - id: bind-config
+    name: Read config/secrets; create runs/<ts>/; hook collectors
+  - id: redis-login
+    name: "loginMethod=redis-session — ping Redis; optional HDEL JCProduct; POST 135 GetToken (writes FdSoftSSO session); POST 138 /login for UrbanAdmin.Session"
+  - id: capture-shell
+    name: Assert sidebar 8 items, header refresh/logout, tab bar; screenshot shell
+  - id: walk-routes
+    name: Visit each target.routes path; screenshot + snapshot; match expect/surface.md
+  - id: spot-interact
+    name: On weighing or projects, confirm filter/pager; optionally open one readonly dialog
+  - id: write-report
+    name: Write summary.json and report.md; record P0-P2 evidence (P3 user-only)
+
+expect:
+  - id: redis-session
+    level: P0
+    description: GetToken code 200 hasToken; Redis key FdSoftSSO user session present or documented; Admin cookie accepted
+  - id: shell-nav
+    level: P1
+    description: layui-layout-admin with exactly the eight nav titles from target.routes
+  - id: routes-surface
+    level: P1
+    description: Each route shows card/table or explicit empty state after load
+  - id: spot-readonly
+    level: P2
+    description: Filter or pager visible; readonly dialog open/close if entry exists
+  - id: user-ack
+    level: P3
+    description: User-only product acceptance of layout/UX
+
+capture:
+  screenshot: { required: true, sink: screenshots/ }
+  snapshot: { required: true, sink: snapshots/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+  redisLogin: { required: true, sink: prepare/redis-login.json }
+
+humanGates:
+  - missing-secrets
+  - captcha-or-login-blocked
+  - shared-environment
+  - acceptance
+
+failurePolicy:
+  retries: 2
+  stopOnError: false
+
+adapters:
+  browser:
+    mode: mcp
+    namespace: cursor-ide-browser
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-AdminUiLayoutObserve.ps1
+    experimental: true

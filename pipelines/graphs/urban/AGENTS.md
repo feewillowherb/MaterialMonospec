@@ -8,6 +8,7 @@ UrbanManagement 相关验收 Graph。
 
 | slug | family | goal |
 |------|--------|------|
+| `admin-ui-layout-observe` | observe | `admin-ui-layout-interaction-review`（**138** Admin；SSO **135** GetToken 写 Redis；默认账号 `13612345678`；8 路由只读采证） |
 | `urban-passage-probe` | probe | `urban-passage-lpr-probe` |
 | `urban-license-probe` | probe | `urban-license-seed-probe` |
 | `urban-passage-um-reconcile` | reconcile | `urban-passage-client-um-reconcile` |

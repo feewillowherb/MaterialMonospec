@@ -1,0 +1,31 @@
+id: admin-ui-layout-observe
+family: observe
+goal: admin-ui-layout-interaction-review
+
+inputs:
+  baseUrl: http://192.168.3.138:5333
+  ssoBaseUrl: http://192.168.3.135:8500
+  userName: "13777554358"
+  webProductCode: 5040
+  loginMethod: redis-session
+  routes: eight AdminLayout nav items
+  secrets: passWord in secrets.local.yaml
+
+outputs:
+  runDir: runs/<yyyy-MM-ddTHHmmss>/
+  evidence:
+    - prepare/redis-login.json
+    - screenshots/
+    - snapshots/
+    - summary.json
+    - report.md
+
+guarantees:
+  - cook creates a new runs/<ts>/ directory and never overwrites an existing run
+  - GetToken against 135 writes SSO Redis session; tokens and passwords are never written to markdown or JSON evidence
+  - observe is read-only after login; no approve/reject/enable-sync/logout submit
+  - P0-P2 are evidence levels only; Agent must not declare product APPROVED
+  - formal 191 and Recycle 5334 are out of scope
+  - post-observe product changes require a separate OpenSpec change and Human APPROVED
+
+acceptance: P0-P3
