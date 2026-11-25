@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-25
+effort:
+  tier: S
+  tokens_estimate: "5万-15万"
+  notes: "单仓 repos/MaterialClient，收敛服务端点 Release/Debug 代码默认值并禁止发布 appsettings.json"
