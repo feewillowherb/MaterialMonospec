@@ -101,7 +101,8 @@ Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为�
 | MaterialClient SQLite 写入冲突 FEV | [`2026-11-24-materialclient-sqlite-write-contention-fev/`](2026-11-24-materialclient-sqlite-write-contention-fev/00-FEV-SQLite写入冲突.md) |
 | 地磅测试数据送到 Recycle Web FEV | [`2026-11-19-recycle-client-to-web-fev/`](2026-11-19-recycle-client-to-web-fev/00-调研总览.md) |
 | Recycle Web 页面占位字段 | [`2026-11-20-recycle-web-page-placeholders/`](2026-11-20-recycle-web-page-placeholders/00-调研总览.md) |
-| Admin 布局与业务 UI 交互观察 | [`2026-11-25-admin-ui-layout-interaction/`](2026-11-25-admin-ui-layout-interaction/00-调研总览.md)（138；Pipeline run `2026-11-25T101234`） |
+| Urban 与 Admin 客户端管理一致性及 UI 交互调研 | [`2026-11-25-urban-admin-client-management-consistency/`](2026-11-25-urban-admin-client-management-consistency/00-调研总览.md)（含 138 Admin UI 观察，Pipeline run `2026-11-25T101234`） |
+| MaterialClient 放弃 appsettings、收敛至 SQLite DB | [`2026-11-25-materialclient-db-first-config/`](2026-11-25-materialclient-db-first-config/00-调研总览.md)（全 4 宿主生效） |
 
 ## Intake 需求收件（Parking）
 
