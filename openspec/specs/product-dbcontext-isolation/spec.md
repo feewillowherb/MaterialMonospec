@@ -31,33 +31,21 @@ Each DbContext SHALL record applied migrations in a distinct SQLite table: `__EF
 
 ### Requirement: Host applies kernel migrations then product migrations
 
-The Standard host SHALL apply pending kernel migrations before pending `StandardDbContext` migrations at startup and MUST NOT apply `SolidWasteDbContext`, `UrbanDbContext`, or `RecycleDbContext` migrations. Urban, Recycle, and SolidWaste hosts SHALL initialize fresh databases directly from their current kernel and product EF models via `SqliteSchemaBootstrap.EnsureInitializedAsync` and enable WAL mode on file-backed SQLite databases, without running incremental EF migrations or legacy migration history table renames. Urban, Recycle, and SolidWaste hosts MUST NOT apply `StandardDbContext` migrations or another product's schema.
+All four desktop hosts (`MaterialClient` Standard, `MaterialClient.SolidWaste`, `MaterialClient.Urban`, and `MaterialClient.Recycle`) SHALL initialize fresh databases directly from their current kernel and product EF models via `SqliteSchemaBootstrap.EnsureInitializedAsync` and enable WAL mode on file-backed SQLite databases, and MUST NOT execute incremental EF `MigrateAsync()` or legacy migration history table renames at runtime. Standard legacy database migration (`MaterialClientDbContext` then `StandardDbContext`, including legacy `__EFMigrationsHistory` rename) SHALL be isolated in the standalone `MaterialClient.StandardMigrator` executable.
 
-#### Scenario: Urban fresh startup initializes kernel and Urban tables with WAL
+#### Scenario: Standard fresh startup initializes kernel and Standard tables with WAL
 
-- **WHEN** Urban runs database bootstrap against a non-existent file-backed SQLite path
-- **THEN** it SHALL create `MaterialClientDbContext` tables and `UrbanDbContext` tables directly from the current models
+- **WHEN** the standard `MaterialClient` host runs against a non-existent file-backed SQLite path
+- **THEN** it SHALL create `MaterialClientDbContext` tables and `StandardDbContext` tables directly from the current models
 - **AND** SHALL enable `PRAGMA journal_mode = WAL`
 - **AND** MUST NOT execute legacy history table rename or incremental EF migrations
 
-#### Scenario: Recycle fresh startup initializes kernel and Recycle tables with WAL
+#### Scenario: Standalone StandardMigrator upgrades a legacy Standard database
 
-- **WHEN** Recycle runs database bootstrap against a non-existent file-backed SQLite path
-- **THEN** it SHALL create `MaterialClientDbContext` tables and `RecycleDbContext` tables directly from the current models
-- **AND** SHALL enable `PRAGMA journal_mode = WAL`
-
-#### Scenario: SolidWaste fresh and existing startup without incremental migrations
-
-- **WHEN** `MaterialClient.SolidWaste` runs against a fresh database path
-- **THEN** it SHALL create `MaterialClientDbContext` tables and `SolidWasteDbContext` tables directly from the current models and enable WAL
-- **AND** when `MaterialClient.SolidWaste` opens an existing SolidWaste database, `DeploymentPreflight` SHALL validate required kernel tables, SolidWaste product identity, and SolidWaste extension tables without requiring EF migration history tables or retired upgrade tools
-
-#### Scenario: Standard host migrates kernel then Standard
-
-- **WHEN** the standard `MaterialClient` host applies startup migrations
-- **THEN** it SHALL migrate `MaterialClientDbContext` first
-- **AND** SHALL then migrate `StandardDbContext`
-- **AND** MUST NOT apply `SolidWasteDbContext`, `UrbanDbContext`, or `RecycleDbContext` migrations
+- **WHEN** `MaterialClient.StandardMigrator` runs against an existing Standard SQLite file
+- **THEN** it SHALL rename legacy `__EFMigrationsHistory` to `__EFMigrationsHistory_Kernel` when present
+- **AND** SHALL migrate `MaterialClientDbContext` first and `StandardDbContext` second
+- **AND** SHALL verify `PRAGMA integrity_check` and enable `PRAGMA journal_mode = WAL`
 
 ### Requirement: No cross-context database foreign keys
 
@@ -97,23 +85,16 @@ When more than one of `MaterialClientDbContext`, `UrbanDbContext`, and `RecycleD
 
 ### Requirement: File-backed SQLite startup migration preserves and enables WAL journal mode
 
-`SqliteMigrationHistoryMigrator.RenameLegacyHistoryTableIfNeededAsync` MUST NOT open or create a file-backed SQLite database when the target database file does not yet exist on disk. After applying kernel EF migrations on a file-backed SQLite database, `KernelDatabaseMigrator.MigrateAsync` SHALL ensure `PRAGMA journal_mode = WAL` is active. In-memory SQLite connections (`:memory:`) SHALL be skipped without error.
+`SqliteSchemaBootstrap.EnsureInitializedAsync` and `SqliteSchemaBootstrap.EnsureWalJournalModeAsync` SHALL ensure `PRAGMA journal_mode = WAL` is active on file-backed SQLite databases and SHALL skip `:memory:` SQLite connections without error. `MaterialClient.StandardMigrator` MUST NOT pre-create a non-existent SQLite file before migration and SHALL ensure `PRAGMA journal_mode = WAL` after migrating.
 
-#### Scenario: Fresh file-backed database enables WAL on startup migration
+#### Scenario: Existing DELETE-mode database switches to WAL on startup or standalone migration
 
-- **WHEN** `KernelDatabaseMigrator.MigrateAsync` runs against a file-backed SQLite path that does not yet exist
-- **THEN** `SqliteMigrationHistoryMigrator.RenameLegacyHistoryTableIfNeededAsync` MUST return without creating the file
-- **AND** after migration completes, querying `PRAGMA journal_mode` on that database SHALL return `wal`
+- **WHEN** `SqliteSchemaBootstrap.EnsureWalJournalModeAsync` or `MaterialClient.StandardMigrator` runs against an existing file-backed SQLite database currently in `DELETE` journal mode
+- **THEN** querying `PRAGMA journal_mode` on that database afterward SHALL return `wal`
 
-#### Scenario: Existing DELETE-mode database switches to WAL on startup migration
+#### Scenario: In-memory SQLite database skips WAL pragma without error
 
-- **WHEN** `KernelDatabaseMigrator.MigrateAsync` runs against an existing file-backed SQLite database currently in `DELETE` journal mode
-- **THEN** legacy history table migration SHALL still run when `__EFMigrationsHistory` is present
-- **AND** after migration completes, querying `PRAGMA journal_mode` on that database SHALL return `wal`
-
-#### Scenario: In-memory SQLite database skips file checks and WAL pragma
-
-- **WHEN** `KernelDatabaseMigrator.MigrateAsync` or `SqliteMigrationHistoryMigrator` runs against an in-memory (`:memory:`) SQLite connection
+- **WHEN** `SqliteSchemaBootstrap.EnsureWalJournalModeAsync` runs against an in-memory (`:memory:`) SQLite connection
 - **THEN** it SHALL complete without throwing or attempting file-system checks on `:memory:`
 
 ### Requirement: Retired migration and upgrade tools are removed from the solution
