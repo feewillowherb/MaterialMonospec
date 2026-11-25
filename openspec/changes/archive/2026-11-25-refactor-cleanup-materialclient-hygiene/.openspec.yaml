@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-25
+effort:
+  tier: S
+  tokens: ~30k
+  rationale: "4 localized C# trait fixes across 6 files plus root legacy directory cleanup in MaterialClient."
