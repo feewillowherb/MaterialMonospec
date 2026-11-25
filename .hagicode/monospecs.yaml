@@ -76,3 +76,13 @@ repositories:
     tags:
       - shared
       - third-party-api
+  - path: repos/FdSoft.Material
+    url: https://codeup.aliyun.com/6486caf3b583fece2f05ae26/Product_Material/FdSoft.Material.git
+    displayName: FdSoft.Material
+    type: WebServer
+    icon: 🧱
+    optional: true
+    tags:
+      - material
+      - aspnet
+      - web
