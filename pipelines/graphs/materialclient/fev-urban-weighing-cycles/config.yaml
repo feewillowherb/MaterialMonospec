@@ -1,0 +1,15 @@
+id: fev-urban-weighing-cycles
+created: "2026-11-25"
+graph:
+  product: materialclient
+  domain: materialclient
+  family: probe
+  goal: urban-weighing-cycles-sqlite-busy
+  status: active
+target:
+  fixture: fixtures/scenario.json
+adapters:
+  probe:
+    script: scripts/Invoke-FevUrbanWeighingCycles.ps1
+    nodeTool: scripts/probe.ts
+    experimental: true

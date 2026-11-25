@@ -1,0 +1,14 @@
+{
+  "baseUrl": "http://localhost:9933",
+  "cycles": 100,
+  "expectedWeighingMode": 201,
+  "offScaleTons": 0.3,
+  "firstStableTons": 10.95,
+  "stableIncrementTons": 0.1,
+  "weightToleranceTons": 0.05,
+  "initialSettleMs": 4000,
+  "rowTimeoutMs": 25000,
+  "departureTimeoutMs": 15000,
+  "departureSettleMs": 0,
+  "postRunSettleMs": 10000
+}

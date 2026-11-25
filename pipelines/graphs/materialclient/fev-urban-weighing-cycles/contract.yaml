@@ -1,0 +1,16 @@
+graphId: fev-urban-weighing-cycles
+inputs:
+  - running MaterialClient.Urban client in TestMode and UrbanMode
+  - database file and log directory actually used by the client
+  - localhost diagnostic API (default http://localhost:9933)
+invariants:
+  - Drive the client through diagnostic HTTP only.
+  - SQLite evidence connection is read-only.
+  - No external competing SQLite transaction is injected; observe in-process contention (WeighingCycleRecoveryWorker, PollingBackgroundService, WeighingRecordService).
+  - Each cycle uses a unique test plate and waits for departure.
+outputs:
+  - summary.json
+  - manifest.yaml
+  - report.md
+  - http.json
+  - log-excerpt.txt
