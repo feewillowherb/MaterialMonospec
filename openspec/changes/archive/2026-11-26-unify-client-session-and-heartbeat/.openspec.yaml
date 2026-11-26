@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: L
+  tokens_estimate: "40万-70万"
+  notes: "跨仓 repos/UrbanManagement + repos/MaterialClient，统一客户端身份解析、修复 O2/O3/O7/O8 缺陷、落地 RegisterSession 与 30s 轻量心跳（完全兼容 1.0 客户端）"
