@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: M
+  tokens_estimate: "20万-40万"
+  notes: "跨 MaterialClient 与 UrbanManagement 改造远程日志拉取为 SignalR 控制指令 + HTTP Zip 流式上传，并修复 L3/L4/L5/L7；保持 1.0 兼容且暂不改 MaterialClient.Recycle 宿主。"
