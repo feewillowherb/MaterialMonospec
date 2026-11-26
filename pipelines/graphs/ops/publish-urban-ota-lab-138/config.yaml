@@ -1,0 +1,84 @@
+id: "publish-urban-ota-lab-138"
+created: "2026-11-26"
+graph:
+  product: urban
+  domain: ops
+  family: ingest
+  goal: ops-publish-urban-ota-lab-138
+  status: active
+environment: local
+stopOnError: true
+secretsRef: secrets.local.yaml
+sockets:
+  start: urban-ota-source-ready
+  end: lab-138-ota-feed-verified
+cook: new-object
+
+target:
+  materialClientRepoRel: repos/MaterialClient
+  packScriptRel: repos/MaterialClient/scripts/pack-urban-ota.ps1
+  defaultReleaseDirRel: repos/MaterialClient/.build-verify/urban-releases-2.0
+  gatewayBaseUrl: http://192.168.3.138:5333
+  feedRelativePath: /updates/urban
+  subFolderName: urban
+
+prerequisites:
+  - .NET 10 SDK and Velopack CLI (vpk) on this machine
+  - OpenSSH client (ssh/scp) on PATH for upload mode
+  - secrets.local.yaml with host, user, remoteUpdatesDir (and optional port, password)
+
+steps:
+  - id: bind-config
+    name: Validate mode, version, and secrets.local.yaml (for upload); create runs/<ts>/
+  - id: pack
+    name: Run pack-urban-ota.ps1 to emit Full + Delta nupkg, Setup.exe, releases.win.json, and RELEASES
+  - id: upload
+    name: Ensure <remoteUpdatesDir>/urban exists on 138 and SCP release artifacts (upload -Apply only)
+  - id: verify
+    name: GET /updates/urban/releases.win.json and RELEASES; assert 200, no-cache, and target version
+  - id: report
+    name: Write summary.json and report.md under runs/<ts>/; P3 stays pending
+
+expect:
+  - id: reachable-or-packed
+    level: P0
+    description: Local pack succeeded or SSH reachable for upload
+  - id: artifacts-uploaded
+    level: P1
+    description: Release files (including delta.nupkg when prior version exists) uploaded to 138
+  - id: feed-verified
+    level: P2
+    description: GET /updates/urban/releases.win.json returns 200 with no-cache and target version
+  - id: user-ack
+    level: P3
+    description: User-only
+
+capture:
+  prepare: { required: true, sink: prepare/ }
+  scp: { required: false, sink: scp/ }
+  ssh: { required: false, sink: ssh/ }
+  summary: { required: true, sink: summary.json }
+  report: { required: true, sink: report.md }
+
+humanGates:
+  - missing-secrets
+  - upload-approval
+  - acceptance
+
+failurePolicy:
+  retries: 0
+  stopOnError: true
+
+adapters:
+  ssh:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Invoke-SshRemote.ps1
+    experimental: true
+  scp:
+    mode: script-invoke
+    script: ../../../_shared/ops/ssh/Copy-ScpToRemote.ps1
+    experimental: true
+  cook:
+    mode: script-invoke
+    script: scripts/Invoke-PublishUrbanOtaLab138.ps1
+    experimental: true
