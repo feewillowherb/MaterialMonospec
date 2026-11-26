@@ -1,0 +1,6 @@
+topic: 2026-11-26-urban-ota-138-fev
+created: "2026-11-26"
+updated: "2026-11-26"
+# 00: Gateway HTTP /updates INFEASIBLE (YARP fallback steals StaticFiles).
+# 01: publish+install+check/download/apply FEASIBLE on local Velopack feed.
+# Not an ICD delivery claim.

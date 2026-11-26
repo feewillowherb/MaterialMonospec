@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: M
+  tokens_estimate: "25万-50万"
+  notes: "跨仓 repos/UrbanManagement + repos/MaterialClient，复用 DeviceStatusHub 与 /internal/** 转发模式实现版本/更新状态上报、Admin 可视化与远程触发/灰度更新"
