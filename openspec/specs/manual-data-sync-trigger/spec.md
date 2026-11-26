@@ -3,9 +3,7 @@
 ## Purpose
 
 在有人值守界面中提供手动数据同步触发能力，允许用户通过点击按钮依次执行物料、物料类型、供应商、运单推送和附件上传同步操作，并通过消息对话框反馈同步结果。
-
 ## Requirements
-
 ### Requirement: 数据同步按钮绑定命令
 
 系统 SHALL 在有人值守界面（`AttendedWeighingWindow`）顶部菜单栏的"数据同步"按钮上绑定 `SyncDataCommand` 命令，使用户可通过点击按钮触发数据同步操作。
@@ -30,11 +28,11 @@
 2. 物料类型数据同步（`SyncMaterialTypeAsync`）
 3. 供应商数据同步（`SyncProviderAsync`）
 4. 运单数据推送（`PushWaybillAsync`）
-5. 运单附件上传（`SyncPendingAttachmentsToOssAsync`）
+5. 运单附件上传（`SyncPendingAttachmentsAsync`，经 `FdSoft.Material.PublicApi` 上传待同步附件，手动触发不受夜间低峰窗口限制）
 
 #### Scenario: 成功执行完整同步流程
 - **WHEN** 用户点击"数据同步"按钮
-- **THEN** 系统 SHALL 依次执行物料同步、物料类型同步、供应商同步、运单推送、附件上传 5 个步骤
+- **THEN** 系统 SHALL 依次执行物料同步、物料类型同步、供应商同步、运单推送、经 `PublicApi` 的附件上传 5 个步骤
 
 #### Scenario: 单个步骤失败不中断后续步骤
 - **WHEN** 同步流程中某个步骤执行失败
@@ -59,3 +57,4 @@
 #### Scenario: 消息对话框关闭后按钮恢复
 - **WHEN** 用户关闭同步结果消息对话框
 - **THEN** "数据同步"按钮 SHALL 恢复为可用状态
+

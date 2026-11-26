@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-25
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "跨 FdSoft.Material 与 MaterialClient 两仓，涉及 PublicApi 新上传接口、客户端移除 OSS、200KB 自适应压缩与夜间低峰独立 Worker"
