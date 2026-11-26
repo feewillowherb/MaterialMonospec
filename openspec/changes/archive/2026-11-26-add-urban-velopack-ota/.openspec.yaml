@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: M
+  tokens_estimate: "15万-40万"
+  notes: "单仓 repos/MaterialClient，在 MaterialClient.Urban 试点接入 Velopack 1.2.161、称重空闲门禁、后台静默检查/下载/应用与 vpk 打包验证"
