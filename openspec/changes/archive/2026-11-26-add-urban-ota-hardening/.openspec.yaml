@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: S
+  tokens_estimate: "10万-20万"
+  notes: "单仓 repos/MaterialClient，补齐一键 vpk 打包脚本、计划任务看门狗互斥脚本与 30s 启动健康标记"
