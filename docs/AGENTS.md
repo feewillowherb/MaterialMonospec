@@ -104,6 +104,7 @@ Pipeline PASS、Agent 建议和 DOCS `CONFIRMED` 都不足以修改产品行为�
 | Urban 与 Admin 客户端管理一致性及 UI 交互调研 | [`2026-11-25-urban-admin-client-management-consistency/`](2026-11-25-urban-admin-client-management-consistency/00-调研总览.md)（含 138 Admin UI 观察，Pipeline run `2026-11-25T101234`） |
 | 138 + Urban Velopack OTA FEV | [`2026-11-26-urban-ota-138-fev/`](2026-11-26-urban-ota-138-fev/00-调研总览.md)（00：Gateway HTTP `INFEASIBLE`；[`01-发布与更新`](2026-11-26-urban-ota-138-fev/01-发布与更新能力.md)：本地 Feed 发布/更新 `FEASIBLE`） |
 | MaterialClient 放弃 appsettings、收敛至 SQLite DB | [`2026-11-25-materialclient-db-first-config/`](2026-11-25-materialclient-db-first-config/00-调研总览.md)（全 4 宿主生效） |
+| Urban 与 Recycle 日志及在线状态代码缺陷盘点 | [`2026-11-26-urban-recycle-logging-online-audit/`](2026-11-26-urban-recycle-logging-online-audit/00-调研总览.md)（源码级缺陷 L1–L6 / O1–O6 与收口讨论） |
 
 ## Intake 需求收件（Parking）
 
