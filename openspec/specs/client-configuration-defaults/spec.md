@@ -62,10 +62,10 @@ All 4 MaterialClient desktop hosts SHALL keep `appsettings.json` empty (`{}`) an
 - **THEN** every `appsettings.json` SHALL be an empty JSON object `{}`
 - **AND** every host `.csproj` SHALL set `<CopyToPublishDirectory>Never</CopyToPublishDirectory>` for `appsettings.json`
 
-#### Scenario: SQLite database connection string is pinned to executable directory
+#### Scenario: SQLite database connection string resolves against active data root
 
 - **WHEN** any of the 4 MaterialClient hosts initializes its EF Core SQLite DbContexts
-- **THEN** the SQLite connection string SHALL resolve to `MaterialClient.db` inside `AppContext.BaseDirectory` (the executable directory) via `MaterialClientConfigurationDefaults.ResolveExeDirectoryConnectionString()` without requiring `ConnectionStrings:Default` in `appsettings.json`
+- **THEN** the SQLite connection string SHALL resolve to `MaterialClient.db` inside `PathManager.DataRoot` (`<InstallRoot>\data` under Velopack, or `AppContext.BaseDirectory` otherwise) without requiring `ConnectionStrings:Default` in `appsettings.json`
 
 #### Scenario: AliyunOss and Encryption:AesKey remain excluded and unchanged
 
@@ -97,4 +97,20 @@ All 4 MaterialClient desktop hosts SHALL keep `appsettings.json` empty (`{}`) an
 - **WHEN** an operator or tester places an `appsettings.json` specifying `BasePlatform:BaseUrl`, `MaterialPlatform:BaseUrl`, `UrbanManagement:BaseUrl`, or `RecycleSync:ApiUrl`
 - **THEN** the configured URL SHALL override the built-in default
 - **AND** `appsettings.secret.json` SHALL NOT contain `BasePlatform:BaseUrl` or `MaterialPlatform:BaseUrl` that would shadow `appsettings.json`
+
+### Requirement: Velopack-Aware Runtime Data Root Isolation
+
+`PathManager` SHALL automatically resolve the default runtime data root (`PathManager.DataRoot`) to `<InstallRoot>\data` when running inside a Velopack layout (executable directory named `current` with `Update.exe` in its parent directory), and to `AppContext.BaseDirectory` otherwise; all runtime data, logs, local image cleanup, camera test captures, ticket exports, and optional `appsettings*.json` overrides SHALL resolve against `PathManager.DataRoot`.
+
+#### Scenario: Velopack installation layout resolves data root to sibling data directory
+
+- **WHEN** the executable directory is `<InstallRoot>\current` and `<InstallRoot>\Update.exe` exists
+- **THEN** `PathManager.ResolveDefaultDataRoot` SHALL ensure `<InstallRoot>\data` exists and return `<InstallRoot>\data`
+- **AND** SQLite database, logs, local image cleanup, and optional `appsettings*.json` overrides SHALL resolve under `<InstallRoot>\data` rather than `current`
+
+#### Scenario: Non-Velopack layout keeps executable directory as data root
+
+- **WHEN** the executable directory is not a Velopack `current` directory with a parent `Update.exe`
+- **THEN** `PathManager.ResolveDefaultDataRoot` SHALL return the executable directory (`AppContext.BaseDirectory`)
+- **AND** existing local development and portable deployments SHALL retain identical file paths
 

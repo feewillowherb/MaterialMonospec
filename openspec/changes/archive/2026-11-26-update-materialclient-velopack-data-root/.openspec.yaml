@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-26
+effort:
+  tier: S
+  tokens_estimate: "10万-20万"
+  notes: "单仓 repos/MaterialClient，统一 Velopack 同盘 ..\data\ 数据根目录解析并收口 8 处运行期数据路径"
