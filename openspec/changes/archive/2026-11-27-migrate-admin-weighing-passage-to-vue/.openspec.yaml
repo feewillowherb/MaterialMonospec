@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-27
+effort:
+  tier: M
+  tokens_estimate: "20万-30万"
+  notes: "UrbanManagement 单仓：API-1 图片 URL 懒加载端点 + InlinePhotoPair + 称重/审批/卡口/成品 4 个 Vue 页面"

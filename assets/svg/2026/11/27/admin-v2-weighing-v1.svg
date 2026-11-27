@@ -1,0 +1,327 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <title>新版 Admin 称重记录页（Vue 3 + Element Plus）高保真预览</title>
+  <desc>展示称重记录页行内并排 2 张现场照片缩略图（移除查看照片按钮）、车牌/重量/照片同屏扫读带、表头手动拖拽调宽，以及展开态的宽弹层长项目名搜索下拉（完整换行不截断）。</desc>
+  <defs>
+    <style>
+      .f { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .t-brand { font-size: 15px; font-weight: 700; fill: #F8FAFC; }
+      .t-group { font-size: 11px; font-weight: 600; fill: #64748B; letter-spacing: 0.5px; }
+      .t-nav { font-size: 13px; fill: #CBD5E1; }
+      .t-nav-act { font-size: 13px; font-weight: 600; fill: #FFFFFF; }
+      .t-crumb-m { font-size: 13px; fill: #64748B; }
+      .t-crumb { font-size: 13px; font-weight: 600; fill: #0F172A; }
+      .t-sm { font-size: 12px; fill: #475569; }
+      .t-xs { font-size: 11px; fill: #64748B; }
+      .t-th { font-size: 12px; font-weight: 600; fill: #334155; }
+      .t-td { font-size: 13px; fill: #1E293B; }
+      .t-td-b { font-size: 13px; font-weight: 600; fill: #0F172A; }
+      .t-td-m { font-size: 12px; fill: #64748B; }
+      .t-link { font-size: 12px; font-weight: 500; fill: #2563EB; }
+      .t-warn-l { font-size: 12px; font-weight: 500; fill: #D97706; }
+      .t-btn { font-size: 12px; font-weight: 500; fill: #FFFFFF; }
+      .t-btn-g { font-size: 12px; font-weight: 500; fill: #334155; }
+      .b-ok { fill: #DCFCE7; }
+      .t-ok { font-size: 11px; font-weight: 600; fill: #15803D; }
+      .b-err { fill: #FEE2E2; }
+      .t-err { font-size: 11px; font-weight: 600; fill: #B91C1C; }
+      .b-mute { fill: #F1F5F9; }
+      .t-mute { font-size: 11px; font-weight: 500; fill: #64748B; }
+      .card { fill: #FFFFFF; stroke: #E2E8F0; stroke-width: 1; }
+      .inp { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 1; }
+      .inp-focus { fill: #FFFFFF; stroke: #2563EB; stroke-width: 1.5; }
+      .sep { stroke: #E2E8F0; stroke-width: 1; }
+      .row-sep { stroke: #F1F5F9; stroke-width: 1; }
+    </style>
+    <filter id="pop-sh" x="-8%" y="-8%" width="116%" height="124%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.16"/>
+    </filter>
+    <linearGradient id="fix-sh2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0F172A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.06"/>
+    </linearGradient>
+    <!-- Reusable vector photo thumbnail 1: panoramic weighbridge scene -->
+    <g id="thumb-pano">
+      <rect x="0" y="0" width="72" height="48" rx="4" fill="#CBD5E1"/>
+      <rect x="0" y="0" width="72" height="22" rx="4" fill="#93C5FD"/>
+      <rect x="0" y="28" width="72" height="20" rx="2" fill="#64748B"/>
+      <rect x="14" y="16" width="32" height="18" rx="2" fill="#334155"/>
+      <rect x="46" y="21" width="14" height="13" rx="2" fill="#1D4ED8"/>
+      <circle cx="23" cy="36" r="4" fill="#0F172A"/>
+      <circle cx="51" cy="36" r="4" fill="#0F172A"/>
+      <rect x="0" y="0" width="72" height="48" rx="4" fill="none" stroke="#CBD5E1"/>
+    </g>
+    <!-- Reusable vector photo thumbnail 2: plate / rear close-up -->
+    <g id="thumb-plate">
+      <rect x="0" y="0" width="72" height="48" rx="4" fill="#334155"/>
+      <rect x="8" y="13" width="56" height="22" rx="2" fill="#FACC15" stroke="#1E293B" stroke-width="1"/>
+      <text x="36" y="28" text-anchor="middle" class="mono" style="font-size:10px;font-weight:700;fill:#0F172A;">浙A8921</text>
+      <rect x="0" y="0" width="72" height="48" rx="4" fill="none" stroke="#CBD5E1"/>
+    </g>
+    <!-- Missing photo placeholder -->
+    <g id="thumb-empty">
+      <rect x="0" y="0" width="72" height="48" rx="4" fill="#F8FAFC" stroke="#CBD5E1" stroke-dasharray="3 2"/>
+      <text x="36" y="28" text-anchor="middle" class="f" style="font-size:11px;fill:#94A3B8;">无图</text>
+    </g>
+  </defs>
+
+  <!-- Canvas -->
+  <rect x="0" y="0" width="1440" height="900" fill="#F4F6F9"/>
+
+  <!-- Sidebar (220px) -->
+  <rect x="0" y="0" width="220" height="900" fill="#0F172A"/>
+  <rect x="16" y="13" width="24" height="24" rx="6" fill="#2563EB"/>
+  <path d="M22 25 L26 21 L30 25 L34 19" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="48" y="30" class="f t-brand">工控运维管理平台</text>
+  <line x1="0" y1="48" x2="220" y2="48" stroke="#1E293B" stroke-width="1"/>
+
+  <text x="18" y="76" class="f t-group">城管 · 5001</text>
+  <rect x="22" y="98" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="109" class="f t-nav">城管项目</text>
+
+  <!-- Active Item: 称重记录 -->
+  <rect x="8" y="122" width="204" height="36" rx="6" fill="#1E293B"/>
+  <rect x="8" y="128" width="3" height="24" rx="1.5" fill="#2563EB"/>
+  <rect x="22" y="134" width="12" height="12" rx="2" fill="none" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="44" y="145" class="f t-nav-act">称重记录</text>
+
+  <rect x="22" y="170" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="181" class="f t-nav">卡口进出</text>
+  <rect x="22" y="206" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="217" class="f t-nav">成品进出</text>
+  <rect x="22" y="242" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="253" class="f t-nav">异常审批</text>
+  <rect x="172" y="240" width="28" height="18" rx="9" fill="#7F1D1D"/>
+  <text x="186" y="253" text-anchor="middle" class="f" style="font-size:11px;font-weight:600;fill:#FCA5A5;">12</text>
+
+  <line x1="16" y1="278" x2="204" y2="278" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="304" class="f t-group">资源化 · 5020</text>
+  <rect x="22" y="320" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="331" class="f t-nav">资源化项目</text>
+
+  <line x1="16" y1="358" x2="204" y2="358" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="384" class="f t-group">工控机运维</text>
+  <rect x="22" y="400" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="411" class="f t-nav">客户端日志</text>
+  <rect x="22" y="436" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="447" class="f t-nav">客户端更新</text>
+
+  <line x1="0" y1="856" x2="220" y2="856" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="882" class="f" style="font-size:11px;fill:#475569;">凡东科技 · 运维控制台</text>
+
+  <!-- Topbar -->
+  <rect x="220" y="0" width="1220" height="48" fill="#FFFFFF"/>
+  <line x1="220" y1="48" x2="1440" y2="48" class="sep"/>
+  <rect x="236" y="14" width="22" height="20" rx="4" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <line x1="242" y1="20" x2="252" y2="20" stroke="#475569" stroke-width="1.5"/>
+  <line x1="242" y1="24" x2="252" y2="24" stroke="#475569" stroke-width="1.5"/>
+  <line x1="242" y1="28" x2="252" y2="28" stroke="#475569" stroke-width="1.5"/>
+  <text x="270" y="29" class="f t-crumb-m">城管</text>
+  <text x="303" y="29" class="f t-crumb-m">/</text>
+  <text x="315" y="29" class="f t-crumb">称重记录</text>
+
+  <rect x="1226" y="11" width="62" height="26" rx="4" class="inp"/>
+  <text x="1257" y="28" text-anchor="middle" class="f t-btn-g">刷新</text>
+  <circle cx="1312" cy="24" r="11" fill="#EFF6FF"/>
+  <text x="1312" y="28" text-anchor="middle" class="f" style="font-size:11px;font-weight:600;fill:#2563EB;">运</text>
+  <text x="1329" y="28" class="f t-sm">136****5678</text>
+  <line x1="1402" y1="16" x2="1402" y2="32" class="sep"/>
+  <text x="1412" y="28" class="f t-sm">退出</text>
+
+  <!-- Filter Bar Card -->
+  <rect x="236" y="64" width="1188" height="56" rx="6" class="card"/>
+  <!-- Plate Input -->
+  <rect x="250" y="77" width="116" height="30" rx="4" class="inp"/>
+  <text x="260" y="96" class="f t-xs">车牌号…</text>
+  <!-- Focused ProjectRemoteSelect (R3) -->
+  <rect x="376" y="77" width="248" height="30" rx="4" class="inp-focus"/>
+  <text x="386" y="96" class="f t-sm">搜索或选择项目（宽弹层）</text>
+  <text x="610" y="96" class="f t-xs">▴</text>
+  <!-- Date Range Picker -->
+  <rect x="634" y="77" width="254" height="30" rx="4" class="inp"/>
+  <text x="646" y="96" class="mono t-xs">2026-11-27 00:00 ~ 23:59</text>
+  <!-- Quick Date Pills -->
+  <rect x="896" y="77" width="44" height="30" rx="4" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="918" y="96" text-anchor="middle" class="f" style="font-size:11px;font-weight:600;fill:#2563EB;">今日</text>
+  <rect x="946" y="77" width="48" height="30" rx="4" class="inp"/>
+  <text x="970" y="96" text-anchor="middle" class="f t-xs">近3天</text>
+  <rect x="1000" y="77" width="48" height="30" rx="4" class="inp"/>
+  <text x="1024" y="96" text-anchor="middle" class="f t-xs">近7天</text>
+  <!-- Status Dropdown -->
+  <rect x="1058" y="77" width="94" height="30" rx="4" class="inp"/>
+  <text x="1070" y="96" class="f t-xs">称重状态 ▾</text>
+  <!-- Search & Reset -->
+  <rect x="1162" y="77" width="60" height="30" rx="4" fill="#2563EB"/>
+  <text x="1192" y="96" text-anchor="middle" class="f t-btn">查询</text>
+  <rect x="1230" y="77" width="60" height="30" rx="4" class="inp"/>
+  <text x="1260" y="96" text-anchor="middle" class="f t-btn-g">重置</text>
+
+  <!-- Main Table Card -->
+  <rect x="236" y="132" width="1188" height="752" rx="6" class="card"/>
+  <!-- Sticky Header -->
+  <rect x="237" y="133" width="1186" height="40" rx="5" fill="#F8FAFC"/>
+  <line x1="236" y1="173" x2="1424" y2="173" class="sep"/>
+
+  <text x="252" y="157" class="f t-th">车牌号</text>
+  <line x1="342" y1="141" x2="342" y2="165" stroke="#CBD5E1"/>
+  <text x="424" y="157" text-anchor="end" class="f t-th">重量(kg)</text>
+  <line x1="436" y1="141" x2="436" y2="165" stroke="#CBD5E1"/>
+  <text x="450" y="157" class="f t-th">现场照片 (2张)</text>
+  <line x1="614" y1="141" x2="614" y2="165" stroke="#CBD5E1"/>
+  <!-- Active Resize Handle Indicator -->
+  <rect x="613" y="133" width="3" height="40" fill="#2563EB"/>
+  <text x="628" y="157" class="f t-th">称重时间</text>
+  <line x1="774" y1="141" x2="774" y2="165" stroke="#CBD5E1"/>
+  <text x="788" y="157" class="f t-th">项目名称</text>
+  <line x1="992" y1="141" x2="992" y2="165" stroke="#CBD5E1"/>
+  <text x="1006" y="157" class="f t-th">称重状态</text>
+  <line x1="1080" y1="141" x2="1080" y2="165" stroke="#CBD5E1"/>
+  <text x="1094" y="157" class="f t-th">异常原因</text>
+  <line x1="1198" y1="141" x2="1198" y2="165" stroke="#CBD5E1"/>
+  <text x="1212" y="157" class="f t-th">同步状态</text>
+  <line x1="1294" y1="141" x2="1294" y2="165" stroke="#CBD5E1"/>
+  <!-- Fixed Right Action Column -->
+  <rect x="1286" y="133" width="8" height="690" fill="url(#fix-sh2)"/>
+  <rect x="1294" y="133" width="129" height="40" fill="#F8FAFC"/>
+  <text x="1358" y="157" text-anchor="middle" class="f t-th">操作</text>
+
+  <!-- Row 1 (64px height, 2 inline photos) -->
+  <rect x="237" y="174" width="1186" height="64" fill="#FFFFFF"/>
+  <text x="252" y="210" class="f t-td-b">浙A·8921挂</text>
+  <text x="424" y="210" text-anchor="end" class="mono t-td-b">34,620</text>
+  <use href="#thumb-pano" x="450" y="182"/>
+  <use href="#thumb-plate" x="528" y="182"/>
+  <text x="628" y="210" class="mono t-td-m">2026-11-27 11:32:10</text>
+  <text x="788" y="210" class="f t-td">杭州市萧山区北干街道萧政储出…</text>
+  <rect x="1006" y="195" width="48" height="22" rx="11" class="b-ok"/>
+  <text x="1030" y="210" text-anchor="middle" class="f t-ok">正常</text>
+  <text x="1094" y="210" class="f t-td-m">-</text>
+  <rect x="1210" y="195" width="64" height="22" rx="11" class="b-ok"/>
+  <text x="1242" y="210" text-anchor="middle" class="f t-ok">同步成功</text>
+  <text x="1332" y="210" text-anchor="middle" class="f t-warn-l">重置同步</text>
+  <line x1="237" y1="238" x2="1423" y2="238" class="row-sep"/>
+
+  <!-- Row 2 (Anomaly row, missing 2nd photo) -->
+  <rect x="237" y="239" width="1186" height="64" fill="#FEF2F2"/>
+  <text x="252" y="275" class="f t-td-b">浙A·D3612</text>
+  <text x="424" y="275" text-anchor="end" class="mono t-td-b">28,150</text>
+  <use href="#thumb-pano" x="450" y="247"/>
+  <use href="#thumb-empty" x="528" y="247"/>
+  <text x="628" y="275" class="mono t-td-m">2026-11-27 11:18:45</text>
+  <text x="788" y="275" class="f t-td">萧山区盈丰街道钱江世纪城核心…</text>
+  <rect x="1006" y="260" width="48" height="22" rx="11" class="b-err"/>
+  <text x="1030" y="275" text-anchor="middle" class="f t-err">异常</text>
+  <text x="1094" y="275" class="f" style="font-size:12px;fill:#B91C1C;">抓拍机离线无图</text>
+  <rect x="1210" y="260" width="64" height="22" rx="11" class="b-err"/>
+  <text x="1242" y="275" text-anchor="middle" class="f t-err">同步失败</text>
+  <text x="1324" y="275" class="f t-link">修改历史</text>
+  <text x="1378" y="275" class="f t-warn-l">重置</text>
+  <line x1="237" y1="303" x2="1423" y2="303" class="row-sep"/>
+
+  <!-- Row 3 -->
+  <rect x="237" y="304" width="1186" height="64" fill="#FFFFFF"/>
+  <text x="252" y="340" class="f t-td-b">浙A·51908</text>
+  <text x="424" y="340" text-anchor="end" class="mono t-td-b">41,080</text>
+  <use href="#thumb-pano" x="450" y="312"/>
+  <use href="#thumb-plate" x="528" y="312"/>
+  <text x="628" y="340" class="mono t-td-m">2026-11-27 10:55:21</text>
+  <text x="788" y="340" class="f t-td">新街街道长山头村保障性租赁住…</text>
+  <rect x="1006" y="325" width="48" height="22" rx="11" class="b-ok"/>
+  <text x="1030" y="340" text-anchor="middle" class="f t-ok">正常</text>
+  <text x="1094" y="340" class="f t-td-m">-</text>
+  <rect x="1210" y="325" width="64" height="22" rx="11" class="b-ok"/>
+  <text x="1242" y="340" text-anchor="middle" class="f t-ok">同步成功</text>
+  <text x="1332" y="340" text-anchor="middle" class="f t-warn-l">重置同步</text>
+  <line x1="237" y1="368" x2="1423" y2="368" class="row-sep"/>
+
+  <!-- Row 4 -->
+  <rect x="237" y="369" width="1186" height="64" fill="#FFFFFF"/>
+  <text x="252" y="405" class="f t-td-b">浙A·7302学</text>
+  <text x="424" y="405" text-anchor="end" class="mono t-td-b">31,400</text>
+  <use href="#thumb-pano" x="450" y="377"/>
+  <use href="#thumb-plate" x="528" y="377"/>
+  <text x="628" y="405" class="mono t-td-m">2026-11-27 10:41:03</text>
+  <text x="788" y="405" class="f t-td">湘湖新城闻堰南片区综合管廊一…</text>
+  <rect x="1006" y="390" width="48" height="22" rx="11" class="b-ok"/>
+  <text x="1030" y="405" text-anchor="middle" class="f t-ok">正常</text>
+  <text x="1094" y="405" class="f t-td-m">-</text>
+  <rect x="1210" y="390" width="56" height="22" rx="11" class="b-mute"/>
+  <text x="1238" y="405" text-anchor="middle" class="f t-mute">待同步</text>
+  <text x="1358" y="405" text-anchor="middle" class="f t-td-m">-</text>
+  <line x1="237" y1="433" x2="1423" y2="433" class="row-sep"/>
+
+  <!-- Row 5 -->
+  <rect x="237" y="434" width="1186" height="64" fill="#FFFFFF"/>
+  <text x="252" y="470" class="f t-td-b">浙A·60419</text>
+  <text x="424" y="470" text-anchor="end" class="mono t-td-b">38,910</text>
+  <use href="#thumb-pano" x="450" y="442"/>
+  <use href="#thumb-plate" x="528" y="442"/>
+  <text x="628" y="470" class="mono t-td-m">2026-11-27 10:12:38</text>
+  <text x="788" y="470" class="f t-td">杭州市萧山区北干街道萧政储出…</text>
+  <rect x="1006" y="455" width="48" height="22" rx="11" class="b-ok"/>
+  <text x="1030" y="470" text-anchor="middle" class="f t-ok">正常</text>
+  <text x="1094" y="470" class="f t-td-m">-</text>
+  <rect x="1210" y="455" width="64" height="22" rx="11" class="b-ok"/>
+  <text x="1242" y="470" text-anchor="middle" class="f t-ok">同步成功</text>
+  <text x="1332" y="470" text-anchor="middle" class="f t-warn-l">重置同步</text>
+  <line x1="237" y1="498" x2="1423" y2="498" class="row-sep"/>
+
+  <!-- Wide ProjectRemoteSelect Dropdown Popper Overlay (R3: 540px wide, full multi-line wrap) -->
+  <g filter="url(#pop-sh)">
+    <rect x="376" y="112" width="540" height="296" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <!-- Search inside popper -->
+    <rect x="390" y="124" width="512" height="32" rx="4" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="402" y="144" class="f t-sm">萧山</text>
+    <line x1="430" y1="132" x2="430" y2="148" stroke="#2563EB" stroke-width="1.5"/>
+    <text x="890" y="144" text-anchor="end" class="f t-xs">匹配 12 个项目</text>
+
+    <!-- Option 1 (Highlighted, full 2-line wrap + access code) -->
+    <rect x="384" y="164" width="524" height="60" rx="5" fill="#EFF6FF"/>
+    <text x="396" y="183" class="f" style="font-size:13px;font-weight:600;fill:#1D4ED8;">杭州市萧山区北干街道萧政储出(2025)18号地块住宅及配套商业</text>
+    <text x="396" y="201" class="f" style="font-size:13px;font-weight:600;fill:#1D4ED8;">用房工程（一期土方外运标段）</text>
+    <text x="396" y="217" class="mono t-xs">对接码：XS-2025-BG-0018 · 中天建设集团有限公司</text>
+
+    <!-- Option 2 (Full 2-line wrap) -->
+    <text x="396" y="246" class="f t-td">杭州市萧山区盈丰街道钱江世纪城核心区市政基础设施综合整治</text>
+    <text x="396" y="264" class="f t-td">与地下空间联通工程（二标段）</text>
+    <text x="396" y="280" class="mono t-xs">对接码：XS-2025-YF-0104 · 浙江建工集团有限责任公司</text>
+    <line x1="392" y1="290" x2="900" y2="290" class="row-sep"/>
+
+    <!-- Option 3 (Full 2-line wrap) -->
+    <text x="396" y="311" class="f t-td">杭州市萧山区义桥镇东方文化园配套道路及雨污水管网改造提升</text>
+    <text x="396" y="329" class="f t-td">建设项目（南段）</text>
+    <text x="396" y="345" class="mono t-xs">对接码：XS-2025-YQ-0042 · 萧山交通建设有限公司</text>
+    <line x1="392" y1="355" x2="900" y2="355" class="row-sep"/>
+
+    <!-- Option 4 -->
+    <text x="396" y="376" class="f t-td">萧山经济技术开发区桥南区块基础设施提升及渣土清运二期工程</text>
+    <text x="396" y="394" class="mono t-xs">对接码：XS-2025-QN-0079 · 杭州城建发展集团有限公司</text>
+  </g>
+
+  <!-- Horizontal Scrollbar -->
+  <rect x="244" y="822" width="1172" height="8" rx="4" fill="#F1F5F9"/>
+  <rect x="244" y="822" width="760" height="8" rx="4" fill="#CBD5E1"/>
+
+  <!-- Pagination Footer Bar -->
+  <line x1="236" y1="836" x2="1424" y2="836" class="sep"/>
+  <text x="252" y="864" class="f t-sm">共 246 条记录</text>
+  <rect x="348" y="847" width="84" height="26" rx="4" class="inp"/>
+  <text x="390" y="864" text-anchor="middle" class="f t-xs">20 条/页 ▾</text>
+
+  <rect x="1328" y="847" width="80" height="26" rx="4" class="inp"/>
+  <text x="1368" y="864" text-anchor="middle" class="f t-xs">重置列宽</text>
+
+  <rect x="1116" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1129" y="864" text-anchor="middle" class="f t-sm">‹</text>
+  <rect x="1148" y="847" width="26" height="26" rx="4" fill="#2563EB"/>
+  <text x="1161" y="864" text-anchor="middle" class="f t-btn">1</text>
+  <rect x="1180" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1193" y="864" text-anchor="middle" class="f t-sm">2</text>
+  <rect x="1212" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1225" y="864" text-anchor="middle" class="f t-sm">3</text>
+  <text x="1250" y="864" text-anchor="middle" class="f t-sm">…</text>
+  <rect x="1262" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1275" y="864" text-anchor="middle" class="f t-sm">13</text>
+  <rect x="1294" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1307" y="864" text-anchor="middle" class="f t-sm">›</text>
+</svg>

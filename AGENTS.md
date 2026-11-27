@@ -33,6 +33,7 @@ ViewModel / 界面层 **不得**直接使用 Repository：规则在 `traits/view
 | 可复用调研知识 | [`docs/AGENTS.md`](docs/AGENTS.md) |
 | Node.js cook / 验收 Graph | [`pipelines/AGENTS.md`](pipelines/AGENTS.md) |
 | 根脚本与 Graph 脚本边界 | [`scripts/AGENTS.md`](scripts/AGENTS.md) |
+| SVG 预览与静态资产 | [`assets/AGENTS.md`](assets/AGENTS.md)（SVG 规则见 [`assets/svg/AGENTS.md`](assets/svg/AGENTS.md)） |
 | 本机密钥（禁止写脚本） | [`.local/AGENTS.md`](.local/AGENTS.md) |
 | 可行性 / 交付 / Epic 停止 | `traits/fev-trait.md`、`traits/icd-trait.md`、`traits/ced-trait.md` |
 
@@ -64,6 +65,8 @@ MaterialMonospec/
 ├── scripts/                              # 工具脚本
 │   ├── validate-config.ps1               # 配置验证
 │   └── validate-migration.ps1            # 迁移验证
+├── assets/                               # 静态与预览资产（进 Git；约定见 assets/AGENTS.md）
+│   └── svg/                              # Chat 生成的 SVG 预览（YYYY/MM/DD/）
 ├── .hagicode/                            # HagiCode 配置
 │   ├── monospecs.yaml                    # 子仓库映射（目录联接）
 │   └── standard_words.yaml               # 标准用语

@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-27
+effort:
+  tier: M
+  tokens_estimate: "15万-25万"
+  notes: "UrbanManagement 单仓：迁移客户端日志与客户端更新至 Vue 3、切换根路径 SPA、下线 Blazor Server 及 Gateway /_blazor 路由"

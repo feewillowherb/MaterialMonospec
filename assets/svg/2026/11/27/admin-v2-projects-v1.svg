@@ -1,0 +1,343 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+  <title>新版 Admin 城管项目页（Vue 3 + Element Plus · 含多工控机展开冗余）高保真预览</title>
+  <desc>展示 3 组 Root Nav 深色侧栏、简洁顶栏、结构化筛选栏、全表头可调宽滚动表格、1 项目 1 接入码多工控机聚合徽标与展开子表、抓拍机直出状态、缩窄的项目地址、yyyy-MM-dd 授权过期日期及精简操作列。</desc>
+  <defs>
+    <style>
+      .f { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .t-brand { font-size: 15px; font-weight: 700; fill: #F8FAFC; }
+      .t-group { font-size: 11px; font-weight: 600; fill: #64748B; letter-spacing: 0.5px; }
+      .t-nav { font-size: 13px; fill: #CBD5E1; }
+      .t-nav-act { font-size: 13px; font-weight: 600; fill: #FFFFFF; }
+      .t-crumb-m { font-size: 13px; fill: #64748B; }
+      .t-crumb { font-size: 13px; font-weight: 600; fill: #0F172A; }
+      .t-sm { font-size: 12px; fill: #475569; }
+      .t-xs { font-size: 11px; fill: #64748B; }
+      .t-th { font-size: 12px; font-weight: 600; fill: #334155; }
+      .t-td { font-size: 13px; fill: #1E293B; }
+      .t-td-m { font-size: 12px; fill: #64748B; }
+      .t-link { font-size: 12px; font-weight: 500; fill: #2563EB; }
+      .t-btn { font-size: 12px; font-weight: 500; fill: #FFFFFF; }
+      .t-btn-g { font-size: 12px; font-weight: 500; fill: #334155; }
+      .b-ok { fill: #DCFCE7; }
+      .t-ok { font-size: 11px; font-weight: 600; fill: #15803D; }
+      .b-err { fill: #FEE2E2; }
+      .t-err { font-size: 11px; font-weight: 600; fill: #B91C1C; }
+      .b-warn { fill: #FEF3C7; }
+      .t-warn { font-size: 11px; font-weight: 600; fill: #B45309; }
+      .b-mute { fill: #F1F5F9; }
+      .t-mute { font-size: 11px; font-weight: 500; fill: #64748B; }
+      .card { fill: #FFFFFF; stroke: #E2E8F0; stroke-width: 1; }
+      .inp { fill: #FFFFFF; stroke: #CBD5E1; stroke-width: 1; }
+      .sep { stroke: #E2E8F0; stroke-width: 1; }
+      .row-sep { stroke: #F1F5F9; stroke-width: 1; }
+    </style>
+    <linearGradient id="fix-sh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0F172A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Canvas -->
+  <rect x="0" y="0" width="1440" height="900" fill="#F4F6F9"/>
+
+  <!-- Sidebar (220px) -->
+  <rect x="0" y="0" width="220" height="900" fill="#0F172A"/>
+  <rect x="16" y="13" width="24" height="24" rx="6" fill="#2563EB"/>
+  <path d="M22 25 L26 21 L30 25 L34 19" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="48" y="30" class="f t-brand">工控运维管理平台</text>
+  <line x1="0" y1="48" x2="220" y2="48" stroke="#1E293B" stroke-width="1"/>
+
+  <!-- Group 1: 城管 (5001) -->
+  <text x="18" y="76" class="f t-group">城管 · 5001</text>
+  <rect x="8" y="86" width="204" height="36" rx="6" fill="#1E293B"/>
+  <rect x="8" y="92" width="3" height="24" rx="1.5" fill="#2563EB"/>
+  <rect x="22" y="98" width="12" height="12" rx="2" fill="none" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="44" y="109" class="f t-nav-act">城管项目</text>
+
+  <rect x="22" y="134" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="145" class="f t-nav">称重记录</text>
+  <rect x="22" y="170" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="181" class="f t-nav">卡口进出</text>
+  <rect x="22" y="206" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="217" class="f t-nav">成品进出</text>
+  <rect x="22" y="242" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="253" class="f t-nav">异常审批</text>
+  <rect x="172" y="240" width="28" height="18" rx="9" fill="#7F1D1D"/>
+  <text x="186" y="253" text-anchor="middle" class="f" style="font-size:11px;font-weight:600;fill:#FCA5A5;">12</text>
+
+  <line x1="16" y1="278" x2="204" y2="278" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="304" class="f t-group">资源化 · 5020</text>
+  <rect x="22" y="320" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="331" class="f t-nav">资源化项目</text>
+
+  <line x1="16" y1="358" x2="204" y2="358" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="384" class="f t-group">工控机运维</text>
+  <rect x="22" y="400" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="411" class="f t-nav">客户端日志</text>
+  <rect x="22" y="436" width="12" height="12" rx="2" fill="none" stroke="#64748B" stroke-width="1.4"/>
+  <text x="44" y="447" class="f t-nav">客户端更新</text>
+
+  <line x1="0" y1="856" x2="220" y2="856" stroke="#1E293B" stroke-width="1"/>
+  <text x="18" y="882" class="f" style="font-size:11px;fill:#475569;">凡东科技 · 运维控制台</text>
+
+  <!-- Topbar (48px) -->
+  <rect x="220" y="0" width="1220" height="48" fill="#FFFFFF"/>
+  <line x1="220" y1="48" x2="1440" y2="48" class="sep"/>
+  <rect x="236" y="14" width="22" height="20" rx="4" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <line x1="242" y1="20" x2="252" y2="20" stroke="#475569" stroke-width="1.5"/>
+  <line x1="242" y1="24" x2="252" y2="24" stroke="#475569" stroke-width="1.5"/>
+  <line x1="242" y1="28" x2="252" y2="28" stroke="#475569" stroke-width="1.5"/>
+  <text x="270" y="29" class="f t-crumb-m">城管</text>
+  <text x="303" y="29" class="f t-crumb-m">/</text>
+  <text x="315" y="29" class="f t-crumb">城管项目</text>
+
+  <rect x="1226" y="11" width="62" height="26" rx="4" class="inp"/>
+  <text x="1257" y="28" text-anchor="middle" class="f t-btn-g">刷新</text>
+  <circle cx="1312" cy="24" r="11" fill="#EFF6FF"/>
+  <text x="1312" y="28" text-anchor="middle" class="f" style="font-size:11px;font-weight:600;fill:#2563EB;">运</text>
+  <text x="1329" y="28" class="f t-sm">136****5678</text>
+  <line x1="1402" y1="16" x2="1402" y2="32" class="sep"/>
+  <text x="1412" y="28" class="f t-sm">退出</text>
+
+  <!-- Filter Bar Card -->
+  <rect x="236" y="64" width="1188" height="56" rx="6" class="card"/>
+  <rect x="250" y="77" width="356" height="30" rx="5" fill="#F1F5F9"/>
+  <rect x="252" y="79" width="76" height="26" rx="4" fill="#FFFFFF"/>
+  <text x="290" y="96" text-anchor="middle" class="f" style="font-size:12px;font-weight:600;fill:#0F172A;">全部 128</text>
+  <text x="372" y="96" text-anchor="middle" class="f t-sm">工控机在线 94</text>
+  <text x="466" y="96" text-anchor="middle" class="f t-sm">离线 19</text>
+  <text x="556" y="96" text-anchor="middle" class="f t-sm">未注册 15</text>
+
+  <rect x="618" y="77" width="114" height="30" rx="5" fill="#FEF2F2" stroke="#FECACA"/>
+  <circle cx="634" cy="92" r="4" fill="#DC2626"/>
+  <text x="644" y="96" class="f" style="font-size:12px;font-weight:600;fill:#B91C1C;">仅看异常 23</text>
+
+  <rect x="746" y="77" width="286" height="30" rx="4" class="inp"/>
+  <text x="758" y="96" class="f t-xs">搜索项目名称 / 对接码 / 施工单位...</text>
+  <rect x="1042" y="77" width="60" height="30" rx="4" fill="#2563EB"/>
+  <text x="1072" y="96" text-anchor="middle" class="f t-btn">查询</text>
+  <rect x="1110" y="77" width="60" height="30" rx="4" class="inp"/>
+  <text x="1140" y="96" text-anchor="middle" class="f t-btn-g">重置</text>
+
+  <!-- Main Table Card -->
+  <rect x="236" y="132" width="1188" height="752" rx="6" class="card"/>
+  <rect x="237" y="133" width="1186" height="40" rx="5" fill="#F8FAFC"/>
+  <line x1="236" y1="173" x2="1424" y2="173" class="sep"/>
+
+  <!-- Columns (Expand col + Resizable headers) -->
+  <line x1="272" y1="141" x2="272" y2="165" stroke="#CBD5E1"/>
+  <text x="284" y="157" class="f t-th">项目名称</text>
+  <line x1="504" y1="141" x2="504" y2="165" stroke="#CBD5E1"/>
+  <rect x="503" y="133" width="3" height="40" fill="#2563EB"/>
+  <text x="516" y="157" class="f t-th">工控机</text>
+  <line x1="612" y1="141" x2="612" y2="165" stroke="#CBD5E1"/>
+  <text x="624" y="157" class="f t-th">抓拍机</text>
+  <line x1="726" y1="141" x2="726" y2="165" stroke="#CBD5E1"/>
+  <text x="738" y="157" class="f t-th">最后在线时间</text>
+  <line x1="874" y1="141" x2="874" y2="165" stroke="#CBD5E1"/>
+  <text x="886" y="157" class="f t-th">启用同步</text>
+  <line x1="960" y1="141" x2="960" y2="165" stroke="#CBD5E1"/>
+  <text x="972" y="157" class="f t-th">授权过期时间</text>
+  <line x1="1072" y1="141" x2="1072" y2="165" stroke="#CBD5E1"/>
+  <text x="1084" y="157" class="f t-th">施工单位</text>
+  <line x1="1208" y1="141" x2="1208" y2="165" stroke="#CBD5E1"/>
+  <text x="1220" y="157" class="f t-th">项目地址</text>
+  <line x1="1310" y1="141" x2="1310" y2="165" stroke="#CBD5E1"/>
+  <rect x="1302" y="133" width="8" height="690" fill="url(#fix-sh)"/>
+  <rect x="1310" y="133" width="113" height="40" fill="#F8FAFC"/>
+  <text x="1366" y="157" text-anchor="middle" class="f t-th">操作</text>
+
+  <!-- Row 1: Single IPC (Online) -->
+  <rect x="237" y="174" width="1186" height="44" fill="#FFFFFF"/>
+  <text x="254" y="200" text-anchor="middle" class="f t-xs">▸</text>
+  <text x="284" y="200" class="f t-td">杭州市萧山区北干街道萧政储出…</text>
+  <rect x="516" y="185" width="54" height="22" rx="11" class="b-ok"/>
+  <circle cx="528" cy="196" r="3" fill="#16A34A"/>
+  <text x="536" y="200" class="f t-ok">在线</text>
+  <rect x="624" y="185" width="76" height="22" rx="11" class="b-ok"/>
+  <circle cx="636" cy="196" r="3" fill="#16A34A"/>
+  <text x="644" y="200" class="f t-ok">在线 2/2</text>
+  <text x="738" y="200" class="mono t-td-m">2026-11-27 11:36:42</text>
+  <rect x="892" y="187" width="36" height="18" rx="9" fill="#2563EB"/>
+  <circle cx="919" cy="196" r="7" fill="#FFFFFF"/>
+  <text x="972" y="200" class="mono t-td">2027-06-30</text>
+  <text x="1084" y="200" class="f t-td-m">中天建设集团…</text>
+  <text x="1220" y="200" class="f t-td-m">萧山区北干…</text>
+  <text x="1338" y="200" class="f t-link">称重</text>
+  <text x="1378" y="200" class="f t-link">日志</text>
+  <line x1="237" y1="218" x2="1423" y2="218" class="row-sep"/>
+
+  <!-- Row 2: Multi-IPC Project (1 AccessCode -> 2 IPCs, Expanded!) -->
+  <rect x="237" y="219" width="1186" height="44" fill="#FFFBEB"/>
+  <text x="254" y="245" text-anchor="middle" class="f" style="font-size:12px;fill:#2563EB;font-weight:700;">▾</text>
+  <text x="284" y="245" class="f" style="font-size:13px;font-weight:600;fill:#0F172A;">萧山区盈丰街道钱江世纪城核心…</text>
+  <rect x="516" y="230" width="78" height="22" rx="11" class="b-warn" stroke="#F59E0B"/>
+  <circle cx="528" cy="241" r="3" fill="#D97706"/>
+  <text x="536" y="245" class="f t-warn">异常 1/2</text>
+  <rect x="624" y="230" width="78" height="22" rx="11" class="b-warn" stroke="#F59E0B"/>
+  <circle cx="636" cy="241" r="3" fill="#D97706"/>
+  <text x="644" y="245" class="f t-warn">异常 2/4</text>
+  <text x="738" y="245" class="mono t-td-m">2026-11-27 11:36:18</text>
+  <rect x="892" y="232" width="36" height="18" rx="9" fill="#2563EB"/>
+  <circle cx="919" cy="241" r="7" fill="#FFFFFF"/>
+  <text x="972" y="245" class="mono t-td">2026-12-15</text>
+  <text x="1084" y="245" class="f t-td-m">浙江建工集团…</text>
+  <text x="1220" y="245" class="f t-td-m">盈丰街道市…</text>
+  <text x="1338" y="245" class="f t-link">称重</text>
+  <text x="1378" y="245" class="f t-link">展开</text>
+  <line x1="237" y1="263" x2="1423" y2="263" class="sep"/>
+
+  <!-- Expanded Sub-Table for Multi-IPC (Same Project / Same AccessCode) -->
+  <rect x="237" y="264" width="1186" height="148" fill="#F8FAFC"/>
+  <rect x="272" y="274" width="1132" height="126" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <!-- Sub-table title bar -->
+  <rect x="273" y="275" width="1130" height="32" rx="5" fill="#F1F5F9"/>
+  <text x="288" y="295" class="f" style="font-size:12px;font-weight:600;fill:#334155;">项目下工控机明细（2 台）</text>
+  <text x="448" y="295" class="mono t-xs">对接码：XS-2025-YF-0104</text>
+  <line x1="273" y1="307" x2="1403" y2="307" class="sep"/>
+  <!-- Sub-table headers -->
+  <text x="288" y="325" class="f t-xs">工控机标识 / 机器码</text>
+  <text x="536" y="325" class="f t-xs">工控机状态</text>
+  <text x="646" y="325" class="f t-xs">抓拍机状态</text>
+  <text x="920" y="325" class="f t-xs">客户端版本</text>
+  <text x="1036" y="325" class="f t-xs">最后在线时间</text>
+  <text x="1286" y="325" class="f t-xs">单机操作</text>
+  <line x1="273" y1="333" x2="1403" y2="333" class="row-sep"/>
+
+  <!-- Sub-row 1: IPC #1 Online -->
+  <text x="288" y="356" class="mono t-td">IPC-YF-NORTH-01</text>
+  <text x="412" y="356" class="f t-xs">（北门地磅）</text>
+  <rect x="536" y="341" width="54" height="22" rx="11" class="b-ok"/>
+  <circle cx="548" cy="352" r="3" fill="#16A34A"/>
+  <text x="556" y="356" class="f t-ok">在线</text>
+  <rect x="646" y="341" width="76" height="22" rx="11" class="b-ok"/>
+  <circle cx="658" cy="352" r="3" fill="#16A34A"/>
+  <text x="666" y="356" class="f t-ok">在线 2/2</text>
+  <text x="732" y="356" class="f t-xs">入口在线 · 出口在线</text>
+  <text x="920" y="356" class="mono t-td-m">v2.1.4</text>
+  <text x="1036" y="356" class="mono t-td-m">2026-11-27 11:36:18</text>
+  <text x="1286" y="356" class="f t-link">拉取日志</text>
+  <text x="1348" y="356" class="f t-link">推送更新</text>
+  <line x1="273" y1="368" x2="1403" y2="368" class="row-sep"/>
+
+  <!-- Sub-row 2: IPC #2 Offline -->
+  <rect x="273" y="369" width="1130" height="30" rx="4" fill="#FEF2F2"/>
+  <text x="288" y="388" class="mono t-td">IPC-YF-SOUTH-02</text>
+  <text x="412" y="388" class="f t-xs">（南门地磅）</text>
+  <rect x="536" y="373" width="54" height="22" rx="11" class="b-err"/>
+  <circle cx="548" cy="384" r="3" fill="#DC2626"/>
+  <text x="556" y="388" class="f t-err">离线</text>
+  <rect x="646" y="373" width="76" height="22" rx="11" class="b-err"/>
+  <circle cx="658" cy="384" r="3" fill="#DC2626"/>
+  <text x="666" y="388" class="f t-err">离线 0/2</text>
+  <text x="732" y="388" class="f" style="font-size:11px;fill:#B91C1C;">工控机离线 · 心跳超时</text>
+  <text x="920" y="388" class="mono t-td-m">v2.1.4</text>
+  <text x="1036" y="388" class="mono" style="font-size:12px;fill:#B91C1C;">2026-11-27 08:14:09</text>
+  <text x="1286" y="388" class="f t-td-m">拉取日志</text>
+  <text x="1348" y="388" class="f t-td-m">推送更新</text>
+  <line x1="237" y1="412" x2="1423" y2="412" class="sep"/>
+
+  <!-- Row 3: Single IPC Offline -->
+  <rect x="237" y="413" width="1186" height="44" fill="#FEF2F2"/>
+  <text x="254" y="439" text-anchor="middle" class="f t-xs">▸</text>
+  <text x="284" y="439" class="f t-td">杭州市萧山区义桥镇东方文化园…</text>
+  <rect x="516" y="424" width="54" height="22" rx="11" class="b-err"/>
+  <circle cx="528" cy="435" r="3" fill="#DC2626"/>
+  <text x="536" y="439" class="f t-err">离线</text>
+  <rect x="624" y="424" width="56" height="22" rx="11" class="b-err"/>
+  <circle cx="636" cy="435" r="3" fill="#DC2626"/>
+  <text x="644" y="439" class="f t-err">离线</text>
+  <text x="738" y="439" class="mono" style="font-size:12px;fill:#B91C1C;">2026-11-26 17:12:05</text>
+  <rect x="892" y="426" width="36" height="18" rx="9" fill="#2563EB"/>
+  <circle cx="919" cy="435" r="7" fill="#FFFFFF"/>
+  <text x="972" y="439" class="mono" style="font-size:13px;fill:#B45309;font-weight:600;">2026-12-01</text>
+  <text x="1084" y="439" class="f t-td-m">萧山交通建设…</text>
+  <text x="1220" y="439" class="f t-td-m">义桥镇时代…</text>
+  <text x="1338" y="439" class="f t-link">称重</text>
+  <text x="1378" y="439" class="f t-td-m">日志</text>
+  <line x1="237" y1="457" x2="1423" y2="457" class="row-sep"/>
+
+  <!-- Row 4: Multi-IPC all online (2/2) -->
+  <rect x="237" y="458" width="1186" height="44" fill="#FFFFFF"/>
+  <text x="254" y="484" text-anchor="middle" class="f t-xs">▸</text>
+  <text x="284" y="484" class="f t-td">湘湖新城闻堰南片区综合管廊一…</text>
+  <rect x="516" y="469" width="76" height="22" rx="11" class="b-ok"/>
+  <circle cx="528" cy="480" r="3" fill="#16A34A"/>
+  <text x="536" y="484" class="f t-ok">在线 2/2</text>
+  <rect x="624" y="469" width="76" height="22" rx="11" class="b-ok"/>
+  <circle cx="636" cy="480" r="3" fill="#16A34A"/>
+  <text x="644" y="484" class="f t-ok">在线 4/4</text>
+  <text x="738" y="484" class="mono t-td-m">2026-11-27 11:36:55</text>
+  <rect x="892" y="471" width="36" height="18" rx="9" fill="#2563EB"/>
+  <circle cx="919" cy="480" r="7" fill="#FFFFFF"/>
+  <text x="972" y="484" class="mono t-td">2027-12-31</text>
+  <text x="1084" y="484" class="f t-td-m">中交三航局…</text>
+  <text x="1220" y="484" class="f t-td-m">闻堰时代大…</text>
+  <text x="1338" y="484" class="f t-link">称重</text>
+  <text x="1378" y="484" class="f t-link">展开</text>
+  <line x1="237" y1="502" x2="1423" y2="502" class="row-sep"/>
+
+  <!-- Row 5: Legacy client (未上报) -->
+  <rect x="237" y="503" width="1186" height="44" fill="#FFFFFF"/>
+  <text x="254" y="529" text-anchor="middle" class="f t-xs">▸</text>
+  <text x="284" y="529" class="f t-td">萧山经济技术开发区桥南区块基…</text>
+  <rect x="516" y="514" width="54" height="22" rx="11" class="b-ok"/>
+  <circle cx="528" cy="525" r="3" fill="#16A34A"/>
+  <text x="536" y="529" class="f t-ok">在线</text>
+  <rect x="624" y="514" width="60" height="22" rx="11" class="b-mute"/>
+  <text x="654" y="529" text-anchor="middle" class="f t-mute">未上报</text>
+  <text x="738" y="529" class="mono t-td-m">2026-11-27 11:20:09</text>
+  <rect x="892" y="516" width="36" height="18" rx="9" fill="#2563EB"/>
+  <circle cx="919" cy="525" r="7" fill="#FFFFFF"/>
+  <text x="972" y="529" class="mono t-td">2027-03-31</text>
+  <text x="1084" y="529" class="f t-td-m">杭州城建发展…</text>
+  <text x="1220" y="529" class="f t-td-m">桥南鸿兴路…</text>
+  <text x="1338" y="529" class="f t-link">称重</text>
+  <text x="1378" y="529" class="f t-td-m">日志</text>
+  <line x1="237" y1="547" x2="1423" y2="547" class="row-sep"/>
+
+  <!-- Row 6: Unregistered -->
+  <rect x="237" y="548" width="1186" height="44" fill="#FFFFFF"/>
+  <text x="284" y="574" class="f t-td">临浦镇通二村安置房二期土方外…</text>
+  <rect x="516" y="559" width="60" height="22" rx="11" class="b-mute"/>
+  <text x="546" y="574" text-anchor="middle" class="f t-mute">未注册</text>
+  <rect x="624" y="559" width="60" height="22" rx="11" class="b-mute"/>
+  <text x="654" y="574" text-anchor="middle" class="f t-mute">未上报</text>
+  <text x="738" y="574" class="mono t-td-m">-</text>
+  <rect x="892" y="561" width="36" height="18" rx="9" fill="#CBD5E1"/>
+  <circle cx="901" cy="570" r="7" fill="#FFFFFF"/>
+  <text x="972" y="574" class="mono t-td">2026-10-01</text>
+  <text x="1084" y="574" class="f t-td-m">浙江临浦市政…</text>
+  <text x="1220" y="574" class="f t-td-m">临浦镇通二…</text>
+  <text x="1338" y="574" class="f t-link">称重</text>
+  <text x="1378" y="574" class="f t-td-m">日志</text>
+  <line x1="237" y1="592" x2="1423" y2="592" class="row-sep"/>
+
+  <!-- Horizontal Scrollbar -->
+  <rect x="244" y="822" width="1172" height="8" rx="4" fill="#F1F5F9"/>
+  <rect x="244" y="822" width="680" height="8" rx="4" fill="#CBD5E1"/>
+
+  <!-- Pagination Footer Bar -->
+  <line x1="236" y1="836" x2="1424" y2="836" class="sep"/>
+  <text x="252" y="864" class="f t-sm">共 128 条记录</text>
+  <rect x="348" y="847" width="84" height="26" rx="4" class="inp"/>
+  <text x="390" y="864" text-anchor="middle" class="f t-xs">20 条/页 ▾</text>
+
+  <rect x="1328" y="847" width="80" height="26" rx="4" class="inp"/>
+  <text x="1368" y="864" text-anchor="middle" class="f t-xs">重置列宽</text>
+
+  <rect x="1116" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1129" y="864" text-anchor="middle" class="f t-sm">‹</text>
+  <rect x="1148" y="847" width="26" height="26" rx="4" fill="#2563EB"/>
+  <text x="1161" y="864" text-anchor="middle" class="f t-btn">1</text>
+  <rect x="1180" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1193" y="864" text-anchor="middle" class="f t-sm">2</text>
+  <rect x="1212" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1225" y="864" text-anchor="middle" class="f t-sm">3</text>
+  <text x="1250" y="864" text-anchor="middle" class="f t-sm">…</text>
+  <rect x="1262" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1275" y="864" text-anchor="middle" class="f t-sm">7</text>
+  <rect x="1294" y="847" width="26" height="26" rx="4" class="inp"/>
+  <text x="1307" y="864" text-anchor="middle" class="f t-sm">›</text>
+</svg>

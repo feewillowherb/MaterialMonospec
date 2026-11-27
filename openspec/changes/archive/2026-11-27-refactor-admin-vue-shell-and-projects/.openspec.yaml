@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-27
+effort:
+  tier: M
+  tokens_estimate: "15万-25万"
+  notes: "UrbanManagement 单仓：Vue 3 底座 + 新壳 + 城管/资源化项目管理 + API-2/API-3 后端补齐"
