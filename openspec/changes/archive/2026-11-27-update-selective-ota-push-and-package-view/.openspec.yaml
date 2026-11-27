@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-27
+effort:
+  tier: S
+  tokens_estimate: "8万-15万"
+  notes: "客户端关闭默认全量自动轮询改为仅响应 Admin 选择性推送；Admin /client-updates 展示服务端安装包清单与按项目/客户端精准推送确认。"
