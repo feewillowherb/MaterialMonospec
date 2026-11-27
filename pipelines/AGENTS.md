@@ -226,6 +226,7 @@ pnpm exec tsx ./graphs/<domain>/<slug>/scripts/<tool>.ts
 | gov-gdxs20260520002-weighbridge-save | probe | `graphs/govsync/gdxs20260520002-weighbridge/` | active |
 | gov-330109202203290201-weighbridge-save | probe | `graphs/govsync/330109202203290201-weighbridge/` | active |
 | gov-xnxs20251029001-weighbridge-save | probe | `graphs/govsync/xnxs20251029001-weighbridge/` | active |
+| gov-330109202306270101-weighbridge-save | probe | `graphs/govsync/330109202306270101-weighbridge/` | active |
 | gov-xiaoshan-gate-save | probe | `graphs/govsync/xiaoshan-gate/` | active |
 | gov-xiaoshan-serve-api-post | probe | `graphs/govsync/xiaoshan-serve-apipost/` | active |
 | gov-xiaoshan-product-save | probe | `graphs/govsync/xiaoshan-product/` | active |
