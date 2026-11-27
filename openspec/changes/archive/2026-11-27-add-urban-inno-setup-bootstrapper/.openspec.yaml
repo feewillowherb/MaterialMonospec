@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-11-27
+effort:
+  tier: S
+  tokens_estimate: "5万-10万"
+  notes: "使用 Inno Setup 6 为 Velopack Setup.exe 封装默认 D 盘中文首次安装向导（MaterialClient.Urban-Installer.exe），并在 Admin 优先提供该安装包下载。"
