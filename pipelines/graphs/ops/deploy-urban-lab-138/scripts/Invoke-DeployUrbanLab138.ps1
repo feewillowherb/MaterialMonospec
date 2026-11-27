@@ -145,6 +145,18 @@ $bundlePath = $null
 if ($Mode -ne "verify") {
     $stage = Join-Path $prepare "stage"
     New-Item -ItemType Directory -Force -Path (Join-Path $stage "services") | Out-Null
+    $adminClient = Join-Path $urban "src\UrbanManagement.Admin\client"
+    if (Test-Path (Join-Path $adminClient "package.json")) {
+        Write-Host "[lab-138] npm run build (Admin client)"
+        Push-Location -LiteralPath $adminClient
+        try {
+            & npm run build
+            if ($LASTEXITCODE -ne 0) { throw "Admin client build failed: $LASTEXITCODE" }
+        }
+        finally {
+            Pop-Location
+        }
+    }
     $client = Join-Path $urban "src\UrbanManagement.Recycle\client"
     if (Test-Path (Join-Path $client "package.json")) {
         Write-Host "[lab-138] npm run build (Recycle client)"
@@ -165,6 +177,10 @@ if ($Mode -ne "verify") {
         if ($LASTEXITCODE -ne 0) { throw "publish $service failed: $LASTEXITCODE" }
     }
     Copy-Item -LiteralPath (Join-Path $urban "deploy\docker\Dockerfile") -Destination (Join-Path $stage "Dockerfile")
+    $entrypointPath = Join-Path $urban "deploy\docker\docker-entrypoint.sh"
+    if (Test-Path -LiteralPath $entrypointPath) {
+        Copy-Item -LiteralPath $entrypointPath -Destination (Join-Path $stage "docker-entrypoint.sh")
+    }
     $bundlePath = Join-Path $prepare "bundle.tgz"
     if (Test-Path -LiteralPath $bundlePath) { Remove-Item -LiteralPath $bundlePath -Force }
     & tar.exe -czf $bundlePath -C $stage .

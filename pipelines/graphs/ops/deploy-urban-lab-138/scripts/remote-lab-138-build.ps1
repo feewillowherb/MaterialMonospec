@@ -102,7 +102,7 @@ if ($LASTEXITCODE -ne 0) { Finish "BUILD_FAILED compose_up" 1 }
 Write-Log "compose_up"
 cmd /c "docker ps --format `"{{.Names}} {{.Image}} {{.Status}} {{.Ports}}`" >> `"$log`" 2>&1"
 $mountRaw = docker inspect urbanmanagement-um-recycle-1 --format "{{range .Mounts}}{{.Type}} {{.Destination}} {{.Source}}{{println}}{{end}}"
-$mountText = ([string]$mountRaw).Trim().Replace('\', '/')
+$mountText = (@($mountRaw) -join "`n").Trim().Replace('\', '/')
 $uploadsLine = ($mountText -split "`n" | Where-Object { $_ -match '(?i)\s/app/Uploads\s' } | Select-Object -First 1)
 if ([string]::IsNullOrWhiteSpace($uploadsLine) -or $uploadsLine -notmatch '(?i)^bind\s+/app/Uploads\s+' -or $uploadsLine -notmatch '(?i)wwwroot/UrbanManagement/Uploads') {
     Write-Log ("uploads_mount " + $mountText)
